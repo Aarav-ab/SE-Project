@@ -1,0 +1,298 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titling}
+
+
+\makeatletter \newcommand{\BvrSetLabInstructor}[1]{\gdef\Bvr@LabInstructor{#1}}
+\newcommand{\Bvr@LabInstructor}{Paramveer Sidhu}
+\newcommand{\BvrLabInstructorValue}{\Bvr@LabInstructor}
+\makeatother
+
+\pretitle{\begin{center}\bfseries\fontsize{18bp}{18bp}\selectfont}
+\makeatletter
+\newcommand{\BvrSubtitle}[1]{%
+  \posttitle{\par\end{center}\begin{center}\large#1\end{center}\vskip 0.5em}}
+\makeatother
+\newcommand{\BvrHint}[1]{{\normalfont\normalsize\itshape\hfill #1}}
+
+\title{NagrikConnect: A Smart Civic Information and Grievance Platform}
+\BvrSetLabInstructor{Paramveer Sidhu}
+\BvrSubtitle{Project Proposal for UCS503P\\
+Submitted to: \BvrLabInstructorValue \\ \bfseries
+Thapar Institute of Engineering and Technology}
+
+\author{
+  Aarav Bansal, COPC%
+  \thanks{Roll No: \texttt{1024170349}, Email: \texttt{abansal4\_be24\@thapar.edu}}
+  \and
+  Pushkar Sheokand, COPC%
+  \thanks{Roll No: \texttt{1024170381}, Email: \texttt{psheokand\_be24\@thapar.edu}}
+  \and
+  Tarun Chaudhary, COPC%
+  \thanks{Roll No: \texttt{1024170383}, Email: \texttt{tchaudhary\_be24\@thapar.edu}}
+}
+\date{August 17, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Higher-order goal%
+  \BvrHint{\ldots citizen-centric framing}}
+NagrikConnect aims to make interaction between citizens and city services simpler, more transparent, and more accessible. The broader goal is to provide a single citizen-facing platform through which people can discover essential city information, understand service updates, and report civic problems without needing to navigate multiple departmental platforms.
+
+The immediate engineering objective is to build a deployable and measurable software system that connects a citizen's problem to the appropriate civic-service workflow while providing transparent complaint tracking.
+
+\section{Time-to-value %
+\BvrHint{\ldots primary heuristic}}
+\begin{itemize}[leftmargin=0.7cm]
+    \item We will build the core citizen-to-resolution workflow first and demonstrate a working increment early in the semester.
+    \item Development will follow short iterations so that the citizen interface, backend workflow, and administrative dashboard can be validated independently before full integration.
+    \item The project will prioritize a functional Minimum Viable Product (MVP) for one selected city/municipality before adding advanced features.
+    \item Success will be evaluated through measurable workflow outcomes such as complaint acknowledgement time, successful routing, status visibility, and user clarity.
+\end{itemize}
+
+\section{Problem Statement}
+Citizens in Indian cities rely on multiple public services, including waste collection, water supply, transportation, healthcare, emergency services, roads, street lighting, and public facilities. However, information about these services is often distributed across different websites, applications, helplines, social-media channels, and government departments.
+\\
+Common pain points include:
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{Fragmentation:} citizens must often switch between different sources to find city-service information.
+    \item \textbf{Department uncertainty:} citizens may know the problem but not which department, authority, ward, or municipality is responsible.
+    \item \textbf{Low transparency:} complaint status and progress may not be visible through a single consistent workflow.
+    \item \textbf{Information overload:} important announcements, service schedules, emergency contacts, and facility information may be difficult to discover quickly.
+    \item \textbf{Accessibility barriers:} citizens with limited digital literacy or preference for local languages may find text-heavy and department-specific processes difficult to use.
+\end{itemize}
+
+The central problem is therefore to create a \emph{single, citizen-oriented entry point} for city information and civic complaints, while keeping the underlying system configurable for different departments and cities.
+
+\section{Present Solutions %
+\BvrHint{\ldots existing ecosystem}}
+Several existing solutions address parts of the problem. Municipal 311-style applications provide civic complaints and local services; unified government platforms provide access to government services; grievance portals provide complaint submission and tracking.\\
+
+These solutions establish that centralized civic-service software is feasible. However, they are often tied to a particular municipality, department, or service ecosystem. NagrikConnect is therefore not proposed as a \textbf{replacement} for existing government systems. Instead, it focuses on a common citizen experience that combines city information, service discovery, location-based information, and complaint management.
+
+\section{Gap in the Solution %
+\BvrHint{\ldots opportunity}}
+The key gap addressed by NagrikConnect is the lack of a simple, unified workflow between \emph{``I have a civic problem''} and \emph{``I know where and how to report it.''}
+
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{Unified access:} city services, announcements, facilities, emergency information, and complaints are brought into one interface.
+    \item \textbf{Problem-first interaction:} citizens can describe a problem without first understanding the administrative structure.
+    \item \textbf{Department recommendation:} the system can suggest a suitable department from the issue category and configured city rules.
+    \item \textbf{Location-aware routing:} the user's locality/ward can be used to identify the applicable jurisdiction.
+    \item \textbf{End-to-end visibility:} submission, assignment, progress, resolution, and citizen feedback can be represented as one workflow.
+    \item \textbf{Reusable architecture:} city, department, service, and jurisdiction data can be configured rather than hard-coded.
+\end{itemize}
+
+\section{Proposed Solution %
+\BvrHint{\ldots NagrikConnect}}
+\subsection{Overview}
+Build \textbf{NagrikConnect}, a web-based Smart City Information and Civic Grievance Platform with two primary interfaces:
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{Citizen portal:} access city services, announcements, schedules, emergency information and civic complaint services.
+    \item \textbf{Admin/department portal:} manage service information, announcements, facilities, complaint assignments, status updates, and performance information.
+\end{itemize}
+
+The central idea is to make NagrikConnect a \emph{single entry point} for citizens rather than another isolated department-specific application.
+
+\subsection{Core workflow}
+\begin{enumerate}[leftmargin=0.7cm]
+    \item Citizen opens NagrikConnect and searches for information or reports a civic issue.
+    \item For a complaint, the citizen enters a description and may optionally provide a photograph and location.
+    \item The system identifies the issue category and, where configured, suggests the responsible department.
+    \item The location is used to determine the relevant city/ward/jurisdiction within the supported prototype.
+    \item The citizen reviews and confirms the suggested category and department.
+    \item The system generates a complaint ID and records the complaint.
+    \item Department staff view the complaint through their dashboard and update its status.
+    \item The citizen tracks the complaint timeline and can provide feedback after resolution.
+\end{enumerate}
+
+\subsection{Core city-information features}
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{City services directory:} structured information about waste, water, transportation, healthcare, public safety, and selected municipal services.
+    \item \textbf{Waste collection information:} area-wise collection schedules and service status.
+    \item \textbf{Announcements:} maintenance notices, service interruptions, schedule changes, and important civic updates.
+    \item \textbf{Emergency information:} quick access to configured emergency contacts and nearby facilities.
+    \item \textbf{Search:} one search interface for services, facilities, announcements, and other city information.
+\end{itemize}
+
+\subsection{Complaint-management features}
+\begin{itemize}[leftmargin=0.7cm]
+    \item Complaint ID generation and acknowledgement.
+    \item Optional photograph and location evidence.
+    \item Configurable issue categories and departments.
+    \item Department assignment and ownership.
+    \item Status lifecycle: \texttt{Submitted} $\rightarrow$ \texttt{Assigned} $\rightarrow$ \texttt{In Progress} $\rightarrow$ \texttt{Resolved}.
+    \item Citizen feedback and reopening when the issue is not actually resolved.
+    \item Basic SLA/overdue indicators for administrative monitoring.
+\end{itemize}
+
+\section{Solution Approach %
+\BvrHint{\ldots Engineering focus}}
+This is an engineering course project. The focus will be on building a reliable, modular civic-service workflow rather than claiming novel AI research.
+
+\subsection{Intelligent complaint assistance %
+\BvrHint{\ldots supporting feature}}
+Where feasible, NagrikConnect will provide optional intelligent assistance:
+\begin{itemize}[leftmargin=0.7cm]
+    \item Convert a citizen's free-form text into a structured issue category.
+    \item Recommend a department based on the issue and configured municipal rules.
+    \item Use location information to suggest the applicable ward/jurisdiction.
+    \item Provide speech-to-text and selected Indian-language support as an accessibility enhancement.
+\end{itemize}
+
+The AI component will \emph{recommend} rather than independently submit a complaint to an unknown authority. The final category and department can be shown to the citizen for confirmation, while routing is validated through a configurable database/rules layer. This keeps the system testable and reduces incorrect automated routing.
+
+\subsection{Web architecture %
+\BvrHint{\ldots web-based solution}}
+A typical 3-tier architecture will be used:
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{Frontend:} responsive citizen and staff interfaces, service pages, maps, complaint forms, status timelines, and dashboards. 
+    \item \textbf{Backend API:} authentication, authorization, complaint submission, department routing, status transitions, service management, and notification logic.
+    \item \textbf{Database:} users, cities, wards, departments, services, facilities, schedules, announcements, complaints, status history, and attachment metadata.
+\end{itemize}
+
+\subsection{Location and jurisdiction approach}
+For the initial prototype, jurisdiction will be represented using configurable city/ward/department data. A citizen can provide GPS coordinates or select a locality. The backend will map the selected location to the supported jurisdiction and use the configured rules to recommend a responsible department.
+
+This approach allows the team to demonstrate the concept without requiring integrations with every Indian municipal authority.
+
+\subsection{CI/CD and fast delivery enabler}
+CI/CD will be used to:
+\begin{itemize}[leftmargin=0.7cm]
+    \item Automatically build and run unit/integration tests on code changes.
+    \item Run linting and basic quality checks.
+    \item Produce repeatable deployment artifacts.
+    \item Deploy incremental versions to a staging environment.
+\end{itemize}
+
+\section{Technology Used %
+\BvrHint{\ldots mature components}}
+The proposed technology stack is:
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{Frontend:} React.js with TypeScript, HTML, and CSS.
+    \item \textbf{Backend:} Node.js and Express.js for REST APIs.
+    \item \textbf{Database:} PostgreSQL for structured civic, jurisdiction, user, and complaint data.
+    \item \textbf{Maps:} OpenStreetMap-based mapping or another suitable maps API.
+    \item \textbf{Language/speech (enhancement):} a suitable Indian-language speech/translation service such as BHASHINI where access and API availability permit.
+    \item \textbf{Authentication:} Token-based authentication with role-based access control.
+    \item \textbf{Testing:} unit/integration test framework and Postman for API testing.
+    \item \textbf{Version control:} Git and GitHub.
+    \item \textbf{Deployment:} common cloud hosting with a managed database where appropriate.
+\end{itemize}
+
+We will use mature tools and services so that the project effort is directed toward system design, integration, workflow correctness, testing, and measurable outcomes.
+
+\section{Evaluation Criterion %
+\BvrHint{\ldots measurable and attributable}}
+Success will be evaluated using metrics tied to the citizen-to-resolution workflow.
+
+\subsection{Primary evaluation metrics}
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{Time-to-acknowledgement (TTA):} time between complaint submission and the first recorded staff acknowledgement/assignment.
+    \item \textbf{Routing accuracy:} percentage of test complaints for which the system recommends the correct configured department.
+    \item \textbf{Complaint completion rate:} percentage of test complaints that can be submitted, assigned, updated, and resolved without workflow failure.
+\end{itemize}
+
+\subsection{Secondary evaluation metrics}
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{User clarity:} citizen-reported clarity of the complaint process and status timeline using a 1--5 scale.
+    \item \textbf{Information discoverability:} time required to locate a selected service/facility compared with a multi-source baseline task.
+    \item \textbf{Duplicate assistance:} percentage of known duplicate test cases correctly flagged for staff review.
+    \item \textbf{Reliability:} successful completion of login, service browsing, complaint submission, and status-update tests during the pilot.
+\end{itemize}
+
+\subsection{Pilot validation plan}
+\begin{itemize}[leftmargin=0.7cm]
+    \item Use 10--20 test users for citizen-side usability validation.
+    \item Use 3--5 simulated staff/department roles if real municipal staff are unavailable.
+    \item Prepare a controlled dataset of representative city issues such as potholes, garbage collection, water leakage, drainage, and streetlight failures.
+    \item Measure classification/routing accuracy against the known department labels in the test dataset.
+\end{itemize}
+
+\section{Scalability %
+\BvrHint{\ldots with foresight}}
+The system should scale beyond the initial prototype in both technical and operational terms.
+
+\subsection{Multi-city scalability}
+The initial implementation will target one selected city or municipality. However, city, ward, department, service, and jurisdiction information will be represented as data rather than hard-coded logic. This makes it possible to add another city by configuring its administrative structure and services.
+
+\subsection{Service and department scalability}
+New services such as electricity, parking, public libraries, parks, drainage, public transport, or street infrastructure can be added without redesigning the complete application. Department routing rules will be configurable.
+
+\subsection{Technical scalability}
+\begin{itemize}[leftmargin=0.7cm]
+    \item Separate frontend and backend components.
+    \item Stateless REST APIs where appropriate.
+    \item Database indexing and pagination for complaint/service queries.
+    \item Modular integration of external services.
+    \item Cloud deployment so compute and database resources can scale independently.
+\end{itemize}
+
+\subsection{Future integration scalability}
+The backend can later expose stable APIs for a mobile application or integrations with official municipal systems. Where official government APIs become available, they can replace prototype/mock integration modules without changing the complete citizen-facing workflow.
+
+\section{Engine availability heuristic}
+A mature set of software engines and services is available to implement NagrikConnect:
+\begin{itemize}[leftmargin=0.7cm]
+    \item Web framework for responsive frontend development.
+    \item REST API framework for backend services.
+    \item Managed relational database.
+    \item Authentication and role-based authorization libraries.
+    \item Maps and geolocation services.
+    \item Optional language/speech APIs.
+    \item Object storage for optional complaint attachments.
+    \item Unit/integration testing frameworks.
+    \item CI runner and staging deployment platform.
+\end{itemize}
+
+The availability of these mature components makes the project feasible for a three-member student team while leaving meaningful engineering work in architecture, integration, workflow design, testing, and evaluation.
+
+\section{Project scope and deliverables %
+\BvrHint{\ldots iteration-friendly}}
+\subsection{Initial deliverable %
+\BvrHint{\ldots first working increment}}
+\begin{itemize}[leftmargin=0.7cm]
+    \item Citizen service directory and dashboard.
+    \item Complaint submission form and complaint ID generation.
+    \item Department/admin workflow for assignment and status updates.
+    \item Citizen complaint status page with timeline/history.
+    \item Database with users, departments, services, facilities, and complaints.
+    \item CI: build, linting, and backend unit tests.
+    \item CD to staging.
+\end{itemize}
+
+\subsection{Subsequent deliverables}
+\begin{itemize}[leftmargin=0.7cm]
+    \item Announcements, waste schedules, emergency information, and weather integration.
+    \item Location/jurisdiction-based department recommendation.
+    \item Lightweight duplicate suggestions with staff review.
+    \item Optional multilingual and speech-to-text complaint input.
+    \item Notifications and SLA/overdue indicators.
+    \item Admin analytics and civic issue heatmap.
+    \item Accessibility improvements and expanded service search.
+\end{itemize}
+
+\section{Risks and mitigations}
+\begin{itemize}[leftmargin=0.7cm]
+    \item \textbf{Scope creep:} freeze the core MVP around one city and selected services before implementing advanced features.
+    \item \textbf{External API limitations:} use replaceable integration modules and controlled mock data when official APIs are unavailable.
+    \item \textbf{Incorrect intelligent recommendation:} use AI for classification/recommendation and validate final routing through configured rules and citizen confirmation.
+    \item \textbf{Data privacy:} collect only information needed for the complaint workflow; keep attachments optional and minimize personally identifiable information.
+    \item \textbf{Unequal workload:} divide frontend, backend/database, and admin/integration/testing responsibilities while keeping shared ownership of architecture and integration.
+    \item \textbf{Deployment risk:} deploy an early staging version rather than waiting until the end of the semester.
+\end{itemize}
+
+\section{Summary}
+NagrikConnect proposes a centralized platform for city information and civic grievance management. The main objective is to give citizens one consistent place to discover services, view announcements and report problems, while giving departments a structured workflow for receiving, assigning, tracking, and resolving complaints.
+
+The project does not depend on claiming that existing civic platforms are absent. Instead, it builds on the demonstrated feasibility of such systems and focuses on a unified, configurable and citizen-first workflow. Multilingual voice interaction, intelligent issue classification, and location-based department recommendation are supporting enhancements that can make the platform more accessible and useful, particularly in the Indian context.
+
+A focused implementation for one selected city is feasible for a three-member team by December 2026. The architecture will nevertheless be designed with multi-city, multi-department, API integration, and future mobile deployment in mind.
+
+\end{document}

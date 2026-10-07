@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File a Complaint - Step 1 | NagrikConnect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== NagrikConnect Design System ===== */
+:root{
+  --navy:#002045;
+  --navy-light:#1a365d;
+  --text-dark:#111c2d;
+  --text-body:#43474e;
+  --text-muted:#74777f;
+  --page-bg:#f9f9ff;
+  --card-bg:#ffffff;
+  --blue-50:#f0f3ff;
+  --blue-100:#e7eeff;
+  --blue-200:#dee8ff;
+  --blue-300:#d8e3fb;
+  --border:#dee8ff;
+  --border-soft:#e7eeff;
+  --amber:#9d4400;
+  --amber-bg:#ffdbca;
+  --amber-bg-soft:rgba(255,219,202,.3);
+  --green:#61b15f;
+  --green-text:#00400c;
+  --green-bg:#a3f69c;
+  --red:#ba1a1a;
+  --red-bg:#ffdad6;
+  --radius-sm:4px;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --shadow-sm:0 1px 1px rgba(0,0,0,.05);
+  --shadow-md:0 1px 8px rgba(0,0,0,.06);
+  --shadow-lg:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Noto Sans', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background:var(--page-bg);
+  color:var(--text-dark);
+  line-height:1.4;
+}
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+input,select,textarea{font-family:inherit;}
+.hindi{color:var(--text-body);font-weight:400;}
+
+/* ===== Layout helpers ===== */
+.container{max-width:1200px;margin:0 auto;padding:0 24px;}
+.page-wrap{min-height:100vh;display:flex;flex-direction:column;}
+.main-content{flex:1;}
+
+/* ===== Header (citizen-facing) ===== */
+.site-header{
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-md);
+  position:sticky;top:0;z-index:50;
+}
+.site-header .container{
+  display:flex;align-items:center;justify-content:space-between;
+  height:72px;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:40px;height:40px;background:var(--navy-light);border-radius:var(--radius-md);
+  display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+  box-shadow:var(--shadow-sm);
+}
+.brand-text{display:flex;flex-direction:column;}
+.brand-name-row{display:flex;align-items:center;gap:6px;}
+.brand-name{font-weight:700;font-size:18px;color:var(--navy);letter-spacing:-0.4px;}
+.brand-tag{
+  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  background:var(--blue-100);color:var(--navy);border:1px solid var(--blue-300);
+  padding:2px 8px;border-radius:4px;
+}
+.brand-sub{font-size:11px;color:var(--text-muted);}
+
+.nav{display:flex;align-items:center;gap:8px;}
+.nav a{
+  padding:6px 14px;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-body);
+  transition:background .15s;
+}
+.nav a:hover{background:var(--blue-50);}
+.nav a.active{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}
+
+.header-right{display:flex;align-items:center;gap:12px;}
+.user-chip{
+  display:flex;align-items:center;gap:8px;background:var(--blue-50);border:1px solid var(--border);
+  border-radius:999px;padding:5px 10px;
+}
+.user-avatar{
+  width:32px;height:32px;border-radius:50%;background:var(--navy-light);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  box-shadow:var(--shadow-sm);
+}
+.user-name{font-size:11px;font-weight:700;color:var(--text-dark);line-height:1.2;}
+.user-role{font-size:10px;color:var(--text-muted);line-height:1.2;}
+.btn-signout{
+  background:rgba(225,4,4,.8);color:#f2f2f7;font-size:11px;font-weight:500;
+  padding:6px 12px;border-radius:5px;letter-spacing:.5px;
+}
+
+/* ===== Footer ===== */
+.site-footer{background:var(--blue-50);padding:32px 24px 24px;margin-top:auto;}
+.site-footer .container{
+  border-top:1px solid var(--border);padding-top:24px;
+  display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;
+}
+.footer-brand{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.footer-mark{width:24px;height:24px;background:var(--navy);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;}
+.footer-name{font-weight:700;color:var(--navy);font-size:16px;}
+.footer-desc{color:var(--text-body);font-size:14px;}
+.footer-help h4{margin:0 0 4px;color:var(--navy);font-size:14px;}
+.footer-help p{margin:0;color:var(--text-body);font-size:14px;}
+
+/* ===== Buttons ===== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;
+  transition:opacity .15s;
+}
+.btn:hover{opacity:.9;}
+.btn-primary{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-navy{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-secondary{background:var(--blue-100);color:var(--navy);}
+.btn-amber{background:var(--amber);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-outline{background:#fff;border:1px solid #cbd5e1;color:var(--text-dark);}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.btn-block{width:100%;}
+
+/* ===== Cards ===== */
+.card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);
+  box-shadow:var(--shadow-sm);
+}
+.card-pad{padding:24px;}
+
+/* ===== Forms ===== */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-dark);margin-bottom:6px;}
+.field .req{color:var(--red);}
+.input-wrap{position:relative;}
+.input-wrap .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);}
+input[type=text],input[type=email],input[type=password],input[type=search],textarea,select{
+  width:100%;padding:9px 13px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;color:var(--text-dark);
+  background:#fff;
+}
+.input-wrap input{padding-left:37px;}
+textarea{resize:vertical;min-height:96px;}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--navy-light);outline-offset:1px;}
+
+/* ===== Badges/Pills ===== */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.5px;}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+.status-progress{background:var(--amber-bg);color:var(--amber);}
+.status-resolved{background:var(--green-bg);color:var(--green-text);}
+.status-pending{background:var(--red-bg);color:var(--red);}
+.status-info{background:var(--blue-200);color:var(--navy);}
+
+/* ===== Utility ===== */
+.flex{display:flex;}
+.flex-col{display:flex;flex-direction:column;}
+.items-center{align-items:center;}
+.justify-between{justify-content:space-between;}
+.gap-1{gap:4px;}
+.gap-2{gap:8px;}
+.gap-3{gap:12px;}
+.gap-4{gap:16px;}
+.text-muted{color:var(--text-muted);}
+.text-body{color:var(--text-body);}
+.text-navy{color:var(--navy);}
+.small{font-size:12px;}
+.mt-1{margin-top:4px;}
+.mt-2{margin-top:8px;}
+.mt-3{margin-top:12px;}
+.mt-4{margin-top:16px;}
+.grid{display:grid;gap:16px;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.section-title{font-size:20px;font-weight:700;color:var(--navy);margin:0;}
+.hidden{display:none !important;}
+
+@media (max-width:900px){
+  .grid-4{grid-template-columns:repeat(2,1fr);}
+  .grid-3{grid-template-columns:1fr;}
+  .nav{display:none;}
+}
+@media (max-width:640px){
+  .grid-2, .grid-4{grid-template-columns:1fr;}
+}
+
+/* ===== Admin layout (department pages) ===== */
+.admin-wrap{display:flex;min-height:100vh;}
+.admin-sidebar{
+  width:260px;flex-shrink:0;background:var(--blue-50);box-shadow:0 1px 4px rgba(0,0,0,.04);
+  padding:16px 0;display:flex;flex-direction:column;justify-content:space-between;
+  position:sticky;top:0;height:100vh;
+}
+.admin-sidebar .brand{padding:0 16px 16px;}
+.admin-ward-pill{
+  margin:0 12px 8px;background:var(--blue-200);border-radius:8px;padding:6px 8px;
+  display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;
+}
+.admin-nav{padding:0 8px;display:flex;flex-direction:column;gap:2px;}
+.admin-nav a{padding:10px 12px;border-radius:4px;font-size:14px;font-weight:600;color:var(--text-body);}
+.admin-nav a.active{background:var(--navy-light);color:#fff;}
+.admin-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.admin-topbar{
+  height:64px;background:rgba(249,249,255,.95);backdrop-filter:blur(10px);
+  box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;position:sticky;top:0;z-index:40;
+}
+.admin-search{
+  background:var(--blue-50);border-radius:8px;display:flex;align-items:center;gap:8px;
+  padding:6px 12px;width:256px;color:var(--text-muted);
+}
+.admin-search input{border:none;background:none;padding:0;font-size:14px;width:100%;}
+.admin-body{padding:32px 24px;max-width:1280px;width:100%;margin:0 auto;}
+
+@media (max-width:900px){
+  .admin-sidebar{position:fixed;left:-260px;z-index:60;transition:left .2s;}
+  .admin-sidebar.open{left:0;}
+  .admin-search{width:160px;}
+}
+
+</style>
+<style>
+  .stepper{display:flex;justify-content:center;gap:8px;margin-bottom:24px;position:relative;}
+  .stepper::before{content:'';position:absolute;top:16px;left:16%;right:16%;height:2px;background:var(--blue-300);z-index:0;}
+  .step{flex:1;max-width:180px;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1;}
+  .step-circle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--blue-50);border:2px solid #c4c6cf;color:var(--text-muted);box-shadow:0 0 0 4px #fff;}
+  .step.done .step-circle{background:var(--navy);color:#fff;border:none;}
+  .step.active .step-circle{background:var(--amber);color:#fff;border:none;}
+  .step-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-top:4px;color:var(--text-muted);}
+  .step-sub{font-size:12px;font-weight:600;color:var(--text-muted);}
+  .step.active .step-label,.step.active .step-sub{color:var(--amber);}
+  .step.done .step-label{color:var(--navy);}
+  .upload-zone{border:2px dashed #c4c6cf;background:rgba(240,243,255,.5);border-radius:8px;padding:34px;text-align:center;}
+  .upload-icon{width:48px;height:48px;background:var(--blue-100);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;color:var(--navy);}
+  .tag-row{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;}
+  .tag{background:var(--blue-100);color:var(--text-body);font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;}
+  .evidence-item{background:var(--blue-50);border:1px solid var(--border-soft);border-radius:8px;padding:13px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .evidence-thumb{width:64px;height:64px;background:var(--blue-300);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--navy);}
+  .voice-item{background:var(--blue-50);border:1px solid var(--border-soft);border-radius:8px;padding:13px;display:flex;justify-content:space-between;align-items:center;}
+  .voice-icon{width:40px;height:40px;background:var(--amber-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--amber);}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <header class="site-header">
+    <div class="container">
+      <div class="brand">
+        <div class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V8l8-5 8 5v13M9 21v-6h6v6"/></svg></div>
+        <div class="brand-name-row"><span class="brand-name">NagrikConnect</span><span class="brand-tag" style="background:var(--amber-bg);border-color:transparent;color:#331100;">WARD 14</span></div>
+      </div>
+      <nav class="nav">
+        <a href="citizen-portal.html">Citizen Hub</a>
+        <a href="complaint-step1.html" class="active">File Complaint</a>
+        <a href="complaints-log.html">Track Complaint</a>
+      </nav>
+      <div class="header-right">
+        <div class="user-chip"><div class="user-avatar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div><div class="user-name">Rajesh Sharma</div><div class="user-role">Ward 14 Citizen</div></div></div>
+        <a href="login.html" class="btn-signout">Sign Out</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content" style="background:var(--blue-50);padding:32px 24px;">
+    <div style="max-width:896px;margin:0 auto;">
+      <div class="card" style="padding:48px;">
+        <div class="stepper">
+          <div class="step done"><div class="step-circle">✓</div><div class="step-label">Step 1</div><div class="step-sub">Upload Media</div></div>
+          <div class="step"><div class="step-circle">2</div><div class="step-label">Step 2</div><div class="step-sub">Location Pin</div></div>
+          <div class="step"><div class="step-circle">3</div><div class="step-label">Step 3</div><div class="step-sub">Type &amp; Description</div></div>
+        </div>
+
+        <h1 style="margin:0;font-size:24px;color:var(--navy);">File a Complaint <span style="font-weight:400;color:var(--text-body);font-size:18px;">/ शिकायत दर्ज करें</span></h1>
+        <p class="text-body mt-1" style="margin-bottom:24px;">Step 1 of 3: Upload Evidence Photos or Video &amp; Voice Note</p>
+
+        <div class="flex justify-between items-center mt-3" style="margin-bottom:8px;">
+          <label style="margin:0;">Upload Evidence Photos / Videos / प्रमाण फोटो एवं वीडियो <span class="req">*</span></label>
+          <span class="small text-muted" style="font-weight:700;">JPG, PNG, MP4 (MAX 5MB)</span>
+        </div>
+        <div class="upload-zone">
+          <div class="upload-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></div>
+          <p style="margin:0;font-weight:700;color:var(--text-dark);">Drag &amp; drop photos or video here, or <span style="text-decoration:underline;color:var(--navy);">browse files</span></p>
+          <p class="small text-body">Capture directly using camera or upload from device gallery</p>
+          <div class="tag-row">
+            <span class="tag">📷 Photos</span>
+            <span class="tag">🎥 Short Video (15s)</span>
+            <span class="tag">📍 EXIF Geotag Enabled</span>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex justify-between items-center" style="margin-bottom:8px;">
+            <label style="margin:0;">Attached Evidence (1 file staged)</label>
+            <span class="small" style="color:var(--green-text);font-weight:700;">✓ Geotag Matched</span>
+          </div>
+          <div class="evidence-item">
+            <div class="flex gap-3 items-center">
+              <div class="evidence-thumb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg></div>
+              <div>
+                <div class="flex items-center gap-1"><strong style="font-size:14px;">pothole_evidence_01.jpg</strong><span class="tag">2.4 MB</span></div>
+                <p class="small text-body" style="margin:2px 0 0;">📍 Lat: 28.4595° N, Long: 77.0266° E (Ward 14)</p>
+              </div>
+            </div>
+            <button aria-label="remove" class="btn-sm text-muted">✕</button>
+          </div>
+          <div class="voice-item">
+            <div class="flex gap-3 items-center">
+              <div class="voice-icon">🎙️</div>
+              <div><strong style="font-size:14px;">Add Voice Recording (Optional)</strong><p class="small text-body" style="margin:2px 0 0;">Powered by Bhashini Speech-to-Text • Any Indian Language</p></div>
+            </div>
+            <button class="btn btn-secondary btn-sm">● Record Note (Max 60s)</button>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center mt-4" style="border-top:1px solid var(--border-soft);padding-top:12px;">
+          <a href="citizen-portal.html" class="btn btn-secondary" style="background:none;color:var(--text-body);">← Cancel</a>
+          <a href="complaint-step2.html" class="btn btn-navy">Next: Choose Location →</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-col"><div class="footer-brand"><div class="footer-mark"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V8l8-5 8 5v13"/></svg></div><span class="footer-name">NagrikConnect</span></div><p class="footer-desc">Smart City Civic Redressal Infrastructure</p></div>
+      <div class="footer-help"><h4>Emergency Helplines</h4><p>112 – National Emergency • 101 – Fire • 1916 – Water Supply (24/7)</p></div>
+    </div>
+  </footer>
+</div>
+<script>
+// ===== NagrikConnect shared behaviours =====
+
+// Login role toggle (Citizen / Admin)
+function initRoleToggle(){
+  const citizenBtn = document.getElementById('role-citizen');
+  const adminBtn = document.getElementById('role-admin');
+  const feedback = document.getElementById('role-feedback');
+  if(!citizenBtn || !adminBtn) return;
+  function setRole(role){
+    if(role === 'citizen'){
+      citizenBtn.classList.add('active-role');
+      adminBtn.classList.remove('active-role');
+      if(feedback) feedback.innerHTML = 'Signing in as <strong>Ward 14 Citizen</strong> to track &amp; report grievances.';
+    } else {
+      adminBtn.classList.add('active-role');
+      citizenBtn.classList.remove('active-role');
+      if(feedback) feedback.innerHTML = 'Signing in as <strong>Ward 14 Officer</strong> to manage department complaints.';
+    }
+  }
+  citizenBtn.addEventListener('click', () => setRole('citizen'));
+  adminBtn.addEventListener('click', () => setRole('admin'));
+}
+
+// Generic tab/pill filter switcher: elements with [data-tab-group] wrap [data-tab] buttons
+function initTabs(){
+  document.querySelectorAll('[data-tab-group]').forEach(group => {
+    const buttons = group.querySelectorAll('[data-tab]');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+      });
+    });
+  });
+}
+
+// Mobile sidebar toggle for admin pages
+function initSidebarToggle(){
+  const toggle = document.getElementById('sidebar-toggle');
+  const sidebar = document.querySelector('.admin-sidebar');
+  if(!toggle || !sidebar) return;
+  toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+}
+
+// Simple stepper "next" button feedback (for multi-step forms) - just visual, no real nav logic needed beyond links
+document.addEventListener('DOMContentLoaded', () => {
+  initRoleToggle();
+  initTabs();
+  initSidebarToggle();
+});
+
+</script>
+</body>
+</html>

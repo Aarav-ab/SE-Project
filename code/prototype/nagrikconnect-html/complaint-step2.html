@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File a Complaint - Step 2 | NagrikConnect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== NagrikConnect Design System ===== */
+:root{
+  --navy:#002045;
+  --navy-light:#1a365d;
+  --text-dark:#111c2d;
+  --text-body:#43474e;
+  --text-muted:#74777f;
+  --page-bg:#f9f9ff;
+  --card-bg:#ffffff;
+  --blue-50:#f0f3ff;
+  --blue-100:#e7eeff;
+  --blue-200:#dee8ff;
+  --blue-300:#d8e3fb;
+  --border:#dee8ff;
+  --border-soft:#e7eeff;
+  --amber:#9d4400;
+  --amber-bg:#ffdbca;
+  --amber-bg-soft:rgba(255,219,202,.3);
+  --green:#61b15f;
+  --green-text:#00400c;
+  --green-bg:#a3f69c;
+  --red:#ba1a1a;
+  --red-bg:#ffdad6;
+  --radius-sm:4px;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --shadow-sm:0 1px 1px rgba(0,0,0,.05);
+  --shadow-md:0 1px 8px rgba(0,0,0,.06);
+  --shadow-lg:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Noto Sans', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background:var(--page-bg);
+  color:var(--text-dark);
+  line-height:1.4;
+}
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+input,select,textarea{font-family:inherit;}
+.hindi{color:var(--text-body);font-weight:400;}
+
+/* ===== Layout helpers ===== */
+.container{max-width:1200px;margin:0 auto;padding:0 24px;}
+.page-wrap{min-height:100vh;display:flex;flex-direction:column;}
+.main-content{flex:1;}
+
+/* ===== Header (citizen-facing) ===== */
+.site-header{
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-md);
+  position:sticky;top:0;z-index:50;
+}
+.site-header .container{
+  display:flex;align-items:center;justify-content:space-between;
+  height:72px;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:40px;height:40px;background:var(--navy-light);border-radius:var(--radius-md);
+  display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+  box-shadow:var(--shadow-sm);
+}
+.brand-text{display:flex;flex-direction:column;}
+.brand-name-row{display:flex;align-items:center;gap:6px;}
+.brand-name{font-weight:700;font-size:18px;color:var(--navy);letter-spacing:-0.4px;}
+.brand-tag{
+  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  background:var(--blue-100);color:var(--navy);border:1px solid var(--blue-300);
+  padding:2px 8px;border-radius:4px;
+}
+.brand-sub{font-size:11px;color:var(--text-muted);}
+
+.nav{display:flex;align-items:center;gap:8px;}
+.nav a{
+  padding:6px 14px;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-body);
+  transition:background .15s;
+}
+.nav a:hover{background:var(--blue-50);}
+.nav a.active{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}
+
+.header-right{display:flex;align-items:center;gap:12px;}
+.user-chip{
+  display:flex;align-items:center;gap:8px;background:var(--blue-50);border:1px solid var(--border);
+  border-radius:999px;padding:5px 10px;
+}
+.user-avatar{
+  width:32px;height:32px;border-radius:50%;background:var(--navy-light);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  box-shadow:var(--shadow-sm);
+}
+.user-name{font-size:11px;font-weight:700;color:var(--text-dark);line-height:1.2;}
+.user-role{font-size:10px;color:var(--text-muted);line-height:1.2;}
+.btn-signout{
+  background:rgba(225,4,4,.8);color:#f2f2f7;font-size:11px;font-weight:500;
+  padding:6px 12px;border-radius:5px;letter-spacing:.5px;
+}
+
+/* ===== Footer ===== */
+.site-footer{background:var(--blue-50);padding:32px 24px 24px;margin-top:auto;}
+.site-footer .container{
+  border-top:1px solid var(--border);padding-top:24px;
+  display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;
+}
+.footer-brand{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.footer-mark{width:24px;height:24px;background:var(--navy);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;}
+.footer-name{font-weight:700;color:var(--navy);font-size:16px;}
+.footer-desc{color:var(--text-body);font-size:14px;}
+.footer-help h4{margin:0 0 4px;color:var(--navy);font-size:14px;}
+.footer-help p{margin:0;color:var(--text-body);font-size:14px;}
+
+/* ===== Buttons ===== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;
+  transition:opacity .15s;
+}
+.btn:hover{opacity:.9;}
+.btn-primary{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-navy{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-secondary{background:var(--blue-100);color:var(--navy);}
+.btn-amber{background:var(--amber);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-outline{background:#fff;border:1px solid #cbd5e1;color:var(--text-dark);}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.btn-block{width:100%;}
+
+/* ===== Cards ===== */
+.card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);
+  box-shadow:var(--shadow-sm);
+}
+.card-pad{padding:24px;}
+
+/* ===== Forms ===== */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-dark);margin-bottom:6px;}
+.field .req{color:var(--red);}
+.input-wrap{position:relative;}
+.input-wrap .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);}
+input[type=text],input[type=email],input[type=password],input[type=search],textarea,select{
+  width:100%;padding:9px 13px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;color:var(--text-dark);
+  background:#fff;
+}
+.input-wrap input{padding-left:37px;}
+textarea{resize:vertical;min-height:96px;}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--navy-light);outline-offset:1px;}
+
+/* ===== Badges/Pills ===== */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.5px;}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+.status-progress{background:var(--amber-bg);color:var(--amber);}
+.status-resolved{background:var(--green-bg);color:var(--green-text);}
+.status-pending{background:var(--red-bg);color:var(--red);}
+.status-info{background:var(--blue-200);color:var(--navy);}
+
+/* ===== Utility ===== */
+.flex{display:flex;}
+.flex-col{display:flex;flex-direction:column;}
+.items-center{align-items:center;}
+.justify-between{justify-content:space-between;}
+.gap-1{gap:4px;}
+.gap-2{gap:8px;}
+.gap-3{gap:12px;}
+.gap-4{gap:16px;}
+.text-muted{color:var(--text-muted);}
+.text-body{color:var(--text-body);}
+.text-navy{color:var(--navy);}
+.small{font-size:12px;}
+.mt-1{margin-top:4px;}
+.mt-2{margin-top:8px;}
+.mt-3{margin-top:12px;}
+.mt-4{margin-top:16px;}
+.grid{display:grid;gap:16px;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.section-title{font-size:20px;font-weight:700;color:var(--navy);margin:0;}
+.hidden{display:none !important;}
+
+@media (max-width:900px){
+  .grid-4{grid-template-columns:repeat(2,1fr);}
+  .grid-3{grid-template-columns:1fr;}
+  .nav{display:none;}
+}
+@media (max-width:640px){
+  .grid-2, .grid-4{grid-template-columns:1fr;}
+}
+
+/* ===== Admin layout (department pages) ===== */
+.admin-wrap{display:flex;min-height:100vh;}
+.admin-sidebar{
+  width:260px;flex-shrink:0;background:var(--blue-50);box-shadow:0 1px 4px rgba(0,0,0,.04);
+  padding:16px 0;display:flex;flex-direction:column;justify-content:space-between;
+  position:sticky;top:0;height:100vh;
+}
+.admin-sidebar .brand{padding:0 16px 16px;}
+.admin-ward-pill{
+  margin:0 12px 8px;background:var(--blue-200);border-radius:8px;padding:6px 8px;
+  display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;
+}
+.admin-nav{padding:0 8px;display:flex;flex-direction:column;gap:2px;}
+.admin-nav a{padding:10px 12px;border-radius:4px;font-size:14px;font-weight:600;color:var(--text-body);}
+.admin-nav a.active{background:var(--navy-light);color:#fff;}
+.admin-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.admin-topbar{
+  height:64px;background:rgba(249,249,255,.95);backdrop-filter:blur(10px);
+  box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;position:sticky;top:0;z-index:40;
+}
+.admin-search{
+  background:var(--blue-50);border-radius:8px;display:flex;align-items:center;gap:8px;
+  padding:6px 12px;width:256px;color:var(--text-muted);
+}
+.admin-search input{border:none;background:none;padding:0;font-size:14px;width:100%;}
+.admin-body{padding:32px 24px;max-width:1280px;width:100%;margin:0 auto;}
+
+@media (max-width:900px){
+  .admin-sidebar{position:fixed;left:-260px;z-index:60;transition:left .2s;}
+  .admin-sidebar.open{left:0;}
+  .admin-search{width:160px;}
+}
+
+</style>
+<style>
+  .stepper{display:flex;justify-content:center;gap:8px;margin-bottom:24px;position:relative;}
+  .stepper::before{content:'';position:absolute;top:20px;left:16%;right:16%;height:2px;background:var(--blue-300);z-index:0;}
+  .stepper::after{content:'';position:absolute;top:20px;left:16%;width:34%;height:2px;background:var(--navy);z-index:0;}
+  .step{flex:1;max-width:180px;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1;}
+  .step-circle{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:var(--blue-300);color:var(--text-muted);box-shadow:0 1px 1px rgba(0,0,0,.05);}
+  .step.done .step-circle{background:var(--navy);color:#fff;}
+  .step.active .step-circle{background:var(--amber);color:#fff;box-shadow:var(--shadow-lg);}
+  .step-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-top:4px;color:var(--text-muted);}
+  .step-sub{font-size:12px;font-weight:600;color:var(--text-muted);}
+  .step.active .step-label,.step.active .step-sub{color:var(--amber);}
+  .step.done .step-label,.step.done .step-sub{color:var(--navy);}
+  .summary-badge{background:var(--blue-100);border-radius:4px;padding:4px 12px;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;box-shadow:var(--shadow-sm);}
+  .map-box{height:340px;border-radius:8px;background:linear-gradient(135deg,#dee8ff,#cfe0ff);position:relative;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.05);}
+  .map-overlay-top{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;}
+  .map-chip{background:rgba(255,255,255,.9);backdrop-filter:blur(6px);border-radius:4px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--navy);box-shadow:0 1px 2px rgba(0,0,0,.05);}
+  .map-pin{position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);text-align:center;}
+  .pin-tooltip{background:var(--navy);color:#fff;font-size:12px;padding:4px 12px;border-radius:4px;box-shadow:var(--shadow-lg);white-space:nowrap;margin-bottom:2px;}
+  .map-controls{position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;gap:4px;}
+  .map-btn{width:40px;height:40px;background:#fff;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);color:var(--navy);}
+  .addr-box{background:var(--blue-50);border-radius:8px;padding:24px;}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <header class="site-header">
+    <div class="container">
+      <div class="brand"><div class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V8l8-5 8 5v13M9 21v-6h6v6"/></svg></div><div class="brand-name-row"><span class="brand-name">NagrikConnect</span><span class="brand-tag" style="background:var(--amber-bg);border-color:transparent;color:#331100;">WARD 14</span></div></div>
+      <nav class="nav"><a href="citizen-portal.html">Citizen Hub</a><a href="complaint-step1.html" class="active">File Complaint</a><a href="complaints-log.html">Track Complaint</a></nav>
+      <div class="header-right"><div class="user-chip"><div class="user-avatar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><div><div class="user-name">Rajesh Sharma</div><div class="user-role">Ward 14 Citizen</div></div></div><a href="login.html" class="btn-signout">Sign Out</a></div>
+    </div>
+  </header>
+
+  <main class="main-content" style="background:var(--blue-50);padding:32px 24px;">
+    <div style="max-width:896px;margin:0 auto;">
+      <div class="card" style="padding:32px;">
+        <div class="stepper">
+          <div class="step done"><div class="step-circle">✓</div><div class="step-label">Step 1</div><div class="step-sub">Upload Media</div></div>
+          <div class="step active"><div class="step-circle">2</div><div class="step-label">Step 2</div><div class="step-sub">Location &amp; Ward</div></div>
+          <div class="step"><div class="step-circle">3</div><div class="step-label">Step 3</div><div class="step-sub">Type &amp; Description</div></div>
+        </div>
+
+        <div class="flex justify-between items-center" style="flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+          <div>
+            <h1 style="margin:0;font-size:24px;color:var(--navy);">File a Complaint <span style="font-weight:600;color:var(--text-muted);">|</span> <span style="font-weight:600;color:var(--text-body);font-size:18px;">शिकायत दर्ज करें</span></h1>
+            <p class="small text-body" style="margin:2px 0 0;">Step 2 of 3: Pinpoint Grievance Location / सटीक स्थान चिह्नित करें</p>
+          </div>
+          <div class="summary-badge">
+            <span class="dot" style="background:#fe8439;"></span>
+            Type: <strong style="color:var(--navy);">Pothole / Damaged Road</strong> •
+            <span class="tag" style="background:var(--amber-bg);color:#331100;">PRIORITY: MEDIUM</span>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="align-items:end;margin-bottom:16px;">
+          <button class="btn btn-amber btn-block" style="height:48px;" type="button">📍 Use GPS / Auto-Detect Location</button>
+          <div>
+            <label style="text-transform:uppercase;letter-spacing:.5px;">Ward Jurisdiction</label>
+            <select><option>Ward 14 - Indiranagar East (Selected)</option></select>
+          </div>
+        </div>
+
+        <div class="map-box">
+          <div class="map-overlay-top">
+            <span class="map-chip">🗺️ GIS Map Feed: BBMP Cadastral Grid 2025</span>
+            <span class="map-chip">Lat: 12.9716° N, Lon: 77.5946° E</span>
+          </div>
+          <div class="map-pin">
+            <div class="pin-tooltip">📍 Sector 14 Main Road Junction, Ward 14</div>
+            <svg width="24" height="30" viewBox="0 0 24 30" style="margin:0 auto;"><path d="M12 0C5 0 0 5 0 12c0 8 12 18 12 18s12-10 12-18c0-7-5-12-12-12z" fill="#fe8439"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>
+          </div>
+          <div class="map-controls">
+            <div class="map-btn">＋</div>
+            <div class="map-btn">－</div>
+            <div class="map-btn">⛶</div>
+          </div>
+        </div>
+
+        <div class="addr-box mt-4">
+          <div class="flex items-center gap-2" style="margin-bottom:16px;"><span>📌</span><h3 style="margin:0;color:var(--navy);">Verified Address Details</h3></div>
+          <div class="grid grid-2">
+            <div style="grid-column:span 2;">
+              <label>Landmark / Street Address <span class="req">*</span></label>
+              <input type="text" value="Near Gate 3, Indiranagar Community Center, 12th Main Road, Ward 14">
+              <p class="small text-body mt-1">Auto-filled from GIS pin. You may refine the exact gate or door number.</p>
+            </div>
+            <div>
+              <label>PIN Code <span class="req">*</span></label>
+              <input type="text" value="560038" style="font-family:monospace;">
+              <p class="small text-body mt-1">Postal Ward Zone</p>
+            </div>
+            <div style="grid-column:span 2;">
+              <label>Additional Landmark / Directions for Field Engineer</label>
+              <input type="text" value="Opposite State Bank ATM, 20m before traffic signal">
+              <p class="small text-body mt-1">Visible markers help rapid deployment for heavy municipal machinery.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center mt-4">
+          <a href="complaint-step1.html" class="btn btn-secondary">← Back to Step 1 (Upload Media)</a>
+          <a href="complaint-step3.html" class="btn btn-primary">Next: Enter Details &amp; Description →</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-col"><div class="footer-brand"><div class="footer-mark"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V8l8-5 8 5v13"/></svg></div><span class="footer-name">NagrikConnect</span></div><p class="footer-desc">Smart City Civic Redressal Infrastructure</p></div>
+      <div class="footer-help"><h4>Emergency Helplines</h4><p>112 – National Emergency • 101 – Fire • 1916 – Water Supply (24/7)</p></div>
+    </div>
+  </footer>
+</div>
+<script>
+// ===== NagrikConnect shared behaviours =====
+
+// Login role toggle (Citizen / Admin)
+function initRoleToggle(){
+  const citizenBtn = document.getElementById('role-citizen');
+  const adminBtn = document.getElementById('role-admin');
+  const feedback = document.getElementById('role-feedback');
+  if(!citizenBtn || !adminBtn) return;
+  function setRole(role){
+    if(role === 'citizen'){
+      citizenBtn.classList.add('active-role');
+      adminBtn.classList.remove('active-role');
+      if(feedback) feedback.innerHTML = 'Signing in as <strong>Ward 14 Citizen</strong> to track &amp; report grievances.';
+    } else {
+      adminBtn.classList.add('active-role');
+      citizenBtn.classList.remove('active-role');
+      if(feedback) feedback.innerHTML = 'Signing in as <strong>Ward 14 Officer</strong> to manage department complaints.';
+    }
+  }
+  citizenBtn.addEventListener('click', () => setRole('citizen'));
+  adminBtn.addEventListener('click', () => setRole('admin'));
+}
+
+// Generic tab/pill filter switcher: elements with [data-tab-group] wrap [data-tab] buttons
+function initTabs(){
+  document.querySelectorAll('[data-tab-group]').forEach(group => {
+    const buttons = group.querySelectorAll('[data-tab]');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+      });
+    });
+  });
+}
+
+// Mobile sidebar toggle for admin pages
+function initSidebarToggle(){
+  const toggle = document.getElementById('sidebar-toggle');
+  const sidebar = document.querySelector('.admin-sidebar');
+  if(!toggle || !sidebar) return;
+  toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+}
+
+// Simple stepper "next" button feedback (for multi-step forms) - just visual, no real nav logic needed beyond links
+document.addEventListener('DOMContentLoaded', () => {
+  initRoleToggle();
+  initTabs();
+  initSidebarToggle();
+});
+
+</script>
+</body>
+</html>

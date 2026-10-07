@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Department Complaints | NagrikConnect Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== NagrikConnect Design System ===== */
+:root{
+  --navy:#002045;
+  --navy-light:#1a365d;
+  --text-dark:#111c2d;
+  --text-body:#43474e;
+  --text-muted:#74777f;
+  --page-bg:#f9f9ff;
+  --card-bg:#ffffff;
+  --blue-50:#f0f3ff;
+  --blue-100:#e7eeff;
+  --blue-200:#dee8ff;
+  --blue-300:#d8e3fb;
+  --border:#dee8ff;
+  --border-soft:#e7eeff;
+  --amber:#9d4400;
+  --amber-bg:#ffdbca;
+  --amber-bg-soft:rgba(255,219,202,.3);
+  --green:#61b15f;
+  --green-text:#00400c;
+  --green-bg:#a3f69c;
+  --red:#ba1a1a;
+  --red-bg:#ffdad6;
+  --radius-sm:4px;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --shadow-sm:0 1px 1px rgba(0,0,0,.05);
+  --shadow-md:0 1px 8px rgba(0,0,0,.06);
+  --shadow-lg:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Noto Sans', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background:var(--page-bg);
+  color:var(--text-dark);
+  line-height:1.4;
+}
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+input,select,textarea{font-family:inherit;}
+.hindi{color:var(--text-body);font-weight:400;}
+
+/* ===== Layout helpers ===== */
+.container{max-width:1200px;margin:0 auto;padding:0 24px;}
+.page-wrap{min-height:100vh;display:flex;flex-direction:column;}
+.main-content{flex:1;}
+
+/* ===== Header (citizen-facing) ===== */
+.site-header{
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-md);
+  position:sticky;top:0;z-index:50;
+}
+.site-header .container{
+  display:flex;align-items:center;justify-content:space-between;
+  height:72px;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:40px;height:40px;background:var(--navy-light);border-radius:var(--radius-md);
+  display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+  box-shadow:var(--shadow-sm);
+}
+.brand-text{display:flex;flex-direction:column;}
+.brand-name-row{display:flex;align-items:center;gap:6px;}
+.brand-name{font-weight:700;font-size:18px;color:var(--navy);letter-spacing:-0.4px;}
+.brand-tag{
+  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  background:var(--blue-100);color:var(--navy);border:1px solid var(--blue-300);
+  padding:2px 8px;border-radius:4px;
+}
+.brand-sub{font-size:11px;color:var(--text-muted);}
+
+.nav{display:flex;align-items:center;gap:8px;}
+.nav a{
+  padding:6px 14px;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-body);
+  transition:background .15s;
+}
+.nav a:hover{background:var(--blue-50);}
+.nav a.active{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}
+
+.header-right{display:flex;align-items:center;gap:12px;}
+.user-chip{
+  display:flex;align-items:center;gap:8px;background:var(--blue-50);border:1px solid var(--border);
+  border-radius:999px;padding:5px 10px;
+}
+.user-avatar{
+  width:32px;height:32px;border-radius:50%;background:var(--navy-light);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  box-shadow:var(--shadow-sm);
+}
+.user-name{font-size:11px;font-weight:700;color:var(--text-dark);line-height:1.2;}
+.user-role{font-size:10px;color:var(--text-muted);line-height:1.2;}
+.btn-signout{
+  background:rgba(225,4,4,.8);color:#f2f2f7;font-size:11px;font-weight:500;
+  padding:6px 12px;border-radius:5px;letter-spacing:.5px;
+}
+
+/* ===== Footer ===== */
+.site-footer{background:var(--blue-50);padding:32px 24px 24px;margin-top:auto;}
+.site-footer .container{
+  border-top:1px solid var(--border);padding-top:24px;
+  display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;
+}
+.footer-brand{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.footer-mark{width:24px;height:24px;background:var(--navy);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;}
+.footer-name{font-weight:700;color:var(--navy);font-size:16px;}
+.footer-desc{color:var(--text-body);font-size:14px;}
+.footer-help h4{margin:0 0 4px;color:var(--navy);font-size:14px;}
+.footer-help p{margin:0;color:var(--text-body);font-size:14px;}
+
+/* ===== Buttons ===== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;
+  transition:opacity .15s;
+}
+.btn:hover{opacity:.9;}
+.btn-primary{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-navy{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-secondary{background:var(--blue-100);color:var(--navy);}
+.btn-amber{background:var(--amber);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-outline{background:#fff;border:1px solid #cbd5e1;color:var(--text-dark);}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.btn-block{width:100%;}
+
+/* ===== Cards ===== */
+.card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);
+  box-shadow:var(--shadow-sm);
+}
+.card-pad{padding:24px;}
+
+/* ===== Forms ===== */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-dark);margin-bottom:6px;}
+.field .req{color:var(--red);}
+.input-wrap{position:relative;}
+.input-wrap .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);}
+input[type=text],input[type=email],input[type=password],input[type=search],textarea,select{
+  width:100%;padding:9px 13px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;color:var(--text-dark);
+  background:#fff;
+}
+.input-wrap input{padding-left:37px;}
+textarea{resize:vertical;min-height:96px;}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--navy-light);outline-offset:1px;}
+
+/* ===== Badges/Pills ===== */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.5px;}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+.status-progress{background:var(--amber-bg);color:var(--amber);}
+.status-resolved{background:var(--green-bg);color:var(--green-text);}
+.status-pending{background:var(--red-bg);color:var(--red);}
+.status-info{background:var(--blue-200);color:var(--navy);}
+
+/* ===== Utility ===== */
+.flex{display:flex;}
+.flex-col{display:flex;flex-direction:column;}
+.items-center{align-items:center;}
+.justify-between{justify-content:space-between;}
+.gap-1{gap:4px;}
+.gap-2{gap:8px;}
+.gap-3{gap:12px;}
+.gap-4{gap:16px;}
+.text-muted{color:var(--text-muted);}
+.text-body{color:var(--text-body);}
+.text-navy{color:var(--navy);}
+.small{font-size:12px;}
+.mt-1{margin-top:4px;}
+.mt-2{margin-top:8px;}
+.mt-3{margin-top:12px;}
+.mt-4{margin-top:16px;}
+.grid{display:grid;gap:16px;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.section-title{font-size:20px;font-weight:700;color:var(--navy);margin:0;}
+.hidden{display:none !important;}
+
+@media (max-width:900px){
+  .grid-4{grid-template-columns:repeat(2,1fr);}
+  .grid-3{grid-template-columns:1fr;}
+  .nav{display:none;}
+}
+@media (max-width:640px){
+  .grid-2, .grid-4{grid-template-columns:1fr;}
+}
+
+/* ===== Admin layout (department pages) ===== */
+.admin-wrap{display:flex;min-height:100vh;}
+.admin-sidebar{
+  width:260px;flex-shrink:0;background:var(--blue-50);box-shadow:0 1px 4px rgba(0,0,0,.04);
+  padding:16px 0;display:flex;flex-direction:column;justify-content:space-between;
+  position:sticky;top:0;height:100vh;
+}
+.admin-sidebar .brand{padding:0 16px 16px;}
+.admin-ward-pill{
+  margin:0 12px 8px;background:var(--blue-200);border-radius:8px;padding:6px 8px;
+  display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;
+}
+.admin-nav{padding:0 8px;display:flex;flex-direction:column;gap:2px;}
+.admin-nav a{padding:10px 12px;border-radius:4px;font-size:14px;font-weight:600;color:var(--text-body);}
+.admin-nav a.active{background:var(--navy-light);color:#fff;}
+.admin-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.admin-topbar{
+  height:64px;background:rgba(249,249,255,.95);backdrop-filter:blur(10px);
+  box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;position:sticky;top:0;z-index:40;
+}
+.admin-search{
+  background:var(--blue-50);border-radius:8px;display:flex;align-items:center;gap:8px;
+  padding:6px 12px;width:256px;color:var(--text-muted);
+}
+.admin-search input{border:none;background:none;padding:0;font-size:14px;width:100%;}
+.admin-body{padding:32px 24px;max-width:1280px;width:100%;margin:0 auto;}
+
+@media (max-width:900px){
+  .admin-sidebar{position:fixed;left:-260px;z-index:60;transition:left .2s;}
+  .admin-sidebar.open{left:0;}
+  .admin-search{width:160px;}
+}
+
+</style>
+<style>
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+  .kpi-card{background:#fff;border-radius:8px;box-shadow:var(--shadow-sm);padding:12px;display:flex;justify-content:space-between;align-items:flex-start;}
+  .kpi-icon{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .kpi-label{font-size:11px;font-weight:600;color:var(--text-body);text-transform:uppercase;letter-spacing:.5px;}
+  .kpi-val{font-size:36px;font-weight:700;letter-spacing:-.5px;line-height:1.1;}
+  .toolbar{background:#fff;border-radius:8px;box-shadow:var(--shadow-sm);padding:12px;margin-bottom:24px;}
+  .toolbar-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+  .search-box{flex:1;min-width:260px;background:var(--blue-50);border-radius:4px;display:flex;align-items:center;gap:8px;padding:13px 12px;}
+  .search-box input{border:none;background:none;padding:0;width:100%;}
+  .status-pills{display:flex;gap:4px;flex-wrap:wrap;}
+  .status-pill{padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;background:var(--blue-100);color:var(--text-body);}
+  .status-pill.active{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm);}
+  .cat-chip{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:12px;font-size:11px;font-weight:600;background:var(--blue-100);color:var(--text-body);}
+  .cat-chip.active{background:var(--navy-light);color:#fff;}
+  .cat-count{background:var(--blue-300);color:var(--text-body);border-radius:12px;padding:0 6px;font-size:10px;}
+  .cat-chip.active .cat-count{background:rgba(255,255,255,.2);color:#fff;}
+  .complaint-row{background:#fff;border-radius:8px;box-shadow:var(--shadow-sm);padding:24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+  .row-icon{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
+  .row-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;margin-bottom:4px;}
+  .row-meta code{color:var(--navy);font-weight:700;}
+  .row-tag{padding:2px 4px;border-radius:2px;font-weight:600;}
+  .row-detail{display:flex;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--text-body);margin-top:4px;}
+  .pager{background:#fff;border-radius:8px;box-shadow:var(--shadow-sm);padding:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .page-btn{width:32px;height:32px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--blue-100);}
+  .page-btn.active{background:var(--navy);color:#fff;}
+  @media(max-width:1000px){ .kpi-row{grid-template-columns:1fr 1fr;} }
+</style>
+</head>
+<body>
+<div class="admin-wrap">
+  <aside class="admin-sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-mark" style="width:32px;height:32px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V8l8-5 8 5v13"/></svg></div>
+        <div><div class="brand-name" style="font-size:18px;">NagrikConnect</div><div class="small text-muted" style="font-weight:700;letter-spacing:.5px;">ADMINISTRATION CORE</div></div>
+      </div>
+      <div class="admin-ward-pill"><span class="flex gap-1 items-center"><span class="dot" style="background:#61b15f;"></span>Ward 14 • Indiranagar</span><span class="text-muted">Active</span></div>
+      <nav class="admin-nav">
+        <a href="department-portal.html" class="active">All Complaints</a>
+        <a href="field-workers.html">Field Workers &amp; Crews</a>
+        <a href="department-analytics.html">Department Analytics</a>
+      </nav>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div class="flex gap-3 items-center">
+        <strong style="color:var(--navy);font-size:18px;">NagrikConnect Administration Core</strong>
+        <span class="pill" style="background:var(--blue-200);"><span class="dot" style="background:#61b15f;"></span>Ward 14 • Indiranagar</span>
+      </div>
+      <div class="flex gap-3 items-center">
+        <div class="admin-search">🔍 <input type="text" placeholder="Search complaints, tokens..."></div>
+        <div class="user-chip"><div class="user-avatar">RS</div><div><div class="user-name">Rajesh Sharma</div><div class="user-role">Officer Gr. I</div></div></div>
+        <a href="login.html" class="btn-signout">Sign Out</a>
+      </div>
+    </div>
+
+    <div class="admin-body">
+      <div style="margin-bottom:24px;">
+        <h1 style="margin:0;font-size:24px;color:var(--navy);">Department Complaints <span style="font-weight:600;color:var(--text-muted);">/</span> <span style="font-weight:600;color:var(--text-body);font-size:18px;">सभी शिकायतें</span></h1>
+        <p class="small text-body mt-1">View and manage incoming ward grievances</p>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-card"><div><span class="kpi-label">Total Received</span><div class="kpi-val" style="color:var(--navy);">18 <span class="small text-body" style="font-weight:400;">tickets</span></div><p class="small mt-1" style="color:var(--amber);font-weight:600;">▲ 4 pending assignment</p></div><div class="kpi-icon" style="background:var(--blue-200);">📥</div></div>
+        <div class="kpi-card"><div><span class="kpi-label">In Progress</span><div class="kpi-val" style="color:var(--amber);">7 <span class="small text-body" style="font-weight:400;">in field</span></div><p class="small mt-1" style="font-weight:700;">● Active field work deployed</p></div><div class="kpi-icon" style="background:var(--amber-bg);">🚧</div></div>
+        <div class="kpi-card"><div><span class="kpi-label">Resolved Today</span><div class="kpi-val" style="color:var(--text-dark);">5 <span class="small text-body" style="font-weight:400;">closed</span></div><p class="small mt-1" style="font-weight:700;">✓ Awaiting citizen OTP</p></div><div class="kpi-icon" style="background:var(--blue-200);">✅</div></div>
+        <div class="kpi-card"><div><span class="kpi-label">Avg SLA Response</span><div class="kpi-val" style="color:var(--navy-light);">28 <span class="small" style="font-weight:600;">Hours</span></div><p class="small mt-1" style="font-weight:700;">Within statutory limit (48h)</p></div><div class="kpi-icon" style="background:var(--blue-50);">⏱</div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-top">
+          <div class="search-box">🔍 <input type="text" placeholder="Search by ID, keyword, or locality (e.g. 12th Main, Paver, Sump)..."></div>
+          <div class="status-pills" data-tab-group>
+            <span class="small text-muted" style="font-weight:700;padding:4px 0;">STATUS:</span>
+            <span class="status-pill tab-active active" data-tab>All Status</span>
+            <span class="status-pill" data-tab>Pending</span>
+            <span class="status-pill" data-tab>In Progress</span>
+            <span class="status-pill" data-tab>Completed</span>
+          </div>
+        </div>
+        <div class="flex gap-1 items-center" style="flex-wrap:wrap;">
+          <span class="small text-muted" style="font-weight:700;">CATEGORY:</span>
+          <span class="cat-chip active">All <span class="cat-count">18</span></span>
+          <span class="cat-chip">Roads &amp; PWD <span class="cat-count">8</span></span>
+          <span class="cat-chip">Sanitation &amp; SWM <span class="cat-count">6</span></span>
+          <span class="cat-chip">Streetlighting <span class="cat-count">4</span></span>
+        </div>
+      </div>
+
+      <!-- Item 1 -->
+      <div class="complaint-row">
+        <div class="flex gap-3" style="flex:1;min-width:260px;">
+          <div class="row-icon" style="background:var(--blue-200);">🛠</div>
+          <div>
+            <div class="row-meta"><code>#GRV-2025-W14-8902</code> • <span class="row-tag" style="background:rgba(102,41,0,.1);color:#fe8439;">Roads (PWD)</span> • <span class="text-body">🕒 Reported 3 hrs ago</span></div>
+            <h3 style="margin:0;font-size:18px;color:var(--text-dark);">Pothole Repair on 12th Main Road</h3>
+            <div class="row-detail"><span>📍 12th Main, near HAL 2nd Stage Junction</span><span>👤 Assigned: <strong>Er. Manoj Kumar</strong></span></div>
+          </div>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span class="pill" style="background:var(--amber-bg);color:var(--amber);"><span class="dot" style="background:var(--amber);"></span>In Progress</span>
+          <a href="complaint-timeline.html" class="btn btn-secondary btn-sm">View Details →</a>
+        </div>
+      </div>
+
+      <!-- Item 2 -->
+      <div class="complaint-row">
+        <div class="flex gap-3" style="flex:1;min-width:260px;">
+          <div class="row-icon" style="background:var(--red-bg);">🚨</div>
+          <div>
+            <div class="row-meta"><code>#GRV-2025-W14-9140</code> • <span class="row-tag" style="background:rgba(255,218,214,.4);color:var(--red);">Stormwater • High Priority</span> • <span class="text-body">🕒 Reported 1 hr ago</span></div>
+            <h3 style="margin:0;font-size:18px;color:var(--text-dark);">Broken Sump Grating &amp; Drain Overflow</h3>
+            <div class="row-detail"><span>📍 4th Cross Road, BDA Complex Perimeter</span><span style="color:var(--red);">⚠ Assigned: <strong style="text-decoration:underline dotted;">Unassigned (Action Needed)</strong></span></div>
+          </div>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span class="pill" style="background:var(--red-bg);color:var(--red);">⚠ Pending Dispatch</span>
+          <a href="field-workers.html" class="btn btn-amber btn-sm">🚚 Assign Crew</a>
+        </div>
+      </div>
+
+      <!-- Item 3 -->
+      <div class="complaint-row">
+        <div class="flex gap-3" style="flex:1;min-width:260px;">
+          <div class="row-icon" style="background:var(--blue-200);">🧱</div>
+          <div>
+            <div class="row-meta"><code>#GRV-2025-W14-8841</code> • <span class="row-tag" style="background:rgba(102,41,0,.1);color:#fe8439;">Roads (PWD)</span> • <span class="text-body">🕒 Reported Yesterday • Resolved in 19 hrs</span></div>
+            <h3 style="margin:0;font-size:18px;color:var(--text-dark);">Dislodged Pedestrian Paver Blocks</h3>
+            <div class="row-detail"><span>📍 100 Feet Road, Near Metro Pillar 42</span><span>Executed by: <strong>Er. Manoj Kumar</strong></span></div>
+          </div>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span class="pill" style="background:var(--blue-100);color:var(--green-text);">✓ Resolved</span>
+          <a href="#" class="btn btn-secondary btn-sm">📷 View Proof</a>
+        </div>
+      </div>
+
+      <!-- Item 4 -->
+      <div class="complaint-row">
+        <div class="flex gap-3" style="flex:1;min-width:260px;">
+          <div class="row-icon" style="background:var(--blue-200);">💡</div>
+          <div>
+            <div class="row-meta"><code>#GRV-2025-W14-8712</code> • <span class="row-tag" style="background:var(--blue-300);color:var(--navy);">Electrical</span> • <span class="text-body">🕒 Reported Yesterday</span></div>
+            <h3 style="margin:0;font-size:18px;color:var(--text-dark);">Streetlight Blackout near Sector 4 Park</h3>
+            <div class="row-detail"><span>📍 Sector 4 Central Park, Lane 2 (Poles 14-16)</span><span>👤 Assigned: <strong>Suresh Rao (Electrician)</strong></span></div>
+          </div>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span class="pill" style="background:var(--amber-bg);color:var(--amber);"><span class="dot" style="background:var(--amber);"></span>In Progress</span>
+          <a href="complaint-timeline.html" class="btn btn-secondary btn-sm">View Details →</a>
+        </div>
+      </div>
+
+      <!-- Item 5 -->
+      <div class="complaint-row">
+        <div class="flex gap-3" style="flex:1;min-width:260px;">
+          <div class="row-icon" style="background:var(--blue-200);">🗑</div>
+          <div>
+            <div class="row-meta"><code>#GRV-2025-W14-8650</code> • <span class="row-tag" style="background:var(--green-bg);color:var(--green-text);">Sanitation (SWM)</span> • <span class="text-body">🕒 Reported 2 days ago • Resolved in 6 hrs</span></div>
+            <h3 style="margin:0;font-size:18px;color:var(--text-dark);">Overflowing Community Garbage Bin</h3>
+            <div class="row-detail"><span>📍 Market Square Corner, Opposite Post Office</span><span>Cleared by: <strong>Sanitation Unit 3</strong></span></div>
+          </div>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span class="pill" style="background:var(--blue-100);color:var(--green-text);">✓ Resolved</span>
+          <a href="#" class="btn btn-secondary btn-sm">📷 View Proof</a>
+        </div>
+      </div>
+
+      <div class="pager">
+        <span class="small text-body">Showing <strong>5</strong> of <strong>18</strong> complaints</span>
+        <div class="flex gap-1 items-center">
+          <span class="page-btn" style="width:auto;padding:0 12px;opacity:.6;">← Previous</span>
+          <span class="page-btn active">1</span><span class="page-btn">2</span><span class="page-btn">3</span><span class="page-btn">4</span>
+          <span class="page-btn" style="width:auto;padding:0 12px;">Next →</span>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-col"><div class="footer-brand"><div class="footer-mark"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V8l8-5 8 5v13"/></svg></div><span class="footer-name">NagrikConnect</span></div><p class="footer-desc">Smart City Civic Redressal Infrastructure</p></div>
+        <div class="footer-help"><h4>Emergency Helplines</h4><p>112 – National Emergency • 101 – Fire • 1916 – Water Supply (24/7)</p></div>
+      </div>
+    </footer>
+  </div>
+</div>
+<script>
+// ===== NagrikConnect shared behaviours =====
+
+// Login role toggle (Citizen / Admin)
+function initRoleToggle(){
+  const citizenBtn = document.getElementById('role-citizen');
+  const adminBtn = document.getElementById('role-admin');
+  const feedback = document.getElementById('role-feedback');
+  if(!citizenBtn || !adminBtn) return;
+  function setRole(role){
+    if(role === 'citizen'){
+      citizenBtn.classList.add('active-role');
+      adminBtn.classList.remove('active-role');
+      if(feedback) feedback.innerHTML = 'Signing in as <strong>Ward 14 Citizen</strong> to track &amp; report grievances.';
+    } else {
+      adminBtn.classList.add('active-role');
+      citizenBtn.classList.remove('active-role');
+      if(feedback) feedback.innerHTML = 'Signing in as <strong>Ward 14 Officer</strong> to manage department complaints.';
+    }
+  }
+  citizenBtn.addEventListener('click', () => setRole('citizen'));
+  adminBtn.addEventListener('click', () => setRole('admin'));
+}
+
+// Generic tab/pill filter switcher: elements with [data-tab-group] wrap [data-tab] buttons
+function initTabs(){
+  document.querySelectorAll('[data-tab-group]').forEach(group => {
+    const buttons = group.querySelectorAll('[data-tab]');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+      });
+    });
+  });
+}
+
+// Mobile sidebar toggle for admin pages
+function initSidebarToggle(){
+  const toggle = document.getElementById('sidebar-toggle');
+  const sidebar = document.querySelector('.admin-sidebar');
+  if(!toggle || !sidebar) return;
+  toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+}
+
+// Simple stepper "next" button feedback (for multi-step forms) - just visual, no real nav logic needed beyond links
+document.addEventListener('DOMContentLoaded', () => {
+  initRoleToggle();
+  initTabs();
+  initSidebarToggle();
+});
+
+</script>
+</body>
+</html>
