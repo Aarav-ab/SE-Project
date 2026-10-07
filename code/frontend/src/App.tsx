@@ -1,7 +1,7 @@
-import Login from "./pages/Login";
+import CitizenPortal from "./pages/CitizenPortal";
 
 function App() {
-  return <Login />;
+  return <CitizenPortal />;
 }
 
 export default App;
