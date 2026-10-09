@@ -1,7 +1,7 @@
-import CitizenPortal from "./pages/CitizenPortal";
+import ComplaintStep3 from "./pages/ComplaintStep3";
 
 function App() {
-  return <CitizenPortal />;
+  return <ComplaintStep3 />;
 }
 
 export default App;
