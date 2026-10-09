@@ -14,7 +14,7 @@ const priorities = [
   { name: "Urgent", description: "Resolution within 24 hrs" },
 ];
 
-function ComplaintStep3() {
+function ComplaintStep3({ onBack }: { onBack: () => void }) {
   const { complaint, updateComplaint } = useComplaint();
 
   const complaintType = complaint.complaintType;
@@ -22,6 +22,8 @@ function ComplaintStep3() {
   const priority = complaint.priority;
 
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [demoComplaintId, setDemoComplaintId] = useState("");
 
   function handleSubmit() {
     if (!description.trim()) {
@@ -30,13 +32,93 @@ function ComplaintStep3() {
     }
 
     setError("");
-    alert(
-      "Complaint details validated. Final submission will be connected next.",
-    );
+
+    const temporaryId = `NC-DEMO-${Date.now().toString().slice(-6)}`;
+    setDemoComplaintId(temporaryId);
+    setSubmitted(true);
   }
 
   return (
     <div className="page-wrap">
+      {submitted && (
+        <div className="confirmation-overlay" role="presentation">
+          <section
+            className="confirmation-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmation-title"
+          >
+            <div className="confirmation-icon">✓</div>
+
+            <h2 id="confirmation-title">Complaint Submitted!</h2>
+
+            <p className="text-body">
+              Your complaint has been recorded in this demo. Backend submission
+              will be connected when the API is ready.
+            </p>
+
+            <div className="confirmation-details">
+              <div className="confirmation-id">
+                <span>Temporary Complaint Reference</span>
+                <strong>{demoComplaintId}</strong>
+                <small>Demo ID — not yet registered with the backend</small>
+              </div>
+              <div>
+                <span>Complaint category</span>
+                <strong>{complaintType}</strong>
+              </div>
+
+              <div>
+                <span>Priority</span>
+                <strong>{priority}</strong>
+              </div>
+              <div>
+                <span>Reported location</span>
+                <strong>{complaint.address || "Address not provided"}</strong>
+                <p>PIN code: {complaint.pinCode || "Not provided"}</p>
+
+                {complaint.landmark && <p>Landmark: {complaint.landmark}</p>}
+              </div>
+
+              <div>
+                <span>Evidence attached</span>
+                <strong>{complaint.files.length} file(s)</strong>
+                <p>
+                  {complaint.files.length > 0
+                    ? complaint.files.map((file) => file.name).join(", ")
+                    : "No evidence attached"}
+                </p>
+              </div>
+
+              {complaint.latitude !== null && complaint.longitude !== null && (
+                <div>
+                  <span>Selected coordinates</span>
+                  <strong>
+                    {complaint.latitude.toFixed(5)},{" "}
+                    {complaint.longitude.toFixed(5)}
+                  </strong>
+                </div>
+              )}
+
+              <div>
+                <span>Description</span>
+                <p>{description}</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-navy"
+              onClick={() => {
+                setSubmitted(false);
+              }}
+            >
+              Return to Complaint
+            </button>
+          </section>
+        </div>
+      )}
+
       <header className="site-header">
         <div className="container">
           <div className="brand">
@@ -242,7 +324,7 @@ function ComplaintStep3() {
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => window.history.back()}
+                onClick={onBack}
               >
                 ← Back to Step 2
               </button>

@@ -12,7 +12,7 @@ function formatFileSize(bytes: number): string {
     : `${(bytes / 1024).toFixed(0)} KB`;
 }
 
-function ComplaintStep1() {
+function ComplaintStep1({ onNext }: { onNext: () => void }) {
   const { complaint, updateComplaint } = useComplaint();
   const files = complaint.files;
 
@@ -85,10 +85,7 @@ function ComplaintStep1() {
       return;
     }
 
-    // Navigation will be connected when the multi-step flow is set up.
-    alert(
-      `${files.length} evidence file(s) selected. Step 2 navigation will be connected next.`,
-    );
+    onNext();
   }
 
   return (

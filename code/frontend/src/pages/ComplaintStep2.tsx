@@ -33,7 +33,13 @@ function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
   return null;
 }
 
-function ComplaintStep2() {
+function ComplaintStep2({
+  onNext,
+  onBack,
+}: {
+  onNext: () => void;
+  onBack: () => void;
+}) {
   const { complaint, updateComplaint } = useComplaint();
 
   const address = complaint.address;
@@ -237,9 +243,7 @@ function ComplaintStep2() {
       return;
     }
 
-    alert(
-      "Location details are ready. Step 3 navigation will be connected next.",
-    );
+    onNext();
   }
 
   return (
@@ -464,9 +468,13 @@ function ComplaintStep2() {
             )}
 
             <div className="complaint-actions">
-              <a href="/complaint-step1" className="btn btn-secondary">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onBack}
+              >
                 ← Back to Step 1
-              </a>
+              </button>
               <button
                 type="button"
                 className="btn btn-primary"
