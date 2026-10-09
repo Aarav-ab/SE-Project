@@ -323,12 +323,6 @@ function ComplaintStep2({
                   करें
                 </p>
               </div>
-
-              <div className="summary-badge">
-                <span className="dot location-dot" />
-                Type: <strong>Pothole / Damaged Road</strong>
-                <span className="tag priority-tag">PRIORITY: MEDIUM</span>
-              </div>
             </div>
 
             <div className="location-controls">
@@ -340,14 +334,14 @@ function ComplaintStep2({
                 📍 Use GPS / Auto-Detect Location
               </button>
 
-              <div className="field ward-field">
+              {/* <div className="field ward-field">
                 <label htmlFor="ward">Ward Jurisdiction</label>
                 <select id="ward" defaultValue="ward14">
                   <option value="ward14">
                     Ward 14 - Indiranagar East (Selected)
                   </option>
                 </select>
-              </div>
+              </div> */}
             </div>
 
             <div className="real-map-wrapper">

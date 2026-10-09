@@ -208,21 +208,6 @@ function ComplaintStep3({ onBack }: { onBack: () => void }) {
               Submission
             </p>
 
-            <div className="review-bar mt-3">
-              <div className="flex gap-3 items-center">
-                <div className="review-thumb" />
-                <div>
-                  <div className="small" style={{ fontWeight: 700 }}>
-                    📷 Evidence and selected location
-                  </div>
-                  <div className="small text-body">
-                    Complaint details will be reviewed before submission.
-                  </div>
-                </div>
-              </div>
-              <span className="badge status-info">LOCATION REVIEW</span>
-            </div>
-
             <section className="mt-4">
               <h3 style={{ margin: "0 0 12px", color: "var(--navy)" }}>
                 Choose Type of Complaint{" "}
