@@ -6,7 +6,6 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 function MapClickHandler({
@@ -42,7 +41,6 @@ function ComplaintStep2() {
     lon: 77.5946,
   });
   const [gpsMessage, setGpsMessage] = useState("");
-  const [pinPosition, setPinPosition] = useState({ x: 50, y: 55 });
 
   async function updateAddressFromCoordinates(lat: number, lon: number) {
     setGpsMessage("Updating address for selected location...");
@@ -218,21 +216,6 @@ function ComplaintStep2() {
         maximumAge: 0,
       },
     );
-  }
-
-  function movePin(event: React.MouseEvent<HTMLDivElement>) {
-    const bounds = event.currentTarget.getBoundingClientRect();
-
-    setPinPosition({
-      x: Math.max(
-        5,
-        Math.min(95, ((event.clientX - bounds.left) / bounds.width) * 100),
-      ),
-      y: Math.max(
-        12,
-        Math.min(90, ((event.clientY - bounds.top) / bounds.height) * 100),
-      ),
-    });
   }
 
   function continueToStep3() {
