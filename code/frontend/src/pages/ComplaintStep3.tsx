@@ -1,3 +1,4 @@
+import { useComplaint } from "../ComplaintContext";
 import { useState } from "react";
 
 const complaintTypes = [
@@ -14,9 +15,12 @@ const priorities = [
 ];
 
 function ComplaintStep3() {
-  const [complaintType, setComplaintType] = useState("Pothole / Road");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("Medium");
+  const { complaint, updateComplaint } = useComplaint();
+
+  const complaintType = complaint.complaintType;
+  const description = complaint.description;
+  const priority = complaint.priority;
+
   const [error, setError] = useState("");
 
   function handleSubmit() {
@@ -151,7 +155,9 @@ function ComplaintStep3() {
                     type="button"
                     key={type.name}
                     className={`type-btn ${complaintType === type.name ? "selected" : ""}`}
-                    onClick={() => setComplaintType(type.name)}
+                    onClick={() =>
+                      updateComplaint({ complaintType: type.name })
+                    }
                     aria-pressed={complaintType === type.name}
                   >
                     <span>{type.icon}</span>
@@ -181,7 +187,7 @@ function ComplaintStep3() {
                 rows={4}
                 value={description}
                 onChange={(event) => {
-                  setDescription(event.target.value);
+                  updateComplaint({ description: event.target.value });
                   setError("");
                 }}
                 placeholder="Describe the problem, its exact circumstances, and its impact..."
@@ -204,7 +210,7 @@ function ComplaintStep3() {
                     type="button"
                     key={option.name}
                     className={`priority-opt ${priority === option.name ? "selected" : ""}`}
-                    onClick={() => setPriority(option.name)}
+                    onClick={() => updateComplaint({ priority: option.name })}
                     aria-pressed={priority === option.name}
                   >
                     <span className="radio-dot" />

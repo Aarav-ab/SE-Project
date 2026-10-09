@@ -1,3 +1,4 @@
+import { useComplaint } from "../ComplaintContext";
 import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 
@@ -12,7 +13,9 @@ function formatFileSize(bytes: number): string {
 }
 
 function ComplaintStep1() {
-  const [files, setFiles] = useState<File[]>([]);
+  const { complaint, updateComplaint } = useComplaint();
+  const files = complaint.files;
+
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,22 +35,22 @@ function ComplaintStep1() {
       }
     });
 
-    setFiles((previous) => {
-      const combined = [...previous];
+    const combined = [...files];
 
-      accepted.forEach((file) => {
-        const alreadyAdded = combined.some(
-          (existing) =>
-            existing.name === file.name &&
-            existing.size === file.size &&
-            existing.lastModified === file.lastModified,
-        );
+    accepted.forEach((file) => {
+      const alreadyAdded = combined.some(
+        (existing) =>
+          existing.name === file.name &&
+          existing.size === file.size &&
+          existing.lastModified === file.lastModified,
+      );
 
-        if (!alreadyAdded) combined.push(file);
-      });
-
-      return combined;
+      if (!alreadyAdded) {
+        combined.push(file);
+      }
     });
+
+    updateComplaint({ files: combined });
 
     setError(errors.join(" "));
 
@@ -69,7 +72,10 @@ function ComplaintStep1() {
   }
 
   function removeFile(index: number) {
-    setFiles((previous) => previous.filter((_, i) => i !== index));
+    updateComplaint({
+      files: files.filter((_, i) => i !== index),
+    });
+
     setError("");
   }
 

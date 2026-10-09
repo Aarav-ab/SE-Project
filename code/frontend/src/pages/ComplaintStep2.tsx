@@ -1,3 +1,4 @@
+import { useComplaint } from "../ComplaintContext";
 import { useEffect, useState } from "react";
 import {
   MapContainer,
@@ -33,19 +34,22 @@ function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
 }
 
 function ComplaintStep2() {
-  const [address, setAddress] = useState("");
-  const [pinCode, setPinCode] = useState("");
-  const [landmark, setLandmark] = useState("");
+  const { complaint, updateComplaint } = useComplaint();
+
+  const address = complaint.address;
+  const pinCode = complaint.pinCode;
+  const landmark = complaint.landmark;
+
   const [coordinates, setCoordinates] = useState({
-    lat: 12.9716,
-    lon: 77.5946,
+    lat: complaint.latitude ?? 30.3533,
+    lon: complaint.longitude ?? 76.3583,
   });
+
   const [gpsMessage, setGpsMessage] = useState("");
 
   async function updateAddressFromCoordinates(lat: number, lon: number) {
     setGpsMessage("Updating address for selected location...");
-    setLandmark("");
-
+    updateComplaint({ landmark: "" });
     try {
       const url =
         `https://nominatim.openstreetmap.org/reverse?format=jsonv2` +
@@ -94,18 +98,19 @@ function ComplaintStep2() {
         }
       }
 
-      setAddress(streetAddress);
-      setPinCode(postcode);
-
+      updateComplaint({ address: streetAddress });
+      updateComplaint({ pinCode: postcode });
       setGpsMessage(
         streetAddress
           ? "Location and address updated."
           : "Location selected. Please enter the address manually.",
       );
     } catch {
-      setAddress("");
-      setPinCode("");
-      setLandmark("");
+      updateComplaint({
+        address: "",
+        pinCode: "",
+        landmark: "",
+      });
 
       setGpsMessage(
         "Location selected, but address lookup failed. Please enter the address manually.",
@@ -126,9 +131,12 @@ function ComplaintStep2() {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
-        setLandmark("");
-
+        updateComplaint({ landmark: "" });
         setCoordinates({ lat, lon });
+        updateComplaint({
+          latitude: lat,
+          longitude: lon,
+        });
         setGpsMessage("GPS detected. Looking up your address...");
 
         try {
@@ -167,7 +175,7 @@ function ComplaintStep2() {
             .join(", ");
 
           if (streetAddress) {
-            setAddress(streetAddress);
+            updateComplaint({ address: streetAddress });
           }
 
           let detectedPostcode = parts.postcode ?? "";
@@ -187,7 +195,7 @@ function ComplaintStep2() {
             }
           }
 
-          setPinCode(detectedPostcode);
+          updateComplaint({ pinCode: detectedPostcode });
 
           setGpsMessage(
             streetAddress
@@ -361,6 +369,12 @@ function ComplaintStep2() {
                 <MapClickHandler
                   onSelect={(lat, lon) => {
                     setCoordinates({ lat, lon });
+
+                    updateComplaint({
+                      latitude: lat,
+                      longitude: lon,
+                    });
+
                     void updateAddressFromCoordinates(lat, lon);
                   }}
                 />
@@ -391,7 +405,11 @@ function ComplaintStep2() {
                     id="street"
                     type="text"
                     value={address}
-                    onChange={(event) => setAddress(event.target.value)}
+                    onChange={(event) =>
+                      updateComplaint({
+                        pinCode: event.target.value.replace(/\D/g, ""),
+                      })
+                    }
                     required
                   />
                   <p className="small text-body">
@@ -411,7 +429,9 @@ function ComplaintStep2() {
                     maxLength={6}
                     value={pinCode}
                     onChange={(event) =>
-                      setPinCode(event.target.value.replace(/\D/g, ""))
+                      updateComplaint({
+                        pinCode: event.target.value.replace(/\D/g, ""),
+                      })
                     }
                     required
                   />
@@ -426,7 +446,9 @@ function ComplaintStep2() {
                     id="landmark"
                     type="text"
                     value={landmark}
-                    onChange={(event) => setLandmark(event.target.value)}
+                    onChange={(event) =>
+                      updateComplaint({ landmark: event.target.value })
+                    }
                   />
                   <p className="small text-body">
                     Add visible markers to help the field team locate the issue.
