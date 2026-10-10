@@ -14,7 +14,19 @@ const priorities = [
   { name: "Urgent", description: "Resolution within 24 hrs" },
 ];
 
-function ComplaintStep3({ onBack }: { onBack: () => void }) {
+function ComplaintStep3({
+  onBack,
+  onCancel,
+  onGoToStep1,
+  onTrackComplaints,
+  onSignOut,
+}: {
+  onBack: () => void;
+  onCancel: () => void;
+  onGoToStep1: () => void;
+  onTrackComplaints: () => void;
+  onSignOut: () => void;
+}) {
   const { complaint, updateComplaint } = useComplaint();
 
   const complaintType = complaint.complaintType;
@@ -141,11 +153,17 @@ function ComplaintStep3({ onBack }: { onBack: () => void }) {
           </div>
 
           <nav className="nav">
-            <a href="/citizen-portal">Citizen Hub</a>
-            <a href="/complaint-step1" className="active">
+            <button type="button" onClick={onCancel}>
+              Citizen Hub
+            </button>
+
+            <button type="button" onClick={onGoToStep1}>
               File Complaint
-            </a>
-            <a href="/complaints-log">Track Complaint</a>
+            </button>
+
+            <button type="button" onClick={onTrackComplaints}>
+              Track Complaint
+            </button>
           </nav>
 
           <div className="header-right">
@@ -156,11 +174,7 @@ function ComplaintStep3({ onBack }: { onBack: () => void }) {
                 <div className="user-role">Ward 14 Citizen</div>
               </div>
             </div>
-            <button
-              type="button"
-              className="btn-signout"
-              onClick={() => alert("Sign out will be connected later.")}
-            >
+            <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
             </button>
           </div>

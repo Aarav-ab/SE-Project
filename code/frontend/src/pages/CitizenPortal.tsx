@@ -1,4 +1,14 @@
-function CitizenPortal() {
+function CitizenPortal({
+  onFileComplaint,
+  onGoHome,
+  onTrackComplaints,
+  onSignOut,
+}: {
+  onFileComplaint: () => void;
+  onGoHome: () => void;
+  onTrackComplaints: () => void;
+  onSignOut: () => void;
+}) {
   return (
     <div className="page-wrap">
       {/* Header */}
@@ -37,46 +47,53 @@ function CitizenPortal() {
           </div>
 
           <nav className="nav">
-            <a href="#" className="active">
+            <a
+              href="#"
+              className="active"
+              onClick={(event) => {
+                event.preventDefault();
+                onGoHome();
+              }}
+            >
               Citizen Hub
             </a>
 
-            <a href="#">File Complaint</a>
+            <a
+              href="#"
+              onClick={(event) => {
+                event.preventDefault();
+                onFileComplaint();
+              }}
+            >
+              File Complaint
+            </a>
 
-            <a href="#">Track Complaint</a>
+            <a
+              href="#"
+              onClick={(event) => {
+                event.preventDefault();
+                onTrackComplaints();
+              }}
+            >
+              Track Complaint
+            </a>
           </nav>
-
           <div className="header-right">
             <div className="user-chip">
-              <div className="user-avatar">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
-                </svg>
-              </div>
-
+              <div className="user-avatar">RS</div>
               <div>
                 <div className="user-name">Rajesh Sharma</div>
 
                 <div className="user-role">Ward 14 Citizen</div>
               </div>
             </div>
-
-            <a href="#" className="btn-signout">
+            <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
-            </a>
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main */}
       <main className="main-content citizen-main">
         <div className="container citizen-container">
           {/* Hero */}
@@ -84,7 +101,6 @@ function CitizenPortal() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="hero-badge">CITIZEN PORTAL ACTIVE</span>
-
                 <span
                   className="small"
                   style={{
@@ -95,38 +111,29 @@ function CitizenPortal() {
                   • Indiranagar, Bengaluru
                 </span>
               </div>
-
               <h1>Welcome back, Rajesh! / स्वागत है</h1>
-
               <p className="text-body">
                 Ward 14, Indiranagar • Citizen Civic Redressal Hub
               </p>
             </div>
-
             <div className="stat-strip">
               <div>
                 <div className="num">1</div>
                 <div className="lbl">In Progress</div>
               </div>
-
               <div>
                 <div className="num">2</div>
                 <div className="lbl">Resolved</div>
               </div>
-
               <div>
                 <div className="num" style={{ color: "var(--amber)" }}>
                   100%
                 </div>
-
                 <div className="lbl">SLA Met</div>
               </div>
             </div>
           </div>
-
-          {/* Main Actions */}
           <div className="action-cards">
-            {/* File complaint */}
             <div className="card card-pad action-card">
               <div>
                 <div className="flex justify-between items-center">
@@ -147,7 +154,6 @@ function CitizenPortal() {
                       <path d="M12 5v14M5 12h14" />
                     </svg>
                   </div>
-
                   <span
                     className="badge"
                     style={{
@@ -158,7 +164,6 @@ function CitizenPortal() {
                     Quick 3-Step
                   </span>
                 </div>
-
                 <h3
                   style={{
                     margin: "12px 0 4px",
@@ -174,9 +179,13 @@ function CitizenPortal() {
                 </p>
               </div>
 
-              <a href="#" className="btn btn-navy btn-block mt-3">
+              <button
+                type="button"
+                className="btn btn-navy btn-block mt-3"
+                onClick={onFileComplaint}
+              >
                 File Grievance →
-              </a>
+              </button>
             </div>
 
             {/* Track complaints */}
@@ -209,7 +218,7 @@ function CitizenPortal() {
                       color: "var(--text-body)",
                     }}
                   >
-                    3 Total Grievances
+                    4 Total Grievances
                   </span>
                 </div>
 
@@ -228,9 +237,13 @@ function CitizenPortal() {
                 </p>
               </div>
 
-              <a href="#" className="btn btn-secondary btn-block mt-3">
+              <button
+                type="button"
+                className="btn btn-secondary btn-block mt-3"
+                onClick={onTrackComplaints}
+              >
                 View Grievance Logs →
-              </a>
+              </button>
             </div>
           </div>
 

@@ -12,7 +12,17 @@ function formatFileSize(bytes: number): string {
     : `${(bytes / 1024).toFixed(0)} KB`;
 }
 
-function ComplaintStep1({ onNext }: { onNext: () => void }) {
+function ComplaintStep1({
+  onNext,
+  onCancel,
+  onTrackComplaints,
+  onSignOut,
+}: {
+  onNext: () => void;
+  onCancel: () => void;
+  onTrackComplaints: () => void;
+  onSignOut: () => void;
+}) {
   const { complaint, updateComplaint } = useComplaint();
   const files = complaint.files;
 
@@ -92,7 +102,12 @@ function ComplaintStep1({ onNext }: { onNext: () => void }) {
     <div className="page-wrap">
       <header className="site-header">
         <div className="container">
-          <a className="brand" href="/" aria-label="NagrikConnect home">
+          <button
+            type="button"
+            className="brand"
+            aria-label="NagrikConnect home"
+            onClick={onCancel}
+          >
             <div className="brand-mark">
               <svg
                 width="20"
@@ -111,16 +126,25 @@ function ComplaintStep1({ onNext }: { onNext: () => void }) {
                 <span className="brand-tag complaint-ward-tag">WARD 14</span>
               </div>
             </div>
-          </a>
+          </button>
 
           <nav className="nav">
-            <a href="/">Citizen Hub</a>
-            <a href="/complaint-step1" className="active">
-              File Complaint
-            </a>
-            <a href="/complaints-log">Track Complaint</a>
-          </nav>
+            <button type="button" onClick={onCancel}>
+              Citizen Hub
+            </button>
 
+            <button
+              type="button"
+              className="active"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              File Complaint
+            </button>
+
+            <button type="button" onClick={onTrackComplaints}>
+              Track Complaint
+            </button>
+          </nav>
           <div className="header-right">
             <div className="user-chip">
               <div className="user-avatar">RS</div>
@@ -129,9 +153,9 @@ function ComplaintStep1({ onNext }: { onNext: () => void }) {
                 <div className="user-role">Ward 14 Citizen</div>
               </div>
             </div>
-            <a href="/" className="btn-signout">
+            <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
-            </a>
+            </button>
           </div>
         </div>
       </header>
@@ -316,9 +340,13 @@ function ComplaintStep1({ onNext }: { onNext: () => void }) {
             </section>
 
             <div className="complaint-actions">
-              <a href="/" className="btn btn-secondary complaint-cancel">
+              <button
+                type="button"
+                className="btn btn-secondary complaint-cancel"
+                onClick={onCancel}
+              >
                 ← Cancel
-              </a>
+              </button>
 
               <button
                 type="button"

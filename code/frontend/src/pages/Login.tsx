@@ -2,17 +2,16 @@ import { useState } from "react";
 
 type Role = "citizen" | "admin";
 
-function Login() {
+type LoginProps = {
+  onLogin: (role: Role) => void;
+};
+
+function Login({ onLogin }: LoginProps) {
   const [role, setRole] = useState<Role>("citizen");
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (role === "admin") {
-      window.location.href = "/department-portal.html";
-    } else {
-      window.location.href = "/citizen-portal.html";
-    }
+    onLogin(role);
   };
 
   return (
@@ -106,7 +105,7 @@ function Login() {
             </button>
           </div>
 
-            {/* Role feedback
+          {/* Role feedback
             <div className="role-feedback">
                 Signing in as{" "}
                 <strong>

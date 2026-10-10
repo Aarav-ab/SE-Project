@@ -36,9 +36,17 @@ function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
 function ComplaintStep2({
   onNext,
   onBack,
+  onCancel,
+  onGoToStep1,
+  onTrackComplaints,
+  onSignOut,
 }: {
   onNext: () => void;
   onBack: () => void;
+  onCancel: () => void;
+  onGoToStep1: () => void;
+  onTrackComplaints: () => void;
+  onSignOut: () => void;
 }) {
   const { complaint, updateComplaint } = useComplaint();
 
@@ -270,11 +278,17 @@ function ComplaintStep2({
           </a>
 
           <nav className="nav">
-            <a href="/">Citizen Hub</a>
-            <a href="/complaint-step1" className="active">
+            <button type="button" onClick={onCancel}>
+              Citizen Hub
+            </button>
+
+            <button type="button" onClick={onGoToStep1}>
               File Complaint
-            </a>
-            <a href="/complaints-log">Track Complaint</a>
+            </button>
+
+            <button type="button" onClick={onTrackComplaints}>
+              Track Complaint
+            </button>
           </nav>
 
           <div className="header-right">
@@ -285,9 +299,9 @@ function ComplaintStep2({
                 <div className="user-role">Ward 14 Citizen</div>
               </div>
             </div>
-            <a href="/" className="btn-signout">
+            <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
-            </a>
+            </button>
           </div>
         </div>
       </header>
