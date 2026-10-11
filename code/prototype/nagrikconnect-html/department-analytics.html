@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Department Analytics | NagrikConnect Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== NagrikConnect Design System ===== */
+:root{
+  --navy:#002045;
+  --navy-light:#1a365d;
+  --text-dark:#111c2d;
+  --text-body:#43474e;
+  --text-muted:#74777f;
+  --page-bg:#f9f9ff;
+  --card-bg:#ffffff;
+  --blue-50:#f0f3ff;
+  --blue-100:#e7eeff;
+  --blue-200:#dee8ff;
+  --blue-300:#d8e3fb;
+  --border:#dee8ff;
+  --border-soft:#e7eeff;
+  --amber:#9d4400;
+  --amber-bg:#ffdbca;
+  --amber-bg-soft:rgba(255,219,202,.3);
+  --green:#61b15f;
+  --green-text:#00400c;
+  --green-bg:#a3f69c;
+  --red:#ba1a1a;
+  --red-bg:#ffdad6;
+  --radius-sm:4px;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --shadow-sm:0 1px 1px rgba(0,0,0,.05);
+  --shadow-md:0 1px 8px rgba(0,0,0,.06);
+  --shadow-lg:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Noto Sans', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background:var(--page-bg);
+  color:var(--text-dark);
+  line-height:1.4;
+}
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+input,select,textarea{font-family:inherit;}
+.hindi{color:var(--text-body);font-weight:400;}
+
+/* ===== Layout helpers ===== */
+.container{max-width:1200px;margin:0 auto;padding:0 24px;}
+.page-wrap{min-height:100vh;display:flex;flex-direction:column;}
+.main-content{flex:1;}
+
+/* ===== Header (citizen-facing) ===== */
+.site-header{
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-md);
+  position:sticky;top:0;z-index:50;
+}
+.site-header .container{
+  display:flex;align-items:center;justify-content:space-between;
+  height:72px;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:40px;height:40px;background:var(--navy-light);border-radius:var(--radius-md);
+  display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+  box-shadow:var(--shadow-sm);
+}
+.brand-text{display:flex;flex-direction:column;}
+.brand-name-row{display:flex;align-items:center;gap:6px;}
+.brand-name{font-weight:700;font-size:18px;color:var(--navy);letter-spacing:-0.4px;}
+.brand-tag{
+  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  background:var(--blue-100);color:var(--navy);border:1px solid var(--blue-300);
+  padding:2px 8px;border-radius:4px;
+}
+.brand-sub{font-size:11px;color:var(--text-muted);}
+
+.nav{display:flex;align-items:center;gap:8px;}
+.nav a{
+  padding:6px 14px;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-body);
+  transition:background .15s;
+}
+.nav a:hover{background:var(--blue-50);}
+.nav a.active{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}
+
+.header-right{display:flex;align-items:center;gap:12px;}
+.user-chip{
+  display:flex;align-items:center;gap:8px;background:var(--blue-50);border:1px solid var(--border);
+  border-radius:999px;padding:5px 10px;
+}
+.user-avatar{
+  width:32px;height:32px;border-radius:50%;background:var(--navy-light);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  box-shadow:var(--shadow-sm);
+}
+.user-name{font-size:11px;font-weight:700;color:var(--text-dark);line-height:1.2;}
+.user-role{font-size:10px;color:var(--text-muted);line-height:1.2;}
+.btn-signout{
+  background:rgba(225,4,4,.8);color:#f2f2f7;font-size:11px;font-weight:500;
+  padding:6px 12px;border-radius:5px;letter-spacing:.5px;
+}
+
+/* ===== Footer ===== */
+.site-footer{background:var(--blue-50);padding:32px 24px 24px;margin-top:auto;}
+.site-footer .container{
+  border-top:1px solid var(--border);padding-top:24px;
+  display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;
+}
+.footer-brand{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.footer-mark{width:24px;height:24px;background:var(--navy);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;}
+.footer-name{font-weight:700;color:var(--navy);font-size:16px;}
+.footer-desc{color:var(--text-body);font-size:14px;}
+.footer-help h4{margin:0 0 4px;color:var(--navy);font-size:14px;}
+.footer-help p{margin:0;color:var(--text-body);font-size:14px;}
+
+/* ===== Buttons ===== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;
+  transition:opacity .15s;
+}
+.btn:hover{opacity:.9;}
+.btn-primary{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-navy{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-secondary{background:var(--blue-100);color:var(--navy);}
+.btn-amber{background:var(--amber);color:#fff;box-shadow:var(--shadow-sm);}
+.btn-outline{background:#fff;border:1px solid #cbd5e1;color:var(--text-dark);}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.btn-block{width:100%;}
+
+/* ===== Cards ===== */
+.card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);
+  box-shadow:var(--shadow-sm);
+}
+.card-pad{padding:24px;}
+
+/* ===== Forms ===== */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-dark);margin-bottom:6px;}
+.field .req{color:var(--red);}
+.input-wrap{position:relative;}
+.input-wrap .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);}
+input[type=text],input[type=email],input[type=password],input[type=search],textarea,select{
+  width:100%;padding:9px 13px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;color:var(--text-dark);
+  background:#fff;
+}
+.input-wrap input{padding-left:37px;}
+textarea{resize:vertical;min-height:96px;}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--navy-light);outline-offset:1px;}
+
+/* ===== Badges/Pills ===== */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.5px;}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+.status-progress{background:var(--amber-bg);color:var(--amber);}
+.status-resolved{background:var(--green-bg);color:var(--green-text);}
+.status-pending{background:var(--red-bg);color:var(--red);}
+.status-info{background:var(--blue-200);color:var(--navy);}
+
+/* ===== Utility ===== */
+.flex{display:flex;}
+.flex-col{display:flex;flex-direction:column;}
+.items-center{align-items:center;}
+.justify-between{justify-content:space-between;}
+.gap-1{gap:4px;}
+.gap-2{gap:8px;}
+.gap-3{gap:12px;}
+.gap-4{gap:16px;}
+.text-muted{color:var(--text-muted);}
+.text-body{color:var(--text-body);}
+.text-navy{color:var(--navy);}
+.small{font-size:12px;}
+.mt-1{margin-top:4px;}
+.mt-2{margin-top:8px;}
+.mt-3{margin-top:12px;}
+.mt-4{margin-top:16px;}
+.grid{display:grid;gap:16px;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.section-title{font-size:20px;font-weight:700;color:var(--navy);margin:0;}
+.hidden{display:none !important;}
+
+@media (max-width:900px){
+  .grid-4{grid-template-columns:repeat(2,1fr);}
+  .grid-3{grid-template-columns:1fr;}
+  .nav{display:none;}
+}
+@media (max-width:640px){
+  .grid-2, .grid-4{grid-template-columns:1fr;}
+}
+
+/* ===== Admin layout (department pages) ===== */
+.admin-wrap{display:flex;min-height:100vh;}
+.admin-sidebar{
+  width:260px;flex-shrink:0;background:var(--blue-50);box-shadow:0 1px 4px rgba(0,0,0,.04);
+  padding:16px 0;display:flex;flex-direction:column;justify-content:space-between;
+  position:sticky;top:0;height:100vh;
+}
+.admin-sidebar .brand{padding:0 16px 16px;}
+.admin-ward-pill{
+  margin:0 12px 8px;background:var(--blue-200);border-radius:8px;padding:6px 8px;
+  display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;
+}
+.admin-nav{padding:0 8px;display:flex;flex-direction:column;gap:2px;}
+.admin-nav a{padding:10px 12px;border-radius:4px;font-size:14px;font-weight:600;color:var(--text-body);}
+.admin-nav a.active{background:var(--navy-light);color:#fff;}
+.admin-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.admin-topbar{
+  height:64px;background:rgba(249,249,255,.95);backdrop-filter:blur(10px);
+  box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;position:sticky;top:0;z-index:40;
+}
+.admin-search{
+  background:var(--blue-50);border-radius:8px;display:flex;align-items:center;gap:8px;
+  padding:6px 12px;width:256px;color:var(--text-muted);
+}
+.admin-search input{border:none;background:none;padding:0;font-size:14px;width:100%;}
+.admin-body{padding:32px 24px;max-width:1280px;width:100%;margin:0 auto;}
+
+@media (max-width:900px){
+  .admin-sidebar{position:fixed;left:-260px;z-index:60;transition:left .2s;}
+  .admin-sidebar.open{left:0;}
+  .admin-search{width:160px;}
+}
+
+</style>
+<style>
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+  .kpi-card{background:#fff;border-radius:8px;box-shadow:var(--shadow-sm);padding:12px;}
+  .kpi-top{display:flex;justify-content:space-between;align-items:center;}
+  .kpi-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;}
+  .kpi-val{font-size:32px;font-weight:700;color:var(--navy);letter-spacing:-.5px;}
+  .mid-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+  .bar-row{margin-bottom:12px;}
+  .bar-top{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px;}
+  .bar-track{height:10px;background:var(--blue-200);border-radius:12px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:12px;}
+  .sla-row{background:var(--blue-200);border-radius:4px;padding:8px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .sla-row.danger{background:var(--red-bg);}
+  .bottom-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .stat-tile{background:var(--blue-50);border-radius:8px;padding:12px;}
+  @media(max-width:1000px){ .kpi-row,.bottom-grid{grid-template-columns:1fr 1fr;} .mid-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="admin-wrap">
+  <aside class="admin-sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-mark" style="width:32px;height:32px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V8l8-5 8 5v13"/></svg></div>
+        <div><div class="brand-name" style="font-size:18px;">NagrikConnect</div><div class="small text-muted" style="font-weight:700;letter-spacing:.5px;">ADMINISTRATION CORE</div></div>
+      </div>
+      <div class="admin-ward-pill"><span class="flex gap-1 items-center"><span class="dot" style="background:#61b15f;"></span>Ward 14 • Indiranagar</span><span class="text-muted">Active</span></div>
+      <nav class="admin-nav">
+        <a href="department-portal.html">All Complaints</a>
+        <a href="field-workers.html">Field Workers &amp; Crews</a>
+        <a href="department-analytics.html" class="active">Department Analytics</a>
+      </nav>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div class="flex gap-3 items-center">
+        <strong style="color:var(--navy);font-size:18px;">NagrikConnect Administration Core</strong>
+        <span class="pill" style="background:var(--blue-200);"><span class="dot" style="background:#61b15f;"></span>Ward 14 • Indiranagar</span>
+      </div>
+      <div class="flex gap-3 items-center">
+        <div class="admin-search">🔍 <input type="text" placeholder="Search complaints, tokens..."></div>
+        <div class="user-chip"><div class="user-avatar">RS</div><div><div class="user-name">Rajesh Sharma</div><div class="user-role">Officer Gr. I</div></div></div>
+        <a href="login.html" class="btn-signout">Sign Out</a>
+      </div>
+    </div>
+
+    <div class="admin-body">
+      <div class="flex justify-between items-end" style="flex-wrap:wrap;gap:16px;margin-bottom:32px;">
+        <div>
+          <span class="pill" style="background:var(--blue-200);"><span class="dot" style="background:#61b15f;"></span>Ward 14 • Indiranagar Operations</span>
+          <h1 style="margin:4px 0 4px;font-size:32px;color:var(--navy);letter-spacing:-.5px;">Department Analytics &amp; Performance <span style="font-weight:400;color:var(--text-body);font-size:18px;">/ विभाग एवं वार्ड सांख्यिकी</span></h1>
+          <p class="text-body">Overview of civic operations, resolution rates, department workload, and ward-level municipal performance.</p>
+        </div>
+        <div class="flex" style="background:var(--blue-50);border-radius:8px;box-shadow:var(--shadow-sm);padding:4px;">
+          <span class="small" style="padding:4px 12px;font-weight:600;">Today</span>
+          <span class="small btn-navy" style="border-radius:4px;padding:4px 12px;font-weight:700;box-shadow:var(--shadow-sm);">Last 7 Days</span>
+          <span class="small" style="padding:4px 12px;font-weight:600;">Last 30 Days</span>
+          <span class="small" style="padding:4px 12px;font-weight:600;">Custom</span>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-top"><span class="kpi-label">Total Handled</span>📄</div>
+          <div class="mt-2"><span class="kpi-val">138</span> <span class="small text-body">Complaints</span></div>
+          <p class="small mt-1"><span style="color:#61b15f;font-weight:600;">127 Resolved</span> • <span style="color:var(--amber);font-weight:600;">11 In Progress</span></p>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top"><span class="kpi-label">Avg. Resolution Time</span>⏱</div>
+          <div class="mt-2"><span class="kpi-val">28.4</span> <span class="small text-body">Hours</span></div>
+          <p class="small mt-1" style="color:#61b15f;font-weight:600;">✓ Target: ≤ 48 Hours</p>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top"><span class="kpi-label">SLA Compliance Rate</span>🛡</div>
+          <div class="mt-2"><span class="kpi-val" style="color:#00400c;">92.0%</span></div>
+          <p class="small mt-1" style="font-weight:700;">On-Time Redressal Charter</p>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top"><span class="kpi-label">Citizen Satisfaction</span>⭐</div>
+          <div class="mt-2"><span class="kpi-val">4.6</span> <span class="small text-muted">/ 5.0</span></div>
+          <p class="small mt-1" style="font-weight:700;">115 post-resolution ratings</p>
+        </div>
+      </div>
+
+      <div class="mid-grid">
+        <div class="kpi-card" style="padding:24px;">
+          <div class="flex justify-between items-center"><h3 style="margin:0;color:var(--navy);">📊 Department Workload &amp; Distribution</h3><span class="badge" style="background:var(--blue-50);color:var(--text-dark);">Total: 138 Active</span></div>
+          <p class="small text-body mt-1">Distribution of civic grievances, progress, and resolution status across ward municipal units.</p>
+          <div class="mt-3">
+            <div class="bar-row"><div class="bar-top"><span>🔵 Roads &amp; Public Works (PWD)</span><span><span style="color:#61b15f;">58 Resolved</span> 45% (62)</span></div><div class="bar-track"><div class="bar-fill" style="width:45%;background:var(--navy-light);"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>🟠 Solid Waste &amp; Sanitation (SWM)</span><span><span style="color:#61b15f;">39 Resolved</span> 30% (41)</span></div><div class="bar-track"><div class="bar-fill" style="width:30%;background:var(--amber);"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>🔷 Streetlighting &amp; Electrical</span><span><span style="color:#61b15f;">19 Resolved</span> 15% (21)</span></div><div class="bar-track"><div class="bar-fill" style="width:15%;background:#455f88;"></div></div></div>
+            <div class="bar-row"><div class="bar-top"><span>⚪ Water Supply &amp; Drainage</span><span><span style="color:#61b15f;">11 Resolved</span> 10% (14)</span></div><div class="bar-track"><div class="bar-fill" style="width:10%;background:#74777f;"></div></div></div>
+          </div>
+        </div>
+        <div class="kpi-card" style="padding:24px;">
+          <div class="flex justify-between items-center"><h3 style="margin:0;color:var(--navy);">⏱ SLA &amp; Resolution Turnaround</h3><span class="badge" style="background:var(--green-bg);color:var(--green-text);">Compliance: 92%</span></div>
+          <p class="small text-body mt-1">92% of civic issues closed within statutory time limit.</p>
+          <div class="mt-3">
+            <div class="sla-row"><div class="flex gap-1 items-center"><span class="dot" style="background:#61b15f;width:12px;height:12px;"></span><div><strong class="small">Resolved &lt; 24 Hours</strong><div class="small text-body">Fast Track Redressal</div></div></div><div class="flex gap-2 items-center"><strong>68%</strong><span class="badge" style="background:#fff;color:#61b15f;">Ahead</span></div></div>
+            <div class="sla-row"><div class="flex gap-1 items-center"><span class="dot" style="background:var(--navy);width:12px;height:12px;"></span><div><strong class="small">Resolved 24 - 48 Hours</strong><div class="small text-body">Within Standard SLA</div></div></div><div class="flex gap-2 items-center"><strong>24%</strong><span class="badge" style="background:#fff;color:var(--navy);">On Target</span></div></div>
+            <div class="sla-row danger"><div class="flex gap-1 items-center"><span class="dot" style="background:var(--red);width:12px;height:12px;"></span><div><strong class="small" style="color:#93000a;">Breached / Escalated (&gt; 48 Hours)</strong><div class="small" style="color:var(--red);">Requires zonal review</div></div></div><div class="flex gap-2 items-center"><strong style="color:#93000a;">8%</strong><span class="badge" style="background:#fff;color:var(--red);">Overdue</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-card" style="padding:24px;">
+        <div class="flex justify-between items-center" style="margin-bottom:12px;"><h3 style="margin:0;color:var(--navy);">🚧 Ward Operations &amp; Resource Utilization</h3><span class="small text-muted" style="font-weight:700;">Live Ward Status</span></div>
+        <div class="bottom-grid">
+          <div class="stat-tile"><span class="small text-muted" style="font-weight:700;">ACTIVE FIELD SQUADS</span><div style="font-weight:700;color:var(--navy);font-size:18px;">5 Units Deployed</div><p class="small text-body">Out of 8 total ward squads</p><span class="small" style="color:#61b15f;font-weight:700;">● 3 On Standby</span></div>
+          <div class="stat-tile"><span class="small text-muted" style="font-weight:700;">EQUIPMENT UTILIZATION</span><div style="font-weight:700;color:var(--navy);font-size:18px;">82% In Field</div><p class="small text-body">Compactor, Jetting van, Roller</p><span class="small text-navy" style="font-weight:700;">Optimal Allocation</span></div>
+          <div class="stat-tile"><span class="small text-muted" style="font-weight:700;">MOST REPORTED LOCALITY</span><div style="font-weight:700;color:var(--navy);font-size:18px;">12th Main &amp; HAL 2nd Stg</div><p class="small text-body">38% of road complaints</p><span class="small" style="color:var(--amber);font-weight:700;">Priority Inspection Zone</span></div>
+          <div class="stat-tile"><span class="small text-muted" style="font-weight:700;">PEAK REPORTING HOURS</span><div style="font-weight:700;color:var(--navy);font-size:18px;">08:30–11:00 AM</div><p class="small text-body">Morning commute surge</p><span class="small text-muted" style="font-weight:700;">Dispatched Auto-Routing</span></div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-col"><div class="footer-brand"><div class="footer-mark"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V8l8-5 8 5v13"/></svg></div><span class="footer-name">NagrikConnect</span></div><p class="footer-desc">Smart City Civic Redressal Infrastructure</p></div>
+        <div class="footer-help"><h4>Emergency Helplines</h4><p>112 – National Emergency • 101 – Fire • 1916 – Water Supply (24/7)</p></div>
+      </div>
+    </footer>
+  </div>
+</div>
+<script>
+// ===== NagrikConnect shared behaviours =====
+
+// Login role toggle (Citizen / Admin)
+function initRoleToggle(){
+  const citizenBtn = document.getElementById('role-citizen');
+  const adminBtn = document.getElementById('role-admin');
+  const feedback = document.getElementById('role-feedback');
+  if(!citizenBtn || !adminBtn) return;
+  function setRole(role){
+    if(role === 'citizen'){
+      citizenBtn.classList.add('active-role');
+      adminBtn.classList.remove('active-role');
+      if(feedback) feedback.innerHTML = 'Signing in as <strong>Ward 14 Citizen</strong> to track &amp; report grievances.';
+    } else {
+      adminBtn.classList.add('active-role');
+      citizenBtn.classList.remove('active-role');
+      if(feedback) feedback.innerHTML = 'Signing in as <strong>Ward 14 Officer</strong> to manage department complaints.';
+    }
+  }
+  citizenBtn.addEventListener('click', () => setRole('citizen'));
+  adminBtn.addEventListener('click', () => setRole('admin'));
+}
+
+// Generic tab/pill filter switcher: elements with [data-tab-group] wrap [data-tab] buttons
+function initTabs(){
+  document.querySelectorAll('[data-tab-group]').forEach(group => {
+    const buttons = group.querySelectorAll('[data-tab]');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+      });
+    });
+  });
+}
+
+// Mobile sidebar toggle for admin pages
+function initSidebarToggle(){
+  const toggle = document.getElementById('sidebar-toggle');
+  const sidebar = document.querySelector('.admin-sidebar');
+  if(!toggle || !sidebar) return;
+  toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+}
+
+// Simple stepper "next" button feedback (for multi-step forms) - just visual, no real nav logic needed beyond links
+document.addEventListener('DOMContentLoaded', () => {
+  initRoleToggle();
+  initTabs();
+  initSidebarToggle();
+});
+
+</script>
+</body>
+</html>

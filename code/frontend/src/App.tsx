@@ -34,7 +34,21 @@ function App() {
     setUserRole(null);
   }
 
-  
+function navigateAdmin(page: string) {
+  const container = document.getElementById("admin-page-transition");
+
+  if (!container) {
+    setCurrentPage(page);
+    return;
+  }
+
+  container.style.opacity = "0";
+
+  setTimeout(() => {
+    setCurrentPage(page);
+  }, 120);
+}
+
 if (currentPage === "login") {
   return (
     <Login
@@ -70,7 +84,7 @@ if (currentPage === "login") {
       />
     );
   }
-  
+
   if (currentPage === "analytics") {
     return (
       <DepartmentAnalytics

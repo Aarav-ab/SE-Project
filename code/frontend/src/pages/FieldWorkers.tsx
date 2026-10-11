@@ -6,88 +6,70 @@ type FieldWorkersProps = {
   onOpenAnalytics: () => void;
 };
 
-function FieldWorkers({
-  onSignOut,
-  onOpenDepartment,
-  onOpenAnalytics,
-}: FieldWorkersProps) {
-  const frameRef = useRef<HTMLIFrameElement>(null);
+const pageStyles = "\n/* ===== NagrikConnect Design System ===== */\n:root{\n  --navy:#002045;\n  --navy-light:#1a365d;\n  --text-dark:#111c2d;\n  --text-body:#43474e;\n  --text-muted:#74777f;\n  --page-bg:#f9f9ff;\n  --card-bg:#ffffff;\n  --blue-50:#f0f3ff;\n  --blue-100:#e7eeff;\n  --blue-200:#dee8ff;\n  --blue-300:#d8e3fb;\n  --border:#dee8ff;\n  --border-soft:#e7eeff;\n  --amber:#9d4400;\n  --amber-bg:#ffdbca;\n  --amber-bg-soft:rgba(255,219,202,.3);\n  --green:#61b15f;\n  --green-text:#00400c;\n  --green-bg:#a3f69c;\n  --red:#ba1a1a;\n  --red-bg:#ffdad6;\n  --radius-sm:4px;\n  --radius-md:8px;\n  --radius-lg:12px;\n  --shadow-sm:0 1px 1px rgba(0,0,0,.05);\n  --shadow-md:0 1px 8px rgba(0,0,0,.06);\n  --shadow-lg:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);\n}\n\n*{box-sizing:border-box;}\nhtml,body{margin:0;padding:0;}\nbody{\n  font-family:'Noto Sans', -apple-system, Segoe UI, Roboto, Arial, sans-serif;\n  background:var(--page-bg);\n  color:var(--text-dark);\n  line-height:1.4;\n}\na{color:inherit;text-decoration:none;}\nimg{max-width:100%;display:block;}\nbutton{font-family:inherit;cursor:pointer;border:none;background:none;}\ninput,select,textarea{font-family:inherit;}\n.hindi{color:var(--text-body);font-weight:400;}\n\n/* ===== Layout helpers ===== */\n.container{max-width:1200px;margin:0 auto;padding:0 24px;}\n.page-wrap{min-height:100vh;display:flex;flex-direction:column;}\n.main-content{flex:1;}\n\n/* ===== Header (citizen-facing) ===== */\n.site-header{\n  background:rgba(255,255,255,.95);\n  backdrop-filter:blur(10px);\n  border-bottom:1px solid var(--border);\n  box-shadow:var(--shadow-md);\n  position:sticky;top:0;z-index:50;\n}\n.site-header .container{\n  display:flex;align-items:center;justify-content:space-between;\n  height:72px;\n}\n.brand{display:flex;align-items:center;gap:12px;}\n.brand-mark{\n  width:40px;height:40px;background:var(--navy-light);border-radius:var(--radius-md);\n  display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;\n  box-shadow:var(--shadow-sm);\n}\n.brand-text{display:flex;flex-direction:column;}\n.brand-name-row{display:flex;align-items:center;gap:6px;}\n.brand-name{font-weight:700;font-size:18px;color:var(--navy);letter-spacing:-0.4px;}\n.brand-tag{\n  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;\n  background:var(--blue-100);color:var(--navy);border:1px solid var(--blue-300);\n  padding:2px 8px;border-radius:4px;\n}\n.brand-sub{font-size:11px;color:var(--text-muted);}\n\n.nav{display:flex;align-items:center;gap:8px;}\n.nav a{\n  padding:6px 14px;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-body);\n  transition:background .15s;\n}\n.nav a:hover{background:var(--blue-50);}\n.nav a.active{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}\n\n.header-right{display:flex;align-items:center;gap:12px;}\n.user-chip{\n  display:flex;align-items:center;gap:8px;background:var(--blue-50);border:1px solid var(--border);\n  border-radius:999px;padding:5px 10px;\n}\n.user-avatar{\n  width:32px;height:32px;border-radius:50%;background:var(--navy-light);color:#fff;\n  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;\n  box-shadow:var(--shadow-sm);\n}\n.user-name{font-size:11px;font-weight:700;color:var(--text-dark);line-height:1.2;}\n.user-role{font-size:10px;color:var(--text-muted);line-height:1.2;}\n.btn-signout{\n  background:rgba(225,4,4,.8);color:#f2f2f7;font-size:11px;font-weight:500;\n  padding:6px 12px;border-radius:5px;letter-spacing:.5px;\n}\n\n/* ===== Footer ===== */\n.site-footer{background:var(--blue-50);padding:32px 24px 24px;margin-top:auto;}\n.site-footer .container{\n  border-top:1px solid var(--border);padding-top:24px;\n  display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;\n}\n.footer-brand{display:flex;align-items:center;gap:8px;margin-bottom:4px;}\n.footer-mark{width:24px;height:24px;background:var(--navy);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;}\n.footer-name{font-weight:700;color:var(--navy);font-size:16px;}\n.footer-desc{color:var(--text-body);font-size:14px;}\n.footer-help h4{margin:0 0 4px;color:var(--navy);font-size:14px;}\n.footer-help p{margin:0;color:var(--text-body);font-size:14px;}\n\n/* ===== Buttons ===== */\n.btn{\n  display:inline-flex;align-items:center;justify-content:center;gap:6px;\n  padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;\n  transition:opacity .15s;\n}\n.btn:hover{opacity:.9;}\n.btn-primary{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}\n.btn-navy{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm);}\n.btn-secondary{background:var(--blue-100);color:var(--navy);}\n.btn-amber{background:var(--amber);color:#fff;box-shadow:var(--shadow-sm);}\n.btn-outline{background:#fff;border:1px solid #cbd5e1;color:var(--text-dark);}\n.btn-sm{padding:6px 14px;font-size:12px;}\n.btn-block{width:100%;}\n\n/* ===== Cards ===== */\n.card{\n  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);\n  box-shadow:var(--shadow-sm);\n}\n.card-pad{padding:24px;}\n\n/* ===== Forms ===== */\n.field{margin-bottom:16px;}\n.field label{display:block;font-size:12px;font-weight:600;color:var(--text-dark);margin-bottom:6px;}\n.field .req{color:var(--red);}\n.input-wrap{position:relative;}\n.input-wrap .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);}\ninput[type=text],input[type=email],input[type=password],input[type=search],textarea,select{\n  width:100%;padding:9px 13px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;color:var(--text-dark);\n  background:#fff;\n}\n.input-wrap input{padding-left:37px;}\ntextarea{resize:vertical;min-height:96px;}\ninput:focus,textarea:focus,select:focus{outline:2px solid var(--navy-light);outline-offset:1px;}\n\n/* ===== Badges/Pills ===== */\n.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.5px;}\n.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;}\n.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}\n\n.status-progress{background:var(--amber-bg);color:var(--amber);}\n.status-resolved{background:var(--green-bg);color:var(--green-text);}\n.status-pending{background:var(--red-bg);color:var(--red);}\n.status-info{background:var(--blue-200);color:var(--navy);}\n\n/* ===== Utility ===== */\n.flex{display:flex;}\n.flex-col{display:flex;flex-direction:column;}\n.items-center{align-items:center;}\n.justify-between{justify-content:space-between;}\n.gap-1{gap:4px;}\n.gap-2{gap:8px;}\n.gap-3{gap:12px;}\n.gap-4{gap:16px;}\n.text-muted{color:var(--text-muted);}\n.text-body{color:var(--text-body);}\n.text-navy{color:var(--navy);}\n.small{font-size:12px;}\n.mt-1{margin-top:4px;}\n.mt-2{margin-top:8px;}\n.mt-3{margin-top:12px;}\n.mt-4{margin-top:16px;}\n.grid{display:grid;gap:16px;}\n.grid-2{grid-template-columns:repeat(2,1fr);}\n.grid-3{grid-template-columns:repeat(3,1fr);}\n.grid-4{grid-template-columns:repeat(4,1fr);}\n.section-title{font-size:20px;font-weight:700;color:var(--navy);margin:0;}\n.hidden{display:none !important;}\n\n@media (max-width:900px){\n  .grid-4{grid-template-columns:repeat(2,1fr);}\n  .grid-3{grid-template-columns:1fr;}\n  .nav{display:none;}\n}\n@media (max-width:640px){\n  .grid-2, .grid-4{grid-template-columns:1fr;}\n}\n\n/* ===== Admin layout (department pages) ===== */\n.admin-wrap{display:flex;min-height:100vh;}\n.admin-sidebar{\n  width:260px;flex-shrink:0;background:var(--blue-50);box-shadow:0 1px 4px rgba(0,0,0,.04);\n  padding:16px 0;display:flex;flex-direction:column;justify-content:space-between;\n  position:sticky;top:0;height:100vh;\n}\n.admin-sidebar .brand{padding:0 16px 16px;}\n.admin-ward-pill{\n  margin:0 12px 8px;background:var(--blue-200);border-radius:8px;padding:6px 8px;\n  display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;\n}\n.admin-nav{padding:0 8px;display:flex;flex-direction:column;gap:2px;}\n.admin-nav a{padding:10px 12px;border-radius:4px;font-size:14px;font-weight:600;color:var(--text-body);}\n.admin-nav a.active{background:var(--navy-light);color:#fff;}\n.admin-main{flex:1;display:flex;flex-direction:column;min-width:0;}\n.admin-topbar{\n  height:64px;background:rgba(249,249,255,.95);backdrop-filter:blur(10px);\n  box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:space-between;\n  padding:0 32px;position:sticky;top:0;z-index:40;\n}\n.admin-search{\n  background:var(--blue-50);border-radius:8px;display:flex;align-items:center;gap:8px;\n  padding:6px 12px;width:256px;color:var(--text-muted);\n}\n.admin-search input{border:none;background:none;padding:0;font-size:14px;width:100%;}\n.admin-body{padding:32px 24px;max-width:1280px;width:100%;margin:0 auto;}\n\n@media (max-width:900px){\n  .admin-sidebar{position:fixed;left:-260px;z-index:60;transition:left .2s;}\n  .admin-sidebar.open{left:0;}\n  .admin-search{width:160px;}\n}\n\n\n\n  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}\n  .kpi-card{background:#fff;border-radius:8px;box-shadow:var(--shadow-sm);padding:12px;display:flex;justify-content:space-between;align-items:flex-start;}\n  .kpi-icon{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}\n  .kpi-label{font-size:11px;font-weight:600;color:var(--text-body);text-transform:uppercase;letter-spacing:.5px;}\n  .kpi-val{font-size:32px;font-weight:700;letter-spacing:-.5px;line-height:1.1;}\n  .crew-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}\n  .crew-card{background:#fff;border-radius:8px;box-shadow:var(--shadow-sm);padding:20px;}\n  .crew-top{display:flex;gap:12px;align-items:center;margin-bottom:12px;}\n  .crew-avatar{width:52px;height:52px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}\n  .crew-stat-row{display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-top:1px solid var(--border-soft);}\n  .avail-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}\n  @media(max-width:1100px){ .crew-grid{grid-template-columns:1fr 1fr;} }\n  @media(max-width:1000px){ .kpi-row{grid-template-columns:1fr 1fr;} }\n  @media(max-width:700px){ .crew-grid{grid-template-columns:1fr;} }\n";
+const pageMarkup = "<div class=\"admin-wrap\">\n  <aside class=\"admin-sidebar\">\n    <div>\n      <div class=\"brand\">\n        <div class=\"brand-mark\" style=\"width:32px;height:32px;\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 21h18M4 21V8l8-5 8 5v13\"/></svg></div>\n        <div><div class=\"brand-name\" style=\"font-size:18px;\">NagrikConnect</div><div class=\"small text-muted\" style=\"font-weight:700;letter-spacing:.5px;\">ADMINISTRATION CORE</div></div>\n      </div>\n      <div class=\"admin-ward-pill\"><span class=\"flex gap-1 items-center\"><span class=\"dot\" style=\"background:#61b15f;\"></span>Ward 14 \u2022 Indiranagar</span><span class=\"text-muted\">Active</span></div>\n      <nav class=\"admin-nav\">\n        <a href=\"department-portal.html\">All Complaints</a>\n        <a href=\"field-workers.html\" class=\"active\">Field Workers &amp; Crews</a>\n        <a href=\"department-analytics.html\">Department Analytics</a>\n      </nav>\n    </div>\n  </aside>\n\n  <div class=\"admin-main\">\n    <div class=\"admin-topbar\">\n      <div class=\"flex gap-3 items-center\">\n        <strong style=\"color:var(--navy);font-size:18px;\">NagrikConnect Administration Core</strong>\n        <span class=\"pill\" style=\"background:var(--blue-200);\"><span class=\"dot\" style=\"background:#61b15f;\"></span>Ward 14 \u2022 Indiranagar</span>\n      </div>\n      <div class=\"flex gap-3 items-center\">\n        <div class=\"admin-search\">\ud83d\udd0d <input type=\"text\" placeholder=\"Search crew, worker...\"></div>\n        <div class=\"user-chip\"><div class=\"user-avatar\">RS</div><div><div class=\"user-name\">Rajesh Sharma</div><div class=\"user-role\">Officer Gr. I</div></div></div>\n        <a href=\"login.html\" class=\"btn-signout\">Sign Out</a>\n      </div>\n    </div>\n\n    <div class=\"admin-body\">\n      <div class=\"flex justify-between items-center\" style=\"flex-wrap:wrap;gap:16px;margin-bottom:24px;\">\n        <div>\n          <h1 style=\"margin:0;font-size:24px;color:var(--navy);\">Field Workers &amp; Crews <span style=\"font-weight:600;color:var(--text-muted);\">/</span> <span style=\"font-weight:600;color:var(--text-body);font-size:18px;\">\u092b\u0940\u0932\u094d\u0921 \u0926\u0932 \u092a\u094d\u0930\u092c\u0902\u0927\u0928</span></h1>\n          <p class=\"small text-body mt-1\">Monitor crew availability, current dispatch, and workload across Ward 14</p>\n        </div>\n        <a href=\"#\" class=\"btn btn-navy\">+ Add New Crew Member</a>\n      </div>\n\n      <div class=\"kpi-row\">\n        <div class=\"kpi-card\"><div><span class=\"kpi-label\">Total Field Staff</span><div class=\"kpi-val\" style=\"color:var(--navy);\">24</div><p class=\"small mt-1\" style=\"font-weight:600;\">Across 6 municipal units</p></div><div class=\"kpi-icon\" style=\"background:var(--blue-200);\">\ud83d\udc77</div></div>\n        <div class=\"kpi-card\"><div><span class=\"kpi-label\">On-Site Now</span><div class=\"kpi-val\" style=\"color:var(--amber);\">9</div><p class=\"small mt-1\" style=\"font-weight:600;\">Actively deployed</p></div><div class=\"kpi-icon\" style=\"background:var(--amber-bg);\">\ud83d\udea7</div></div>\n        <div class=\"kpi-card\"><div><span class=\"kpi-label\">Available / On Standby</span><div class=\"kpi-val\" style=\"color:#61b15f;\">11</div><p class=\"small mt-1\" style=\"font-weight:600;\">Ready for dispatch</p></div><div class=\"kpi-icon\" style=\"background:var(--green-bg);\">\u2705</div></div>\n        <div class=\"kpi-card\"><div><span class=\"kpi-label\">On Leave / Off-Duty</span><div class=\"kpi-val\" style=\"color:var(--text-muted);\">4</div><p class=\"small mt-1\" style=\"font-weight:600;\">Scheduled rotation</p></div><div class=\"kpi-icon\" style=\"background:var(--blue-50);\">\ud83d\udecc</div></div>\n      </div>\n\n      <div class=\"crew-grid\">\n\n        <div class=\"crew-card\">\n          <div class=\"crew-top\">\n            <div class=\"crew-avatar\">MK</div>\n            <div><strong>Er. Manoj Kumar</strong><div class=\"small text-body\">Junior Engineer \u2022 Roads &amp; PWD</div>\n            <span class=\"small mt-1\" style=\"display:inline-block;\"><span class=\"avail-dot\" style=\"background:var(--amber);\"></span>On-Site: Asphalt Patching</span></div>\n          </div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Active Assignment</span><strong>#GRV-8902</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Tickets Closed (30d)</span><strong>14</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Avg. Resolution</span><strong>22 hrs</strong></div>\n          <a href=\"complaint-timeline.html\" class=\"btn btn-secondary btn-block btn-sm mt-3\">View Active Ticket \u2192</a>\n        </div>\n\n        <div class=\"crew-card\">\n          <div class=\"crew-top\">\n            <div class=\"crew-avatar\" style=\"background:var(--amber);\">SR</div>\n            <div><strong>Suresh Rao</strong><div class=\"small text-body\">Electrician \u2022 Streetlighting</div>\n            <span class=\"small mt-1\" style=\"display:inline-block;\"><span class=\"avail-dot\" style=\"background:var(--amber);\"></span>On-Site: Lamp Replacement</span></div>\n          </div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Active Assignment</span><strong>#GRV-8712</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Tickets Closed (30d)</span><strong>19</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Avg. Resolution</span><strong>9 hrs</strong></div>\n          <a href=\"complaint-timeline.html\" class=\"btn btn-secondary btn-block btn-sm mt-3\">View Active Ticket \u2192</a>\n        </div>\n\n        <div class=\"crew-card\">\n          <div class=\"crew-top\">\n            <div class=\"crew-avatar\" style=\"background:#61b15f;\">K R</div>\n            <div><strong>K. Ramesh</strong><div class=\"small text-body\">Sanitary Inspector \u2022 SWM Unit 3</div>\n            <span class=\"small mt-1\" style=\"display:inline-block;\"><span class=\"avail-dot\" style=\"background:#61b15f;\"></span>Available Now</span></div>\n          </div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Active Assignment</span><strong>\u2014</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Tickets Closed (30d)</span><strong>27</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Avg. Resolution</span><strong>5 hrs</strong></div>\n          <a href=\"department-portal.html\" class=\"btn btn-navy btn-block btn-sm mt-3\">Dispatch to Ticket \u2192</a>\n        </div>\n\n        <div class=\"crew-card\">\n          <div class=\"crew-top\">\n            <div class=\"crew-avatar\" style=\"background:var(--red);\">AV</div>\n            <div><strong>Anita Verma</strong><div class=\"small text-body\">Zonal QC Inspector</div>\n            <span class=\"small mt-1\" style=\"display:inline-block;\"><span class=\"avail-dot\" style=\"background:var(--amber);\"></span>On-Site: Drain Audit</span></div>\n          </div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Active Assignment</span><strong>#GRV-9140</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Audits Completed (30d)</span><strong>31</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Avg. Review Time</span><strong>2 hrs</strong></div>\n          <a href=\"complaint-timeline.html\" class=\"btn btn-secondary btn-block btn-sm mt-3\">View Active Ticket \u2192</a>\n        </div>\n\n        <div class=\"crew-card\">\n          <div class=\"crew-top\">\n            <div class=\"crew-avatar\" style=\"background:var(--text-muted);\">DP</div>\n            <div><strong>Deepak Prasad</strong><div class=\"small text-body\">Compactor Driver \u2022 SWM Unit 1</div>\n            <span class=\"small mt-1\" style=\"display:inline-block;\"><span class=\"avail-dot\" style=\"background:#c4c6cf;\"></span>Off-Duty (Rotation)</span></div>\n          </div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Active Assignment</span><strong>\u2014</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Tickets Closed (30d)</span><strong>22</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Avg. Resolution</span><strong>4 hrs</strong></div>\n          <a href=\"#\" class=\"btn btn-outline btn-block btn-sm mt-3\" style=\"opacity:.6;\">Back on duty tomorrow</a>\n        </div>\n\n        <div class=\"crew-card\">\n          <div class=\"crew-top\">\n            <div class=\"crew-avatar\" style=\"background:#61b15f;\">NP</div>\n            <div><strong>Nisha Pillai</strong><div class=\"small text-body\">Junior Engineer \u2022 Roads &amp; PWD</div>\n            <span class=\"small mt-1\" style=\"display:inline-block;\"><span class=\"avail-dot\" style=\"background:#61b15f;\"></span>Available Now</span></div>\n          </div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Active Assignment</span><strong>\u2014</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Tickets Closed (30d)</span><strong>16</strong></div>\n          <div class=\"crew-stat-row\"><span class=\"text-body\">Avg. Resolution</span><strong>26 hrs</strong></div>\n          <a href=\"department-portal.html\" class=\"btn btn-navy btn-block btn-sm mt-3\">Dispatch to Ticket \u2192</a>\n        </div>\n\n      </div>\n    </div>\n\n    <footer class=\"site-footer\">\n      <div class=\"container\">\n        <div class=\"footer-col\"><div class=\"footer-brand\"><div class=\"footer-mark\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 21h18M4 21V8l8-5 8 5v13\"/></svg></div><span class=\"footer-name\">NagrikConnect</span></div><p class=\"footer-desc\">Smart City Civic Redressal Infrastructure</p></div>\n        <div class=\"footer-help\"><h4>Emergency Helplines</h4><p>112 \u2013 National Emergency \u2022 101 \u2013 Fire \u2022 1916 \u2013 Water Supply (24/7)</p></div>\n      </div>\n    </footer>\n  </div>\n</div>";
+
+function FieldWorkers({ onSignOut, onOpenDepartment, onOpenAnalytics }: FieldWorkersProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
+    const root = rootRef.current;
+    if (!root) return;
 
-    const attachHandlers = () => {
-      const doc = frame.contentDocument;
-      if (!doc) return;
+    // Render the original page markup directly in React; no iframe or HTML page load.
+    root.innerHTML = pageMarkup;
 
-      const signOut = doc.querySelector<HTMLAnchorElement>(
-        ".admin-topbar .btn-signout"
-      );
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest<HTMLAnchorElement>("a");
+      if (!link || !root.contains(link)) return;
 
-      const handleSignOut = (event: MouseEvent) => {
+      const href = link.getAttribute("href") || "";
+      if (link.classList.contains("btn-signout") || href === "login.html") {
         event.preventDefault();
         onSignOut();
-      };
-
-      signOut?.addEventListener("click", handleSignOut);
-
-      const links = doc.querySelectorAll<HTMLAnchorElement>(
-        ".admin-nav a"
-      );
-
-      const handleDepartment = (event: MouseEvent) => {
+        return;
+      }
+      if (href.endsWith("department-portal.html")) {
         event.preventDefault();
-        onOpenDepartment();
-      };
-
-      const handleAnalytics = (event: MouseEvent) => {
+        onOpenDepartment?.();
+        return;
+      }
+      if (href.endsWith("field-workers.html")) {
         event.preventDefault();
-        onOpenAnalytics();
-      };
-
-      links[0]?.addEventListener("click", handleDepartment);
-      links[2]?.addEventListener("click", handleAnalytics);
-
-      return () => {
-        signOut?.removeEventListener("click", handleSignOut);
-        links[0]?.removeEventListener("click", handleDepartment);
-        links[2]?.removeEventListener("click", handleAnalytics);
-      };
+        onOpenFieldWorkers?.();
+        return;
+      }
+      if (href.endsWith("department-analytics.html")) {
+        event.preventDefault();
+        onOpenAnalytics?.();
+        return;
+      }
+      if (href === "#") event.preventDefault();
     };
 
-    let cleanup: (() => void) | undefined;
-
-    const handleLoad = () => {
-      cleanup?.();
-      cleanup = attachHandlers();
+    const handleTabClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const tab = target.closest<HTMLElement>("[data-tab]");
+      if (!tab || !root.contains(tab)) return;
+      const group = tab.closest<HTMLElement>("[data-tab-group]");
+      group?.querySelectorAll("[data-tab]").forEach((item) => item.classList.remove("active", "tab-active"));
+      tab.classList.add("active", "tab-active");
     };
 
-    frame.addEventListener("load", handleLoad);
-
-    if (frame.contentDocument?.readyState === "complete") {
-      handleLoad();
-    }
+    root.addEventListener("click", handleClick);
+    root.addEventListener("click", handleTabClick);
 
     return () => {
-      frame.removeEventListener("load", handleLoad);
-      cleanup?.();
+      root.removeEventListener("click", handleClick);
+      root.removeEventListener("click", handleTabClick);
+      root.innerHTML = "";
     };
   }, [onSignOut, onOpenDepartment, onOpenAnalytics]);
 
-  return (
-    <iframe
-      ref={frameRef}
-      title="NagrikConnect Field Workers"
-      src="/field-workers.html"
-      style={{
-        display: "block",
-        width: "100%",
-        height: "100vh",
-        border: 0,
-      }}
-    />
-  );
+  return <div ref={rootRef} aria-label="NagrikConnect Field Workers" />;
 }
 
 export default FieldWorkers;

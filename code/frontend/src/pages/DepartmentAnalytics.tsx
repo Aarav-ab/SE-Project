@@ -6,88 +6,70 @@ type DepartmentAnalyticsProps = {
   onOpenFieldWorkers: () => void;
 };
 
-function DepartmentAnalytics({
-  onSignOut,
-  onOpenDepartment,
-  onOpenFieldWorkers,
-}: DepartmentAnalyticsProps) {
-  const frameRef = useRef<HTMLIFrameElement>(null);
+const pageStyles = "\n/* ===== NagrikConnect Design System ===== */\n:root{\n  --navy:#002045;\n  --navy-light:#1a365d;\n  --text-dark:#111c2d;\n  --text-body:#43474e;\n  --text-muted:#74777f;\n  --page-bg:#f9f9ff;\n  --card-bg:#ffffff;\n  --blue-50:#f0f3ff;\n  --blue-100:#e7eeff;\n  --blue-200:#dee8ff;\n  --blue-300:#d8e3fb;\n  --border:#dee8ff;\n  --border-soft:#e7eeff;\n  --amber:#9d4400;\n  --amber-bg:#ffdbca;\n  --amber-bg-soft:rgba(255,219,202,.3);\n  --green:#61b15f;\n  --green-text:#00400c;\n  --green-bg:#a3f69c;\n  --red:#ba1a1a;\n  --red-bg:#ffdad6;\n  --radius-sm:4px;\n  --radius-md:8px;\n  --radius-lg:12px;\n  --shadow-sm:0 1px 1px rgba(0,0,0,.05);\n  --shadow-md:0 1px 8px rgba(0,0,0,.06);\n  --shadow-lg:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);\n}\n\n*{box-sizing:border-box;}\nhtml,body{margin:0;padding:0;}\nbody{\n  font-family:'Noto Sans', -apple-system, Segoe UI, Roboto, Arial, sans-serif;\n  background:var(--page-bg);\n  color:var(--text-dark);\n  line-height:1.4;\n}\na{color:inherit;text-decoration:none;}\nimg{max-width:100%;display:block;}\nbutton{font-family:inherit;cursor:pointer;border:none;background:none;}\ninput,select,textarea{font-family:inherit;}\n.hindi{color:var(--text-body);font-weight:400;}\n\n/* ===== Layout helpers ===== */\n.container{max-width:1200px;margin:0 auto;padding:0 24px;}\n.page-wrap{min-height:100vh;display:flex;flex-direction:column;}\n.main-content{flex:1;}\n\n/* ===== Header (citizen-facing) ===== */\n.site-header{\n  background:rgba(255,255,255,.95);\n  backdrop-filter:blur(10px);\n  border-bottom:1px solid var(--border);\n  box-shadow:var(--shadow-md);\n  position:sticky;top:0;z-index:50;\n}\n.site-header .container{\n  display:flex;align-items:center;justify-content:space-between;\n  height:72px;\n}\n.brand{display:flex;align-items:center;gap:12px;}\n.brand-mark{\n  width:40px;height:40px;background:var(--navy-light);border-radius:var(--radius-md);\n  display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;\n  box-shadow:var(--shadow-sm);\n}\n.brand-text{display:flex;flex-direction:column;}\n.brand-name-row{display:flex;align-items:center;gap:6px;}\n.brand-name{font-weight:700;font-size:18px;color:var(--navy);letter-spacing:-0.4px;}\n.brand-tag{\n  font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;\n  background:var(--blue-100);color:var(--navy);border:1px solid var(--blue-300);\n  padding:2px 8px;border-radius:4px;\n}\n.brand-sub{font-size:11px;color:var(--text-muted);}\n\n.nav{display:flex;align-items:center;gap:8px;}\n.nav a{\n  padding:6px 14px;border-radius:8px;font-size:14px;font-weight:600;color:var(--text-body);\n  transition:background .15s;\n}\n.nav a:hover{background:var(--blue-50);}\n.nav a.active{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}\n\n.header-right{display:flex;align-items:center;gap:12px;}\n.user-chip{\n  display:flex;align-items:center;gap:8px;background:var(--blue-50);border:1px solid var(--border);\n  border-radius:999px;padding:5px 10px;\n}\n.user-avatar{\n  width:32px;height:32px;border-radius:50%;background:var(--navy-light);color:#fff;\n  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;\n  box-shadow:var(--shadow-sm);\n}\n.user-name{font-size:11px;font-weight:700;color:var(--text-dark);line-height:1.2;}\n.user-role{font-size:10px;color:var(--text-muted);line-height:1.2;}\n.btn-signout{\n  background:rgba(225,4,4,.8);color:#f2f2f7;font-size:11px;font-weight:500;\n  padding:6px 12px;border-radius:5px;letter-spacing:.5px;\n}\n\n/* ===== Footer ===== */\n.site-footer{background:var(--blue-50);padding:32px 24px 24px;margin-top:auto;}\n.site-footer .container{\n  border-top:1px solid var(--border);padding-top:24px;\n  display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;\n}\n.footer-brand{display:flex;align-items:center;gap:8px;margin-bottom:4px;}\n.footer-mark{width:24px;height:24px;background:var(--navy);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;}\n.footer-name{font-weight:700;color:var(--navy);font-size:16px;}\n.footer-desc{color:var(--text-body);font-size:14px;}\n.footer-help h4{margin:0 0 4px;color:var(--navy);font-size:14px;}\n.footer-help p{margin:0;color:var(--text-body);font-size:14px;}\n\n/* ===== Buttons ===== */\n.btn{\n  display:inline-flex;align-items:center;justify-content:center;gap:6px;\n  padding:10px 20px;border-radius:6px;font-size:14px;font-weight:600;\n  transition:opacity .15s;\n}\n.btn:hover{opacity:.9;}\n.btn-primary{background:var(--navy-light);color:#fff;box-shadow:var(--shadow-sm);}\n.btn-navy{background:var(--navy);color:#fff;box-shadow:var(--shadow-sm);}\n.btn-secondary{background:var(--blue-100);color:var(--navy);}\n.btn-amber{background:var(--amber);color:#fff;box-shadow:var(--shadow-sm);}\n.btn-outline{background:#fff;border:1px solid #cbd5e1;color:var(--text-dark);}\n.btn-sm{padding:6px 14px;font-size:12px;}\n.btn-block{width:100%;}\n\n/* ===== Cards ===== */\n.card{\n  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);\n  box-shadow:var(--shadow-sm);\n}\n.card-pad{padding:24px;}\n\n/* ===== Forms ===== */\n.field{margin-bottom:16px;}\n.field label{display:block;font-size:12px;font-weight:600;color:var(--text-dark);margin-bottom:6px;}\n.field .req{color:var(--red);}\n.input-wrap{position:relative;}\n.input-wrap .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);}\ninput[type=text],input[type=email],input[type=password],input[type=search],textarea,select{\n  width:100%;padding:9px 13px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;color:var(--text-dark);\n  background:#fff;\n}\n.input-wrap input{padding-left:37px;}\ntextarea{resize:vertical;min-height:96px;}\ninput:focus,textarea:focus,select:focus{outline:2px solid var(--navy-light);outline-offset:1px;}\n\n/* ===== Badges/Pills ===== */\n.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.5px;}\n.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;}\n.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}\n\n.status-progress{background:var(--amber-bg);color:var(--amber);}\n.status-resolved{background:var(--green-bg);color:var(--green-text);}\n.status-pending{background:var(--red-bg);color:var(--red);}\n.status-info{background:var(--blue-200);color:var(--navy);}\n\n/* ===== Utility ===== */\n.flex{display:flex;}\n.flex-col{display:flex;flex-direction:column;}\n.items-center{align-items:center;}\n.justify-between{justify-content:space-between;}\n.gap-1{gap:4px;}\n.gap-2{gap:8px;}\n.gap-3{gap:12px;}\n.gap-4{gap:16px;}\n.text-muted{color:var(--text-muted);}\n.text-body{color:var(--text-body);}\n.text-navy{color:var(--navy);}\n.small{font-size:12px;}\n.mt-1{margin-top:4px;}\n.mt-2{margin-top:8px;}\n.mt-3{margin-top:12px;}\n.mt-4{margin-top:16px;}\n.grid{display:grid;gap:16px;}\n.grid-2{grid-template-columns:repeat(2,1fr);}\n.grid-3{grid-template-columns:repeat(3,1fr);}\n.grid-4{grid-template-columns:repeat(4,1fr);}\n.section-title{font-size:20px;font-weight:700;color:var(--navy);margin:0;}\n.hidden{display:none !important;}\n\n@media (max-width:900px){\n  .grid-4{grid-template-columns:repeat(2,1fr);}\n  .grid-3{grid-template-columns:1fr;}\n  .nav{display:none;}\n}\n@media (max-width:640px){\n  .grid-2, .grid-4{grid-template-columns:1fr;}\n}\n\n/* ===== Admin layout (department pages) ===== */\n.admin-wrap{display:flex;min-height:100vh;}\n.admin-sidebar{\n  width:260px;flex-shrink:0;background:var(--blue-50);box-shadow:0 1px 4px rgba(0,0,0,.04);\n  padding:16px 0;display:flex;flex-direction:column;justify-content:space-between;\n  position:sticky;top:0;height:100vh;\n}\n.admin-sidebar .brand{padding:0 16px 16px;}\n.admin-ward-pill{\n  margin:0 12px 8px;background:var(--blue-200);border-radius:8px;padding:6px 8px;\n  display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;\n}\n.admin-nav{padding:0 8px;display:flex;flex-direction:column;gap:2px;}\n.admin-nav a{padding:10px 12px;border-radius:4px;font-size:14px;font-weight:600;color:var(--text-body);}\n.admin-nav a.active{background:var(--navy-light);color:#fff;}\n.admin-main{flex:1;display:flex;flex-direction:column;min-width:0;}\n.admin-topbar{\n  height:64px;background:rgba(249,249,255,.95);backdrop-filter:blur(10px);\n  box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:space-between;\n  padding:0 32px;position:sticky;top:0;z-index:40;\n}\n.admin-search{\n  background:var(--blue-50);border-radius:8px;display:flex;align-items:center;gap:8px;\n  padding:6px 12px;width:256px;color:var(--text-muted);\n}\n.admin-search input{border:none;background:none;padding:0;font-size:14px;width:100%;}\n.admin-body{padding:32px 24px;max-width:1280px;width:100%;margin:0 auto;}\n\n@media (max-width:900px){\n  .admin-sidebar{position:fixed;left:-260px;z-index:60;transition:left .2s;}\n  .admin-sidebar.open{left:0;}\n  .admin-search{width:160px;}\n}\n\n\n\n  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}\n  .kpi-card{background:#fff;border-radius:8px;box-shadow:var(--shadow-sm);padding:12px;}\n  .kpi-top{display:flex;justify-content:space-between;align-items:center;}\n  .kpi-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;}\n  .kpi-val{font-size:32px;font-weight:700;color:var(--navy);letter-spacing:-.5px;}\n  .mid-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}\n  .bar-row{margin-bottom:12px;}\n  .bar-top{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px;}\n  .bar-track{height:10px;background:var(--blue-200);border-radius:12px;overflow:hidden;}\n  .bar-fill{height:100%;border-radius:12px;}\n  .sla-row{background:var(--blue-200);border-radius:4px;padding:8px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}\n  .sla-row.danger{background:var(--red-bg);}\n  .bottom-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}\n  .stat-tile{background:var(--blue-50);border-radius:8px;padding:12px;}\n  @media(max-width:1000px){ .kpi-row,.bottom-grid{grid-template-columns:1fr 1fr;} .mid-grid{grid-template-columns:1fr;} }\n";
+const pageMarkup = "<div class=\"admin-wrap\">\n  <aside class=\"admin-sidebar\">\n    <div>\n      <div class=\"brand\">\n        <div class=\"brand-mark\" style=\"width:32px;height:32px;\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 21h18M4 21V8l8-5 8 5v13\"/></svg></div>\n        <div><div class=\"brand-name\" style=\"font-size:18px;\">NagrikConnect</div><div class=\"small text-muted\" style=\"font-weight:700;letter-spacing:.5px;\">ADMINISTRATION CORE</div></div>\n      </div>\n      <div class=\"admin-ward-pill\"><span class=\"flex gap-1 items-center\"><span class=\"dot\" style=\"background:#61b15f;\"></span>Ward 14 \u2022 Indiranagar</span><span class=\"text-muted\">Active</span></div>\n      <nav class=\"admin-nav\">\n        <a href=\"department-portal.html\">All Complaints</a>\n        <a href=\"field-workers.html\">Field Workers &amp; Crews</a>\n        <a href=\"department-analytics.html\" class=\"active\">Department Analytics</a>\n      </nav>\n    </div>\n  </aside>\n\n  <div class=\"admin-main\">\n    <div class=\"admin-topbar\">\n      <div class=\"flex gap-3 items-center\">\n        <strong style=\"color:var(--navy);font-size:18px;\">NagrikConnect Administration Core</strong>\n        <span class=\"pill\" style=\"background:var(--blue-200);\"><span class=\"dot\" style=\"background:#61b15f;\"></span>Ward 14 \u2022 Indiranagar</span>\n      </div>\n      <div class=\"flex gap-3 items-center\">\n        <div class=\"admin-search\">\ud83d\udd0d <input type=\"text\" placeholder=\"Search complaints, tokens...\"></div>\n        <div class=\"user-chip\"><div class=\"user-avatar\">RS</div><div><div class=\"user-name\">Rajesh Sharma</div><div class=\"user-role\">Officer Gr. I</div></div></div>\n        <a href=\"login.html\" class=\"btn-signout\">Sign Out</a>\n      </div>\n    </div>\n\n    <div class=\"admin-body\">\n      <div class=\"flex justify-between items-end\" style=\"flex-wrap:wrap;gap:16px;margin-bottom:32px;\">\n        <div>\n          <span class=\"pill\" style=\"background:var(--blue-200);\"><span class=\"dot\" style=\"background:#61b15f;\"></span>Ward 14 \u2022 Indiranagar Operations</span>\n          <h1 style=\"margin:4px 0 4px;font-size:32px;color:var(--navy);letter-spacing:-.5px;\">Department Analytics &amp; Performance <span style=\"font-weight:400;color:var(--text-body);font-size:18px;\">/ \u0935\u093f\u092d\u093e\u0917 \u090f\u0935\u0902 \u0935\u093e\u0930\u094d\u0921 \u0938\u093e\u0902\u0916\u094d\u092f\u093f\u0915\u0940</span></h1>\n          <p class=\"text-body\">Overview of civic operations, resolution rates, department workload, and ward-level municipal performance.</p>\n        </div>\n        <div class=\"flex\" style=\"background:var(--blue-50);border-radius:8px;box-shadow:var(--shadow-sm);padding:4px;\">\n          <span class=\"small\" style=\"padding:4px 12px;font-weight:600;\">Today</span>\n          <span class=\"small btn-navy\" style=\"border-radius:4px;padding:4px 12px;font-weight:700;box-shadow:var(--shadow-sm);\">Last 7 Days</span>\n          <span class=\"small\" style=\"padding:4px 12px;font-weight:600;\">Last 30 Days</span>\n          <span class=\"small\" style=\"padding:4px 12px;font-weight:600;\">Custom</span>\n        </div>\n      </div>\n\n      <div class=\"kpi-row\">\n        <div class=\"kpi-card\">\n          <div class=\"kpi-top\"><span class=\"kpi-label\">Total Handled</span>\ud83d\udcc4</div>\n          <div class=\"mt-2\"><span class=\"kpi-val\">138</span> <span class=\"small text-body\">Complaints</span></div>\n          <p class=\"small mt-1\"><span style=\"color:#61b15f;font-weight:600;\">127 Resolved</span> \u2022 <span style=\"color:var(--amber);font-weight:600;\">11 In Progress</span></p>\n        </div>\n        <div class=\"kpi-card\">\n          <div class=\"kpi-top\"><span class=\"kpi-label\">Avg. Resolution Time</span>\u23f1</div>\n          <div class=\"mt-2\"><span class=\"kpi-val\">28.4</span> <span class=\"small text-body\">Hours</span></div>\n          <p class=\"small mt-1\" style=\"color:#61b15f;font-weight:600;\">\u2713 Target: \u2264 48 Hours</p>\n        </div>\n        <div class=\"kpi-card\">\n          <div class=\"kpi-top\"><span class=\"kpi-label\">SLA Compliance Rate</span>\ud83d\udee1</div>\n          <div class=\"mt-2\"><span class=\"kpi-val\" style=\"color:#00400c;\">92.0%</span></div>\n          <p class=\"small mt-1\" style=\"font-weight:700;\">On-Time Redressal Charter</p>\n        </div>\n        <div class=\"kpi-card\">\n          <div class=\"kpi-top\"><span class=\"kpi-label\">Citizen Satisfaction</span>\u2b50</div>\n          <div class=\"mt-2\"><span class=\"kpi-val\">4.6</span> <span class=\"small text-muted\">/ 5.0</span></div>\n          <p class=\"small mt-1\" style=\"font-weight:700;\">115 post-resolution ratings</p>\n        </div>\n      </div>\n\n      <div class=\"mid-grid\">\n        <div class=\"kpi-card\" style=\"padding:24px;\">\n          <div class=\"flex justify-between items-center\"><h3 style=\"margin:0;color:var(--navy);\">\ud83d\udcca Department Workload &amp; Distribution</h3><span class=\"badge\" style=\"background:var(--blue-50);color:var(--text-dark);\">Total: 138 Active</span></div>\n          <p class=\"small text-body mt-1\">Distribution of civic grievances, progress, and resolution status across ward municipal units.</p>\n          <div class=\"mt-3\">\n            <div class=\"bar-row\"><div class=\"bar-top\"><span>\ud83d\udd35 Roads &amp; Public Works (PWD)</span><span><span style=\"color:#61b15f;\">58 Resolved</span> 45% (62)</span></div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:45%;background:var(--navy-light);\"></div></div></div>\n            <div class=\"bar-row\"><div class=\"bar-top\"><span>\ud83d\udfe0 Solid Waste &amp; Sanitation (SWM)</span><span><span style=\"color:#61b15f;\">39 Resolved</span> 30% (41)</span></div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:30%;background:var(--amber);\"></div></div></div>\n            <div class=\"bar-row\"><div class=\"bar-top\"><span>\ud83d\udd37 Streetlighting &amp; Electrical</span><span><span style=\"color:#61b15f;\">19 Resolved</span> 15% (21)</span></div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:15%;background:#455f88;\"></div></div></div>\n            <div class=\"bar-row\"><div class=\"bar-top\"><span>\u26aa Water Supply &amp; Drainage</span><span><span style=\"color:#61b15f;\">11 Resolved</span> 10% (14)</span></div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:10%;background:#74777f;\"></div></div></div>\n          </div>\n        </div>\n        <div class=\"kpi-card\" style=\"padding:24px;\">\n          <div class=\"flex justify-between items-center\"><h3 style=\"margin:0;color:var(--navy);\">\u23f1 SLA &amp; Resolution Turnaround</h3><span class=\"badge\" style=\"background:var(--green-bg);color:var(--green-text);\">Compliance: 92%</span></div>\n          <p class=\"small text-body mt-1\">92% of civic issues closed within statutory time limit.</p>\n          <div class=\"mt-3\">\n            <div class=\"sla-row\"><div class=\"flex gap-1 items-center\"><span class=\"dot\" style=\"background:#61b15f;width:12px;height:12px;\"></span><div><strong class=\"small\">Resolved &lt; 24 Hours</strong><div class=\"small text-body\">Fast Track Redressal</div></div></div><div class=\"flex gap-2 items-center\"><strong>68%</strong><span class=\"badge\" style=\"background:#fff;color:#61b15f;\">Ahead</span></div></div>\n            <div class=\"sla-row\"><div class=\"flex gap-1 items-center\"><span class=\"dot\" style=\"background:var(--navy);width:12px;height:12px;\"></span><div><strong class=\"small\">Resolved 24 - 48 Hours</strong><div class=\"small text-body\">Within Standard SLA</div></div></div><div class=\"flex gap-2 items-center\"><strong>24%</strong><span class=\"badge\" style=\"background:#fff;color:var(--navy);\">On Target</span></div></div>\n            <div class=\"sla-row danger\"><div class=\"flex gap-1 items-center\"><span class=\"dot\" style=\"background:var(--red);width:12px;height:12px;\"></span><div><strong class=\"small\" style=\"color:#93000a;\">Breached / Escalated (&gt; 48 Hours)</strong><div class=\"small\" style=\"color:var(--red);\">Requires zonal review</div></div></div><div class=\"flex gap-2 items-center\"><strong style=\"color:#93000a;\">8%</strong><span class=\"badge\" style=\"background:#fff;color:var(--red);\">Overdue</span></div></div>\n          </div>\n        </div>\n      </div>\n\n      <div class=\"kpi-card\" style=\"padding:24px;\">\n        <div class=\"flex justify-between items-center\" style=\"margin-bottom:12px;\"><h3 style=\"margin:0;color:var(--navy);\">\ud83d\udea7 Ward Operations &amp; Resource Utilization</h3><span class=\"small text-muted\" style=\"font-weight:700;\">Live Ward Status</span></div>\n        <div class=\"bottom-grid\">\n          <div class=\"stat-tile\"><span class=\"small text-muted\" style=\"font-weight:700;\">ACTIVE FIELD SQUADS</span><div style=\"font-weight:700;color:var(--navy);font-size:18px;\">5 Units Deployed</div><p class=\"small text-body\">Out of 8 total ward squads</p><span class=\"small\" style=\"color:#61b15f;font-weight:700;\">\u25cf 3 On Standby</span></div>\n          <div class=\"stat-tile\"><span class=\"small text-muted\" style=\"font-weight:700;\">EQUIPMENT UTILIZATION</span><div style=\"font-weight:700;color:var(--navy);font-size:18px;\">82% In Field</div><p class=\"small text-body\">Compactor, Jetting van, Roller</p><span class=\"small text-navy\" style=\"font-weight:700;\">Optimal Allocation</span></div>\n          <div class=\"stat-tile\"><span class=\"small text-muted\" style=\"font-weight:700;\">MOST REPORTED LOCALITY</span><div style=\"font-weight:700;color:var(--navy);font-size:18px;\">12th Main &amp; HAL 2nd Stg</div><p class=\"small text-body\">38% of road complaints</p><span class=\"small\" style=\"color:var(--amber);font-weight:700;\">Priority Inspection Zone</span></div>\n          <div class=\"stat-tile\"><span class=\"small text-muted\" style=\"font-weight:700;\">PEAK REPORTING HOURS</span><div style=\"font-weight:700;color:var(--navy);font-size:18px;\">08:30\u201311:00 AM</div><p class=\"small text-body\">Morning commute surge</p><span class=\"small text-muted\" style=\"font-weight:700;\">Dispatched Auto-Routing</span></div>\n        </div>\n      </div>\n    </div>\n\n    <footer class=\"site-footer\">\n      <div class=\"container\">\n        <div class=\"footer-col\"><div class=\"footer-brand\"><div class=\"footer-mark\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 21h18M4 21V8l8-5 8 5v13\"/></svg></div><span class=\"footer-name\">NagrikConnect</span></div><p class=\"footer-desc\">Smart City Civic Redressal Infrastructure</p></div>\n        <div class=\"footer-help\"><h4>Emergency Helplines</h4><p>112 \u2013 National Emergency \u2022 101 \u2013 Fire \u2022 1916 \u2013 Water Supply (24/7)</p></div>\n      </div>\n    </footer>\n  </div>\n</div>";
+
+function DepartmentAnalytics({ onSignOut, onOpenDepartment, onOpenFieldWorkers }: DepartmentAnalyticsProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
+    const root = rootRef.current;
+    if (!root) return;
 
-    const attachHandlers = () => {
-      const doc = frame.contentDocument;
-      if (!doc) return;
+    // Render the original page markup directly in React; no iframe or HTML page load.
+    root.innerHTML = pageMarkup;
 
-      const signOut = doc.querySelector<HTMLAnchorElement>(
-        ".admin-topbar .btn-signout"
-      );
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest<HTMLAnchorElement>("a");
+      if (!link || !root.contains(link)) return;
 
-      const handleSignOut = (event: MouseEvent) => {
+      const href = link.getAttribute("href") || "";
+      if (link.classList.contains("btn-signout") || href === "login.html") {
         event.preventDefault();
         onSignOut();
-      };
-
-      signOut?.addEventListener("click", handleSignOut);
-
-      const links = doc.querySelectorAll<HTMLAnchorElement>(
-        ".admin-nav a"
-      );
-
-      const handleDepartment = (event: MouseEvent) => {
+        return;
+      }
+      if (href.endsWith("department-portal.html")) {
         event.preventDefault();
-        onOpenDepartment();
-      };
-
-      const handleFieldWorkers = (event: MouseEvent) => {
+        onOpenDepartment?.();
+        return;
+      }
+      if (href.endsWith("field-workers.html")) {
         event.preventDefault();
-        onOpenFieldWorkers();
-      };
-
-      links[0]?.addEventListener("click", handleDepartment);
-      links[1]?.addEventListener("click", handleFieldWorkers);
-
-      return () => {
-        signOut?.removeEventListener("click", handleSignOut);
-        links[0]?.removeEventListener("click", handleDepartment);
-        links[1]?.removeEventListener("click", handleFieldWorkers);
-      };
+        onOpenFieldWorkers?.();
+        return;
+      }
+      if (href.endsWith("department-analytics.html")) {
+        event.preventDefault();
+        onOpenAnalytics?.();
+        return;
+      }
+      if (href === "#") event.preventDefault();
     };
 
-    let cleanup: (() => void) | undefined;
-
-    const handleLoad = () => {
-      cleanup?.();
-      cleanup = attachHandlers();
+    const handleTabClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const tab = target.closest<HTMLElement>("[data-tab]");
+      if (!tab || !root.contains(tab)) return;
+      const group = tab.closest<HTMLElement>("[data-tab-group]");
+      group?.querySelectorAll("[data-tab]").forEach((item) => item.classList.remove("active", "tab-active"));
+      tab.classList.add("active", "tab-active");
     };
 
-    frame.addEventListener("load", handleLoad);
-
-    if (frame.contentDocument?.readyState === "complete") {
-      handleLoad();
-    }
+    root.addEventListener("click", handleClick);
+    root.addEventListener("click", handleTabClick);
 
     return () => {
-      frame.removeEventListener("load", handleLoad);
-      cleanup?.();
+      root.removeEventListener("click", handleClick);
+      root.removeEventListener("click", handleTabClick);
+      root.innerHTML = "";
     };
   }, [onSignOut, onOpenDepartment, onOpenFieldWorkers]);
 
-  return (
-    <iframe
-      ref={frameRef}
-      title="NagrikConnect Department Analytics"
-      src="/department-analytics.html"
-      style={{
-        display: "block",
-        width: "100%",
-        height: "100vh",
-        border: 0,
-      }}
-    />
-  );
+  return <div ref={rootRef} aria-label="NagrikConnect Department Analytics" />;
 }
 
 export default DepartmentAnalytics;
