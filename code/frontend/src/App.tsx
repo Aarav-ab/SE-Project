@@ -5,6 +5,9 @@ import ComplaintsLog from "./pages/ComplaintsLog";
 import ComplaintStep1 from "./pages/ComplaintStep1";
 import ComplaintStep2 from "./pages/ComplaintStep2";
 import ComplaintStep3 from "./pages/ComplaintStep3";
+import DepartmentPortal from "./pages/DepartmentPortal";
+import FieldWorkers from "./pages/FieldWorkers";
+import DepartmentAnalytics from "./pages/DepartmentAnalytics";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("login");
@@ -31,13 +34,49 @@ function App() {
     setUserRole(null);
   }
 
-  if (currentPage === "login") {
-    return (
-      <Login
-        onLogin={(role) => {
-          setUserRole(role);
+  
+if (currentPage === "login") {
+  return (
+    <Login
+      onLogin={(role) => {
+        setUserRole(role);
+
+        if (role === "admin") {
+          setCurrentPage("department");
+        } else {
           setCurrentPage("portal");
-        }}
+        }
+      }}
+    />
+  );
+}
+
+  if (currentPage === "department") {
+    return (
+      <DepartmentPortal
+        onSignOut={handleSignOut}
+        onOpenFieldWorkers={() => setCurrentPage("field-workers")}
+        onOpenAnalytics={() => setCurrentPage("analytics")}
+      />
+    );
+  }
+
+  if (currentPage === "field-workers") {
+    return (
+      <FieldWorkers
+        onSignOut={handleSignOut}
+        onOpenDepartment={() => setCurrentPage("department")}
+        onOpenAnalytics={() => setCurrentPage("analytics")}
+      />
+    );
+  }
+  
+  if (currentPage === "analytics") {
+    return (
+      <DepartmentAnalytics
+        onSignOut={handleSignOut}
+        onOpenDepartment={() => setCurrentPage("department")}
+        onOpenFieldWorkers={() => setCurrentPage("field-workers")}
       />
     );
   }

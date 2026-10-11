@@ -11,6 +11,7 @@ function Login({ onLogin }: LoginProps) {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    console.log("Selected login role:", role);
     onLogin(role);
   };
 
