@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ComplaintTimelineModal from "./ComplaintTimelineModal";
+import { useComplaint } from "../ComplaintContext";
 
 const complaints = [
   {
@@ -83,6 +84,35 @@ function ComplaintsLog({
     null,
   );
   const [category, setCategory] = useState("All Categories");
+  const { submittedComplaints } = useComplaint();
+
+  const newComplaintCards = submittedComplaints.map((item) => {
+    const categoryMap: Record<string, string> = {
+      "Pothole / Road": "Roads & Infrastructure",
+      Streetlight: "Electrical & Streetlighting",
+      Garbage: "Solid Waste Management",
+      "Water Supply": "Water Supply & Drainage",
+      Drainage: "Stormwater & Drainage",
+    };
+
+    return {
+      id: item.id,
+      date: `Filed ${new Date(item.submittedAt).toLocaleString()}`,
+      category: categoryMap[item.complaintType] ?? item.complaintType,
+      title: item.description,
+      location: item.address || item.ward,
+      status: item.status,
+      statusHindi: "लंबित",
+      step: 1,
+      icon: "📋",
+      progress: `Complaint received by ${item.department}. Awaiting crew assignment.`,
+      target: `Priority: ${item.priority}`,
+      highlight: false,
+      resolved: false,
+    };
+  });
+
+  const allComplaints = [...newComplaintCards, ...complaints];
 
   const categories = [
     "All Categories",
@@ -92,7 +122,7 @@ function ComplaintsLog({
     "Stormwater & Drainage",
   ];
 
-  const filteredComplaints = complaints.filter((complaint) => {
+  const filteredComplaints = allComplaints.filter((complaint) => {
     const matchesStatus =
       filter === "All" ||
       (filter === "In Progress" && !complaint.resolved) ||

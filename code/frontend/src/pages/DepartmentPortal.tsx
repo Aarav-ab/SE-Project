@@ -1,5 +1,6 @@
 import DepartmentComplaintModal from "./DepartmentComplaintModal";
 import { useState } from "react";
+import { useComplaint } from "../ComplaintContext";
 
 type DepartmentPortalProps = {
   onSignOut: () => void;
@@ -91,8 +92,40 @@ function DepartmentPortal({
   const [selectedComplaint, setSelectedComplaint] = useState<
     (typeof complaints)[number] | null
   >(null);
+  const { submittedComplaints } = useComplaint();
 
-  const filteredComplaints = complaints.filter((complaint) => {
+  const newDepartmentComplaints = submittedComplaints.map((item) => {
+    const categoryMap: Record<string, string> = {
+      "Pothole / Road": "Roads (PWD)",
+      Streetlight: "Electrical",
+      Garbage: "Sanitation (SWM)",
+      "Water Supply": "Water Supply & Drainage",
+      Drainage: "Stormwater",
+    };
+
+    const category = categoryMap[item.complaintType] ?? item.department;
+
+    return {
+      id: item.id,
+      category:
+        item.priority === "Urgent" ? `${category} • High Priority` : category,
+      age: `Reported ${new Date(item.submittedAt).toLocaleString()}`,
+      title: item.description,
+      location: item.address || item.ward,
+      assigned: "Unassigned (Action Needed)",
+      status: "Pending Dispatch",
+      icon: "📋",
+      iconBg: "var(--blue-200)",
+      tagStyle: {
+        background: "rgba(255,218,214,.4)",
+        color: "var(--red)",
+      },
+    };
+  });
+
+  const allDepartmentComplaints = [...newDepartmentComplaints, ...complaints];
+
+  const filteredComplaints = allDepartmentComplaints.filter((complaint) => {
     const query = search.toLowerCase();
     const matchesSearch =
       complaint.id.toLowerCase().includes(query) ||

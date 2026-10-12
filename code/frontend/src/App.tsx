@@ -8,6 +8,7 @@ import ComplaintStep3 from "./pages/ComplaintStep3";
 
 import DepartmentPortal from "./pages/DepartmentPortal";
 import FieldWorkers from "./pages/FieldWorkers";
+import DepartmentAnalytics from "./pages/DepartmentAnalytics";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("login");
@@ -80,6 +81,16 @@ function App() {
     );
   }
 
+  if (currentPage === "department-analytics") {
+    return (
+      <DepartmentAnalytics
+        onBack={() => setCurrentPage("department")}
+        onOpenFieldWorkers={() => setCurrentPage("field-workers")}
+        onSignOut={handleSignOut}
+      />
+    );
+  }
+
   if (currentPage === "field-workers") {
     return (
       <FieldWorkers
@@ -100,6 +111,7 @@ function App() {
             [complaintId]: crewName,
           }));
         }}
+        onOpenAnalytics={() => setCurrentPage("department-analytics")}
       />
     );
   }

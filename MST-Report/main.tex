@@ -1,0 +1,247 @@
+\documentclass{tietreport}
+
+% Import images and tools
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+
+% Bibliography configuration
+\usepackage[
+  date=year,
+  style=alphabetic,
+  backend=biber,
+  sorting=nty,
+  maxnames=5,
+  minnames=3,
+  maxalphanames=4,
+  minalphanames=3,
+  backref=true,
+  doi=false,
+  isbn=false,
+  url=false,
+  eprint=false
+]{biblatex}
+\addbibresource{references.bib}
+
+%% ==================================================
+%% CUSTOMIZE THESE FIELDS FOR YOUR PROJECT
+%% ==================================================
+
+% Course/Lab header
+\TitlePageHeader{%
+  UCS-503 -- Software Engineering%
+}
+
+% Main project title
+\ProjectTitle{%
+  NagrikConnect%
+}
+
+% Subtitle or project description
+\ProjectSubTitle{%
+  A Web-Based Smart City Complaint Management System%
+}
+
+% Student information (up to 4 students)
+\author{%
+  \texttt{1024170349} [Aarav Bansal] \\
+  \texttt{1024170381} [Pushkar Sheokand] \\
+  \texttt{1024170383} [Tarun Chaudhary]%
+}
+
+% Group number, degree, year, program
+\TitlePageSubText{%
+  Group: 3Q34 \quad BE Third Year, CSE%
+}
+
+% Faculty advisor/guide name
+\AdvisorName{%
+  Paramveer Sidhu%
+}
+
+% Evaluation period and department info
+\TitlePageFooterText{{%
+    \large Mid-Semester Evaluation \\[0.2cm]
+    \bfseries Computer Science and Engineering Department%
+  } \\[0.15cm]
+  Thapar Institute of Engineering and Technology, Patiala%
+}
+
+%% ==================================================
+
+\begin{document}
+
+% Generate title page
+\maketitle
+
+% Table of contents (auto-generated from chapters)
+\tableofcontents
+
+% ===== CHAPTER 1: INTRODUCTION =====
+
+\chapter{Introduction}
+
+\section{Background and Context}
+Urban residents regularly encounter civic issues such as damaged roads, overflowing waste bins, broken streetlights, water leakage, and sanitation problems. Reporting these issues can involve identifying the appropriate authority, providing enough information for the complaint to be understood, and finding out whether action has been taken. When reporting and follow-up processes are fragmented, complaints may be difficult to track and citizens may have limited visibility into their progress.
+
+NagrikConnect is proposed as a web-based civic complaint management system intended to make the reporting and tracking process more structured. It provides a common interface through which citizens can submit civic complaints and review their status. The system is designed around a clear complaint record containing the issue description, location, submission time, supporting media when available, and status updates. Automated assistance is also planned to help categorize complaints and suggest the responsible department and priority.
+
+\subsection{Problem Statement}
+Citizens may not know which department should receive a particular civic complaint, and manual reporting can omit useful details such as the precise location or supporting evidence. In addition, the absence of a simple status-tracking interface can make follow-up inconvenient. The project addresses the need for a unified web interface for lodging, organizing, and tracking civic complaints, with automated classification and routing support as intended capabilities.
+
+\section{Project Objectives}
+The project objectives for the prototype are:
+\begin{enumerate}
+  \item Design and develop a citizen-facing web interface that supports account access and complaint submission.
+  \item Capture complaint details, submission date and time, location information where permission is granted, and optional image, audio, or video evidence.
+  \item Provide a structured complaint record and a citizen-facing view of complaint status.
+  \item Explore automated prediction of complaint category, responsible department, and priority from the submitted description.
+  \item Establish a modular foundation that can later support administrative workflows, notifications, analytics, and deployment.
+\end{enumerate}
+
+\section{Project Scope}
+The MST scope is a prototype of the core citizen complaint workflow and its supporting architecture. Automated classification, location capture, media upload, and status tracking should be described as implemented only to the extent that they have been built and tested. Integration with municipal systems, production-grade security, large-scale deployment, and validation on a representative real-world complaint dataset are outside the scope of an initial prototype.
+
+% ===== CHAPTER 2: METHODOLOGY & DESIGN =====
+
+\chapter{Methodology and Design}
+
+\section{System Architecture}
+
+\subsection{High-Level Design}
+NagrikConnect is planned as a web application with a frontend, backend API, data store, and optional machine-learning component. The frontend presents forms and dashboards to citizens. The backend validates requests, applies business rules, manages complaint records, and exposes API endpoints. The database stores user and complaint information. A classification component may analyze complaint text and return a predicted category, department, and priority; these predictions should be treated as suggestions and should be reviewable rather than assumed to be correct in every case.
+
+The intended complaint flow is:
+\begin{enumerate}
+  \item A citizen accesses the application and signs in or uses the configured demonstration account.
+  \item The citizen provides the media followed by location and then describes the complaint with type and priority.
+  \item The application records the submission time and validates the provided fields.
+  \item If the classification component is available, the complaint text is passed to it for a suggested category, department, and priority.
+  \item The complaint is saved and displayed to the citizen with its current status.
+  \item Authorized staff can view the registered complaint, assign a crew member, view progress and provide comments.
+\end{enumerate}
+
+\subsection{Technical Stack}
+The intended stack for the web version is:
+\begin{itemize}
+  \item \textbf{Frontend:} React.js with HTML, CSS, and JavaScript.
+  \item \textbf{Backend:} Node.js and Express.js for REST API endpoints and server-side validation.
+  \item \textbf{Database:} PostgreSQL for the implementation.
+  \item \textbf{Development Tools:} Git for version control, VS Code for coding, ChatGPT and Claude for debugging and error resolution, and a web browser for testing the application.
+\end{itemize}
+
+\section{Implementation Details}
+
+\subsection{Citizen Access and Complaint Submission}
+The citizen-facing workflow is intended to provide access to the application and a form for lodging a complaint. The form should collect a concise description of the civic issue and include attachments with precise location. Input validation should check required fields, accepted file types, and file-size limits.
+
+\subsection{Complaint Classification and Routing} The system categorizes complaints using predefined categories such as roads, sanitation, street lighting, and water supply. Based on the selected category, the complaint is automatically routed to the corresponding department using a predefined mapping. Complaint priority is determined using predefined rules based on the type and severity of the issue. The system also allows authorized personnel to review and modify complaint details when necessary.
+
+\subsection{Location, Attachments, and Timestamps}
+Where a citizen grants browser location permission, the application can use the Geolocation API to obtain coordinates. Location access should be optional, clearly explained, and accompanied by a manual-entry fallback. The backend should record the submission timestamp consistently. Media upload should validate file type and size and should avoid exposing uploaded files publicly without authorization.
+
+\subsection{Complaint Status Tracking}
+Each complaint have a unique identifier and a status field. A simple lifecycle includes \textit{Complaint Registered}, \textit{Department Assigned}, \textit{In Progress}, and \textit{Resolution and Verification}. The citizen dashboard shows only complaints associated with the authenticated citizen, while any administrative status-change operation require appropriate authorization.
+
+\section{Data and Privacy Considerations}
+Complaint descriptions, location coordinates, account details, and attachments may contain personal or sensitive information. The application collects only information needed for handling the complaint, request permission before accessing location, restrict access to complaint records, validate uploads, and avoid placing credentials or secrets in source control. A deployed version would also require secure transport, robust authentication, backup and retention policies, and a review of applicable privacy requirements.
+
+% ===== CHAPTER 3: RESULTS & EVALUATION =====
+
+\chapter{Results and Evaluation}
+
+\section{Prototype Status}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{|p{0.42\textwidth}|p{0.42\textwidth}|}
+\hline
+\textbf{Feature} & \textbf{Status to confirm before submission} \\
+\hline
+Citizen login / demo access & [Implemented] \\
+\hline
+Complaint submission form & [Implemented] \\
+\hline
+Department and priority & [Implemented] \\
+\hline
+Location capture & [Implemented] \\
+\hline
+Image/audio/video upload & [Implemented] \\
+\hline
+Complaint status dashboard & [Implemented] \\
+\hline
+Persistent database storage & [In progress] \\
+\hline
+\end{tabular}
+\caption{Prototype implementation status checklist}
+\label{tab:prototype-status}
+\end{table}
+
+\section{Testing Methodology}
+Testing should be carried out at multiple levels:
+\begin{itemize}
+  \item \textbf{Unit testing:} Validate individual form checks, API handlers, classification logic, and status-transition rules.
+  \item \textbf{Integration testing:} Verify that the frontend can submit a complaint to the backend and that valid records are stored and retrieved correctly.
+  \item \textbf{Input and error testing:} Test missing fields, invalid file types, oversized uploads, denied location permission, and unavailable classification services.
+  \item \textbf{Access-control testing:} Confirm that a citizen cannot view or modify another citizen's complaints and that restricted operations require authorization.
+  \item \textbf{User testing:} Ask a small number of test users to submit a sample complaint and report any confusing steps.
+\end{itemize}
+
+\section{Performance Metrics}
+No measured performance results are assumed in this draft. Record actual observations from the running prototype. If a metric has not been measured, mark it as \textit{Not measured} rather than inserting an estimated value.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{|p{0.34\textwidth}|p{0.26\textwidth}|p{0.26\textwidth}|}
+\hline
+\textbf{Metric} & \textbf{Target / method} & \textbf{Observed result} \\
+\hline
+Complaint submission & Verify successful submission of valid complaints & Successfully saved \\
+\hline
+API response time & Measure response time for repeated requests & Not measured \\
+\hline
+Department routing & Verify category-to-department mapping & Tested as per predefined rules \\
+\hline
+Invalid-input handling & Test missing and malformed inputs & Shows error for missing inputs \\
+\hline
+Status retrieval & Verify saved complaint status is displayed correctly & Successful \\
+\hline
+\end{tabular}
+\caption{Evaluation measures for the prototype}
+\label{tab:evaluation}
+\end{table}
+
+\section{Analysis and Limitations}
+The main value of the proposed system is the consolidation of complaint submission and status tracking in one interface. Automated categorization may reduce the effort required to route complaints, but its reliability cannot be claimed without an appropriate labelled dataset and evaluation. Other limitations may include incomplete department mappings, inaccurate or unavailable location data, file-storage constraints, and the absence of integration with real municipal workflows. These are areas to validate and prioritize during continued development.
+
+% ===== CHAPTER 4: CONCLUSION =====
+
+\chapter{Conclusion}
+
+\section{Summary of Work}
+NagrikConnect addresses the civic complaint-reporting workflow through a planned web application that combines citizen access, structured complaint submission, location and evidence capture, complaint tracking, and automated routing assistance. The architecture separates the frontend, backend API, persistent storage, and classification logic so that each component can be developed and tested independently. The final submission should distinguish the functionality demonstrated in the current prototype from features that remain planned.
+
+\section{Key Findings}
+The design process highlights three important considerations:
+\begin{itemize}
+  \item \textbf{Structured reporting:} A consistent complaint record can make issue descriptions and follow-up easier to manage.
+  \item \textbf{Assisted routing:} Category and department predictions can support triage, but require validation and human oversight.
+  \item \textbf{Trust and accountability:} Clear status updates, privacy-conscious location capture, and controlled access are important for a civic service.
+\end{itemize}
+
+\section{Future Work and Recommendations}
+\begin{enumerate}
+  \item Complete and test the end-to-end citizen complaint workflow.
+  \item Connect the application to a persistent database and implement secure authentication and authorization.
+  \item Build or evaluate a complaint text-classification model using a labelled dataset representative of the intended deployment context.
+  \item Add notifications, analytics, and duplicate-complaint detection where useful.
+  \item Conduct usability, security, and performance testing before any real-world deployment.
+\end{enumerate}
+
+\section{Final Remarks}
+NagrikConnect is intended to make civic issue reporting more accessible and traceable. Its effectiveness will depend not only on the interface, but also on reliable workflows, appropriate data handling, validated classification, and coordination with the departments responsible for resolving reported issues. Further implementation and testing are necessary before making claims about real-world performance.
+
+% ===== BIBLIOGRAPHY =====
+\printbibliography[heading=bibintoc]
+
+\end{document}

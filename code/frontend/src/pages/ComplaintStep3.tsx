@@ -27,8 +27,7 @@ function ComplaintStep3({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { complaint, updateComplaint } = useComplaint();
-
+  const { complaint, updateComplaint, addSubmittedComplaint } = useComplaint();
   const complaintType = complaint.complaintType;
   const description = complaint.description;
   const priority = complaint.priority;
@@ -44,6 +43,13 @@ function ComplaintStep3({
     }
 
     setError("");
+
+    addSubmittedComplaint({
+      ...complaint,
+      description: description.trim(),
+      complaintType,
+      priority,
+    });
 
     const temporaryId = `NC-DEMO-${Date.now().toString().slice(-6)}`;
     setDemoComplaintId(temporaryId);

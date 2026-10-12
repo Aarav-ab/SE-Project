@@ -13,6 +13,7 @@ type FieldWorkersProps = {
   onDispatch: () => void;
   complaintToAssign: ComplaintToAssign | null;
   onAssignCrew: (complaintId: string, crewName: string) => void;
+  onOpenAnalytics: () => void;
 };
 
 const initialWorkers = [
@@ -115,6 +116,7 @@ function FieldWorkers({
   onDispatch,
   complaintToAssign,
   onAssignCrew,
+  onOpenAnalytics,
 }: FieldWorkersProps) {
   const [search, setSearch] = useState("");
 
@@ -169,7 +171,7 @@ function FieldWorkers({
             <button type="button" className="active">
               Field Workers &amp; Crews
             </button>
-            <button type="button" onClick={() => {}}>
+            <button type="button" onClick={onOpenAnalytics}>
               Department Analytics
             </button>
           </nav>
