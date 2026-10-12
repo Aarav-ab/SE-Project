@@ -6,11 +6,22 @@ import ComplaintStep1 from "./pages/ComplaintStep1";
 import ComplaintStep2 from "./pages/ComplaintStep2";
 import ComplaintStep3 from "./pages/ComplaintStep3";
 
+import DepartmentPortal from "./pages/DepartmentPortal";
+import FieldWorkers from "./pages/FieldWorkers";
+
 function App() {
   const [currentPage, setCurrentPage] = useState("login");
   const [userRole, setUserRole] = useState<"citizen" | "admin" | null>(null);
+  const [crewAssignments, setCrewAssignments] = useState<
+    Record<string, string>
+  >({});
   const [currentStep, setCurrentStep] = useState(1);
   const [, setSelectedComplaintId] = useState("");
+  const [complaintToAssign, setComplaintToAssign] = useState<{
+    id: string;
+    title: string;
+    location: string;
+  } | null>(null);
 
   useEffect(() => {
     window.scrollTo({
@@ -36,11 +47,64 @@ function App() {
       <Login
         onLogin={(role) => {
           setUserRole(role);
-          setCurrentPage("portal");
+          setCurrentPage(role === "admin" ? "department" : "portal");
         }}
       />
     );
   }
+
+  // Department Portal pages
+
+  if (currentPage === "department") {
+    return (
+      <DepartmentPortal
+        onSignOut={handleSignOut}
+        onOpenFieldWorkers={() => setCurrentPage("field-workers")}
+        onOpenAnalytics={() => setCurrentPage("department-analytics")}
+        onAssignComplaint={(complaint) => {
+          setComplaintToAssign({
+            id: complaint.id,
+            title: complaint.title,
+            location: complaint.location,
+          });
+          setCurrentPage("field-workers");
+        }}
+        crewAssignments={crewAssignments}
+        onUpdateCrewAssignment={(complaintId, crewName) => {
+          setCrewAssignments((current) => ({
+            ...current,
+            [complaintId]: crewName,
+          }));
+        }}
+      />
+    );
+  }
+
+  if (currentPage === "field-workers") {
+    return (
+      <FieldWorkers
+        onBack={() => {
+          setComplaintToAssign(null);
+          setCurrentPage("department");
+        }}
+        onSignOut={handleSignOut}
+        onViewComplaint={(id) => {
+          setSelectedComplaintId(id);
+          setCurrentPage("department");
+        }}
+        onDispatch={() => setCurrentPage("department")}
+        complaintToAssign={complaintToAssign}
+        onAssignCrew={(complaintId, crewName) => {
+          setCrewAssignments((current) => ({
+            ...current,
+            [complaintId]: crewName,
+          }));
+        }}
+      />
+    );
+  }
+
+  // Citizen Portal pages
 
   if (currentPage === "portal") {
     return (
