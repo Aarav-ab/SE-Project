@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { fetchAnalytics, type ApiAnalytics } from "../api";
+
 type DepartmentAnalyticsProps = {
   onBack: () => void;
   onOpenFieldWorkers: () => void;
@@ -9,6 +12,13 @@ function DepartmentAnalytics({
   onOpenFieldWorkers,
   onSignOut,
 }: DepartmentAnalyticsProps) {
+  const [analytics, setAnalytics] = useState<ApiAnalytics | null>(null);
+
+  useEffect(() => {
+    fetchAnalytics().then((data) => {
+      if (data) setAnalytics(data);
+    });
+  }, []);
   return (
     <div className="admin-wrap analytics-page">
       <aside className="admin-sidebar">
@@ -114,9 +124,15 @@ function DepartmentAnalytics({
                 <span className="kpi-label">Total Handled</span>
                 <span>📋</span>
               </div>
-              <div className="kpi-val">138</div>
+              <div className="kpi-val">
+                {analytics ? analytics.summary.totalComplaints : "138"}
+              </div>
               <p className="text-muted">Complaints</p>
-              <p className="analytics-note">127 Resolved • 11 In Progress</p>
+              <p className="analytics-note">
+                {analytics
+                  ? `${analytics.summary.resolved} Resolved • ${analytics.summary.inProgress} In Progress`
+                  : "127 Resolved • 11 In Progress"}
+              </p>
             </div>
 
             <div className="kpi-card">
@@ -124,7 +140,9 @@ function DepartmentAnalytics({
                 <span className="kpi-label">Avg. Resolution Time</span>
                 <span>⏱️</span>
               </div>
-              <div className="kpi-val">28.4</div>
+              <div className="kpi-val">
+                {analytics ? analytics.summary.avgResolutionHours : "28.4"}
+              </div>
               <p className="text-muted">Hours</p>
               <p className="analytics-note">Target ≤ 48 Hours</p>
             </div>
@@ -134,7 +152,9 @@ function DepartmentAnalytics({
                 <span className="kpi-label">SLA Compliance Rate</span>
                 <span>✓</span>
               </div>
-              <div className="kpi-val">92.0%</div>
+              <div className="kpi-val">
+                {analytics ? analytics.summary.slaComplianceRate : "92.0%"}
+              </div>
               <p className="text-muted">On-Time Redressal Charter</p>
             </div>
 

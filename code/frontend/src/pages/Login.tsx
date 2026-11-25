@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { loginUser } from "../api";
 
 type Role = "citizen" | "admin";
 
@@ -8,10 +9,36 @@ type LoginProps = {
 
 function Login({ onLogin }: LoginProps) {
   const [role, setRole] = useState<Role>("citizen");
+  const [email, setEmail] = useState("citizen123@gmail.com");
+  const [password, setPassword] = useState("citizen@123");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleRoleChange = (newRole: Role) => {
+    setRole(newRole);
+    setError("");
+    if (newRole === "citizen") {
+      setEmail("citizen123@gmail.com");
+      setPassword("citizen@123");
+    } else {
+      setEmail("admin123@gmail.com");
+      setPassword("admin@123");
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onLogin(role);
+    setError("");
+    setLoading(true);
+
+    try {
+      await loginUser(role, email.trim(), password);
+      onLogin(role);
+    } catch (err: any) {
+      setError(err?.message || "Invalid email or password.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,20 +63,12 @@ function Login({ onLogin }: LoginProps) {
             <div className="brand-text">
               <div className="brand-name-row">
                 <span className="brand-name">NagrikConnect</span>
-
-                {/* <span className="brand-tag">Smart City Prototype</span> */}
               </div>
 
               <span className="brand-sub">
                 Civic Grievance &amp; Information Platform
               </span>
             </div>
-          </div>
-
-          <div className="header-right">
-            <a href="#" className="small text-muted">
-              🌐 English / हिंदी
-            </a>
           </div>
         </div>
       </header>
@@ -70,7 +89,7 @@ function Login({ onLogin }: LoginProps) {
             <button
               type="button"
               className={role === "citizen" ? "active-role" : ""}
-              onClick={() => setRole("citizen")}
+              onClick={() => handleRoleChange("citizen")}
             >
               <svg
                 width="14"
@@ -89,7 +108,7 @@ function Login({ onLogin }: LoginProps) {
             <button
               type="button"
               className={role === "admin" ? "active-role" : ""}
-              onClick={() => setRole("admin")}
+              onClick={() => handleRoleChange("admin")}
             >
               <svg
                 width="14"
@@ -105,17 +124,22 @@ function Login({ onLogin }: LoginProps) {
             </button>
           </div>
 
-          {/* Role feedback
-            <div className="role-feedback">
-                Signing in as{" "}
-                <strong>
-                {role === "citizen" ? "Citizen" : "Officer"}
-                </strong>{" "}
-                to{" "}
-                {role === "citizen"
-                ? "track & report grievances."
-                : "manage department complaints."}
-            </div> */}
+          {/* Error Banner styled using the design system */}
+          {error && (
+            <div
+              className="complaint-error"
+              style={{
+                marginTop: 0,
+                marginBottom: "16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* Login form */}
           <form onSubmit={handleSubmit}>
@@ -139,7 +163,12 @@ function Login({ onLogin }: LoginProps) {
                   </svg>
                 </span>
 
-                <input type="text" defaultValue="citizen@demo.com" />
+                <input
+                  type="text"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
             </div>
 
@@ -169,18 +198,26 @@ function Login({ onLogin }: LoginProps) {
                   </svg>
                 </span>
 
-                <input type="password" defaultValue="citizen123" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </div>
             </div>
 
             <div className="remember-row">
               <input type="checkbox" defaultChecked />
-
               <span>Remember my session</span>
             </div>
 
-            <button type="submit" className="btn btn-navy btn-block">
-              Sign in →
+            <button
+              type="submit"
+              className="btn btn-navy btn-block"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in →"}
             </button>
           </form>
 

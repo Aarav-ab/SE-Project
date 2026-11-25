@@ -27,33 +27,45 @@ function ComplaintStep3({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { complaint, updateComplaint, addSubmittedComplaint } = useComplaint();
+  const {
+    complaint,
+    updateComplaint,
+    addSubmittedComplaint,
+    refreshComplaints,
+  } = useComplaint();
   const complaintType = complaint.complaintType;
   const description = complaint.description;
   const priority = complaint.priority;
 
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [demoComplaintId, setDemoComplaintId] = useState("");
+  const [registeredId, setRegisteredId] = useState("");
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!description.trim()) {
       setError("Please enter a description of the complaint.");
       return;
     }
 
     setError("");
+    setSubmitting(true);
 
-    addSubmittedComplaint({
-      ...complaint,
-      description: description.trim(),
-      complaintType,
-      priority,
-    });
+    try {
+      const newId = await addSubmittedComplaint({
+        ...complaint,
+        description: description.trim(),
+        complaintType,
+        priority,
+      });
 
-    const temporaryId = `NC-DEMO-${Date.now().toString().slice(-6)}`;
-    setDemoComplaintId(temporaryId);
-    setSubmitted(true);
+      setRegisteredId(newId);
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err?.message || "Failed to submit complaint to server.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -68,18 +80,20 @@ function ComplaintStep3({
           >
             <div className="confirmation-icon">✓</div>
 
-            <h2 id="confirmation-title">Complaint Submitted!</h2>
+            <h2 id="confirmation-title">Complaint Submitted Successfully!</h2>
 
             <p className="text-body">
-              Your complaint has been recorded in this demo. Backend submission
-              will be connected when the API is ready.
+              Your civic complaint has been registered with the NagrikConnect backend.
+              A dispatch notification has been routed to the relevant municipal department.
             </p>
 
             <div className="confirmation-details">
               <div className="confirmation-id">
-                <span>Temporary Complaint Reference</span>
-                <strong>{demoComplaintId}</strong>
-                <small>Demo ID — not yet registered with the backend</small>
+                <span>Official Complaint Reference Number</span>
+                <strong>{registeredId}</strong>
+                <small style={{ color: "var(--navy)", fontWeight: 600 }}>
+                  ✓ Live Grievance ID registered in Municipal Database
+                </small>
               </div>
               <div>
                 <span>Complaint category</span>
@@ -129,9 +143,21 @@ function ComplaintStep3({
               className="btn btn-navy"
               onClick={() => {
                 setSubmitted(false);
+                updateComplaint({
+                  files: [],
+                  address: "",
+                  pinCode: "",
+                  landmark: "",
+                  latitude: null,
+                  longitude: null,
+                  description: "",
+                  priority: "Medium",
+                });
+                refreshComplaints();
+                onTrackComplaints();
               }}
             >
-              Return to Complaint
+              Track Complaint →
             </button>
           </section>
         </div>
@@ -339,8 +365,9 @@ function ComplaintStep3({
                 className="btn btn-navy"
                 style={{ padding: "12px 32px" }}
                 onClick={handleSubmit}
+                disabled={submitting}
               >
-                Submit Complaint / शिकायत दर्ज करें
+                {submitting ? "Submitting to Backend..." : "Submit Complaint / शिकायत दर्ज करें"}
               </button>
             </div>
           </div>

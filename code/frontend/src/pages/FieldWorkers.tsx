@@ -1,4 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  fetchFieldWorkers,
+  createFieldWorker,
+  freeFieldWorker,
+  updateFieldWorkerStatus,
+  assignComplaintWorker,
+} from "../api";
+import { useComplaint } from "../ComplaintContext";
 
 type ComplaintToAssign = {
   id: string;
@@ -113,14 +121,259 @@ function FieldWorkers({
   onBack,
   onSignOut,
   onViewComplaint,
-  onDispatch,
+  onDispatch: _onDispatch,
   complaintToAssign,
   onAssignCrew,
   onOpenAnalytics,
 }: FieldWorkersProps) {
   const [search, setSearch] = useState("");
+  const [workers, setWorkers] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem("nc_workers_cache");
+      return saved ? JSON.parse(saved) : initialWorkers;
+    } catch {
+      return initialWorkers;
+    }
+  });
 
-  const filteredWorkers = initialWorkers.filter((worker) =>
+  const { submittedComplaints } = useComplaint();
+  const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false);
+  const [newWorkerName, setNewWorkerName] = useState("");
+  const [newWorkerRole, setNewWorkerRole] = useState("");
+  const [newWorkerDept, setNewWorkerDept] = useState("Roads & Public Works (PWD)");
+  const [newWorkerPhone, setNewWorkerPhone] = useState("");
+  const [newWorkerStatus, setNewWorkerStatus] = useState("Available Now");
+
+  const [workerToAssign, setWorkerToAssign] = useState<any | null>(null);
+  const [selectedGrievanceId, setSelectedGrievanceId] = useState("");
+  const [customTicketInput, setCustomTicketInput] = useState("");
+
+  useEffect(() => {
+    fetchFieldWorkers().then((apiWorkers) => {
+      if (apiWorkers && apiWorkers.length > 0) {
+        setWorkers(apiWorkers);
+        localStorage.setItem("nc_workers_cache", JSON.stringify(apiWorkers));
+      }
+    });
+  }, []);
+
+  const availableComplaints = submittedComplaints.filter(
+    (c) => c.status !== "Resolved" && c.status !== "Closed" && !c.resolved
+  );
+
+  async function handleFreeWorker(worker: any) {
+    if (worker.id) {
+      await freeFieldWorker(worker.id);
+    }
+    const updated = workers.map((w) => {
+      if (w.name === worker.name || (w.id && w.id === worker.id)) {
+        return {
+          ...w,
+          status: "Available Now",
+          dot: "#61b15f",
+          dotColor: "#61b15f",
+          assignment: "—",
+          activeTicket: "—",
+          action: "Dispatch to Ticket →",
+          type: "dispatch",
+          complaintId: "",
+          activeComplaintId: null,
+          metric: String(Number(w.metric || 0) + 1),
+        };
+      }
+      return w;
+    });
+    setWorkers(updated);
+    localStorage.setItem("nc_workers_cache", JSON.stringify(updated));
+  }
+
+  async function handleToggleDuty(worker: any, targetStatus: string) {
+    const isOffDuty = targetStatus.includes("Off-Duty");
+    const dotColor = isOffDuty ? "#c4c6cf" : "#61b15f";
+
+    if (worker.id) {
+      await updateFieldWorkerStatus(worker.id, targetStatus, dotColor);
+    }
+
+    const updated = workers.map((w) => {
+      if (w.name === worker.name || (w.id && w.id === worker.id)) {
+        return {
+          ...w,
+          status: targetStatus,
+          dot: dotColor,
+          dotColor,
+          assignment: isOffDuty ? "—" : w.assignment,
+          action: isOffDuty ? "Back on duty tomorrow" : "Dispatch to Ticket →",
+          type: isOffDuty ? "off-duty" : "dispatch",
+        };
+      }
+      return w;
+    });
+    setWorkers(updated);
+    localStorage.setItem("nc_workers_cache", JSON.stringify(updated));
+  }
+
+  function handleStartAssign(worker: any) {
+    if (complaintToAssign) {
+      const assignedTicket = `#${complaintToAssign.id.split("-").pop()}`;
+      const updatedWorkers = workers.map((w) =>
+        w.name === worker.name || (w.id && w.id === worker.id)
+          ? {
+              ...w,
+              status: `On-Site: Ticket ${assignedTicket}`,
+              dot: "var(--amber)",
+              dotColor: "var(--amber)",
+              assignment: assignedTicket,
+              activeTicket: assignedTicket,
+              action: "View Active Ticket →",
+              type: "ticket",
+              complaintId: complaintToAssign.id,
+              activeComplaintId: complaintToAssign.id,
+            }
+          : w
+      );
+      setWorkers(updatedWorkers);
+      localStorage.setItem("nc_workers_cache", JSON.stringify(updatedWorkers));
+
+      onAssignCrew(complaintToAssign.id, worker.name);
+      onBack();
+    } else {
+      setWorkerToAssign(worker);
+      setSelectedGrievanceId(availableComplaints[0]?.id || "");
+      setCustomTicketInput("");
+    }
+  }
+
+  async function handleConfirmAssignWorkload() {
+    if (!workerToAssign) return;
+
+    let ticketDisplay = "";
+    let complaintId = "";
+
+    if (selectedGrievanceId) {
+      complaintId = selectedGrievanceId;
+      ticketDisplay = `#${selectedGrievanceId.split("-").pop()}`;
+      onAssignCrew(selectedGrievanceId, workerToAssign.name);
+      assignComplaintWorker(selectedGrievanceId, workerToAssign.name);
+    } else if (customTicketInput.trim()) {
+      ticketDisplay = customTicketInput.trim().startsWith("#")
+        ? customTicketInput.trim()
+        : `#${customTicketInput.trim()}`;
+    }
+
+    if (!ticketDisplay) return;
+
+    if (workerToAssign.id) {
+      await updateFieldWorkerStatus(
+        workerToAssign.id,
+        `On-Site: Ticket ${ticketDisplay}`,
+        "var(--amber)"
+      );
+    }
+
+    const updated = workers.map((w) => {
+      if (w.name === workerToAssign.name || (w.id && w.id === workerToAssign.id)) {
+        return {
+          ...w,
+          status: `On-Site: Ticket ${ticketDisplay}`,
+          dot: "var(--amber)",
+          dotColor: "var(--amber)",
+          assignment: ticketDisplay,
+          activeTicket: ticketDisplay,
+          action: "View Active Ticket →",
+          type: "ticket",
+          complaintId,
+          activeComplaintId: complaintId,
+        };
+      }
+      return w;
+    });
+
+    setWorkers(updated);
+    localStorage.setItem("nc_workers_cache", JSON.stringify(updated));
+    setWorkerToAssign(null);
+  }
+
+  async function handleCreateWorker(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newWorkerName.trim()) return;
+
+    const parts = newWorkerName.trim().split(/\s+/);
+    const initials =
+      parts.length >= 2
+        ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+        : newWorkerName.trim().slice(0, 2).toUpperCase();
+
+    const roleLower = newWorkerRole.toLowerCase();
+    const color = roleLower.includes("road")
+      ? "var(--navy)"
+      : roleLower.includes("electric") || roleLower.includes("street")
+      ? "var(--amber)"
+      : roleLower.includes("qc")
+      ? "var(--red)"
+      : "#61b15f";
+
+    const isOffDuty = newWorkerStatus.includes("Off-Duty");
+    const dot = isOffDuty ? "#c4c6cf" : "#61b15f";
+
+    const workerPayload = {
+      name: newWorkerName.trim(),
+      role: newWorkerRole.trim() || "Field Technician",
+      department: newWorkerDept,
+      phone: newWorkerPhone.trim(),
+      status: newWorkerStatus,
+    };
+
+    let createdId = "";
+    try {
+      const res = await createFieldWorker(workerPayload);
+      if (res?.id) createdId = res.id;
+    } catch (err) {
+      console.warn("Backend worker creation fallback:", err);
+    }
+
+    const newWorker = {
+      id: createdId || `worker-${Date.now()}`,
+      initials,
+      name: newWorkerName.trim(),
+      role: newWorkerRole.trim() || "Field Technician",
+      department: newWorkerDept,
+      status: newWorkerStatus,
+      color,
+      dot,
+      dotColor: dot,
+      phone: newWorkerPhone.trim(),
+      assignment: "—",
+      activeTicket: "—",
+      metricLabel: "Tickets Closed (30d)",
+      metric: "0",
+      resolution: "12 hrs",
+      action: isOffDuty ? "Back on duty tomorrow" : "Dispatch to Ticket →",
+      type: isOffDuty ? "off-duty" : "dispatch",
+    };
+
+    const updated = [newWorker, ...workers];
+    setWorkers(updated);
+    localStorage.setItem("nc_workers_cache", JSON.stringify(updated));
+    setIsAddWorkerModalOpen(false);
+    setNewWorkerName("");
+    setNewWorkerRole("");
+    setNewWorkerPhone("");
+    setNewWorkerStatus("Available Now");
+  }
+
+  const totalStaff = workers.length;
+  const onSiteStaff = workers.filter(
+    (w) => w.status.includes("On-Site") || (w.assignment && w.assignment !== "—")
+  ).length;
+  const availableStaff = workers.filter((w) =>
+    w.status.includes("Available")
+  ).length;
+  const offDutyStaff = workers.filter(
+    (w) => w.status.includes("Off-Duty") || w.status.includes("Leave")
+  ).length;
+
+  const filteredWorkers = workers.filter((worker) =>
     `${worker.name} ${worker.role} ${worker.status} ${worker.assignment}`
       .toLowerCase()
       .includes(search.toLowerCase()),
@@ -266,9 +519,7 @@ function FieldWorkers({
             <button
               type="button"
               className="btn btn-navy"
-              onClick={() =>
-                alert("Adding crew members will be implemented next.")
-              }
+              onClick={() => setIsAddWorkerModalOpen(true)}
             >
               + Add New Crew Member
             </button>
@@ -279,10 +530,10 @@ function FieldWorkers({
               <div>
                 <span className="kpi-label">Total Field Staff</span>
                 <div className="kpi-val" style={{ color: "var(--navy)" }}>
-                  24
+                  {totalStaff}
                 </div>
                 <p className="small mt-1" style={{ fontWeight: 600 }}>
-                  Across 6 municipal units
+                  Across municipal units
                 </p>
               </div>
               <div
@@ -297,7 +548,7 @@ function FieldWorkers({
               <div>
                 <span className="kpi-label">On-Site Now</span>
                 <div className="kpi-val" style={{ color: "var(--amber)" }}>
-                  9
+                  {onSiteStaff}
                 </div>
                 <p className="small mt-1" style={{ fontWeight: 600 }}>
                   Actively deployed
@@ -315,7 +566,7 @@ function FieldWorkers({
               <div>
                 <span className="kpi-label">Available / On Standby</span>
                 <div className="kpi-val" style={{ color: "#61b15f" }}>
-                  11
+                  {availableStaff}
                 </div>
                 <p className="small mt-1" style={{ fontWeight: 600 }}>
                   Ready for dispatch
@@ -333,7 +584,7 @@ function FieldWorkers({
               <div>
                 <span className="kpi-label">On Leave / Off-Duty</span>
                 <div className="kpi-val" style={{ color: "var(--text-muted)" }}>
-                  4
+                  {offDutyStaff}
                 </div>
                 <p className="small mt-1" style={{ fontWeight: 600 }}>
                   Scheduled rotation
@@ -350,7 +601,7 @@ function FieldWorkers({
 
           <div className="crew-grid">
             {filteredWorkers.map((worker) => (
-              <article className="crew-card" key={worker.initials}>
+              <article className="crew-card" key={worker.id || worker.name}>
                 <div className="crew-top">
                   <div
                     className="crew-avatar"
@@ -387,33 +638,451 @@ function FieldWorkers({
                   <strong>{worker.resolution}</strong>
                 </div>
 
-                <button
-                  type="button"
-                  className={`btn ${worker.type === "dispatch" ? "btn-navy" : "btn-secondary"} btn-block btn-sm mt-3`}
-                  disabled={worker.type === "off-duty"}
-                  style={
-                    worker.type === "off-duty"
-                      ? { opacity: 0.6, cursor: "not-allowed" }
-                      : undefined
-                  }
-                  onClick={() => {
-                    if (worker.type === "ticket" && worker.complaintId) {
-                      onViewComplaint(worker.complaintId);
-                    } else if (worker.type === "dispatch") {
-                      if (complaintToAssign) {
-                        onAssignCrew(complaintToAssign.id, worker.name);
-                        onBack();
-                      } else {
-                        onDispatch();
+                {worker.status.includes("On-Site") ||
+                (worker.assignment && worker.assignment !== "—") ? (
+                  <div className="flex gap-2 mt-3" style={{ width: "100%" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1, padding: "8px 10px", fontSize: 12 }}
+                      onClick={() => {
+                        if (worker.complaintId) {
+                          onViewComplaint(worker.complaintId);
+                        } else {
+                          alert(`Active ticket: ${worker.assignment}`);
+                        }
+                      }}
+                    >
+                      View Ticket →
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      style={{
+                        flex: 1,
+                        padding: "8px 10px",
+                        fontSize: 12,
+                        background: "rgba(97, 177, 95, 0.15)",
+                        color: "#2e7d32",
+                        border: "1px solid #61b15f",
+                        fontWeight: 700,
+                      }}
+                      title="Free this crew member and mark Available"
+                      onClick={() => handleFreeWorker(worker)}
+                    >
+                      ✓ Free Member
+                    </button>
+                  </div>
+                ) : worker.status.includes("Off-Duty") ||
+                  worker.status.includes("Leave") ? (
+                  <div className="mt-3" style={{ width: "100%" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm btn-block"
+                      style={{ padding: "8px 10px", fontSize: 12 }}
+                      onClick={() => handleToggleDuty(worker, "Available Now")}
+                    >
+                      Put On-Duty (Available)
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 mt-3" style={{ width: "100%" }}>
+                    <button
+                      type="button"
+                      className="btn btn-navy btn-sm"
+                      style={{ flex: 2, padding: "8px 10px", fontSize: 12 }}
+                      onClick={() => handleStartAssign(worker)}
+                    >
+                      + Assign Workload
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1, padding: "8px 8px", fontSize: 12 }}
+                      title="Mark Off-Duty"
+                      onClick={() =>
+                        handleToggleDuty(worker, "Off-Duty (Rotation)")
                       }
-                    }
-                  }}
-                >
-                  {worker.action}
-                </button>
+                    >
+                      Off-Duty
+                    </button>
+                  </div>
+                )}
               </article>
             ))}
           </div>
+
+          {/* Add New Crew Member Modal */}
+          {isAddWorkerModalOpen && (
+            <div
+              className="confirmation-overlay"
+              role="presentation"
+              onClick={() => setIsAddWorkerModalOpen(false)}
+            >
+              <div
+                className="confirmation-modal"
+                role="dialog"
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxWidth: 500, padding: 28 }}
+              >
+                <div
+                  className="flex justify-between items-center"
+                  style={{ marginBottom: 16 }}
+                >
+                  <div>
+                    <h2
+                      style={{
+                        fontSize: 22,
+                        margin: 0,
+                        color: "var(--navy)",
+                      }}
+                    >
+                      + Add New Crew Member
+                    </h2>
+                    <p className="small text-body" style={{ margin: "4px 0 0" }}>
+                      नया फील्ड दल सदस्य जोड़ें
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setIsAddWorkerModalOpen(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateWorker}>
+                  <div style={{ marginBottom: 14 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Full Name / पूरा नाम *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Ramesh Kumar, Sunita Rao"
+                      value={newWorkerName}
+                      onChange={(e) => setNewWorkerName(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Role &amp; Designation / पद *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Junior Engineer • Roads & PWD, Lineman"
+                      value={newWorkerRole}
+                      onChange={(e) => setNewWorkerRole(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Department / विभाग *
+                    </label>
+                    <select
+                      value={newWorkerDept}
+                      onChange={(e) => setNewWorkerDept(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                        background: "#fff",
+                      }}
+                    >
+                      <option value="Roads & Public Works (PWD)">
+                        Roads &amp; Public Works (PWD)
+                      </option>
+                      <option value="Electrical & Streetlighting">
+                        Electrical &amp; Streetlighting
+                      </option>
+                      <option value="Sanitation (SWM)">
+                        Sanitation (SWM)
+                      </option>
+                      <option value="Water Supply & Drainage">
+                        Water Supply &amp; Drainage
+                      </option>
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Contact Phone / संपर्क नंबर
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="+91 98765 00000"
+                      value={newWorkerPhone}
+                      onChange={(e) => setNewWorkerPhone(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 20 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Initial Availability / प्रारंभिक स्थिति
+                    </label>
+                    <select
+                      value={newWorkerStatus}
+                      onChange={(e) => setNewWorkerStatus(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                        background: "#fff",
+                      }}
+                    >
+                      <option value="Available Now">
+                        Available Now (Ready for Dispatch)
+                      </option>
+                      <option value="Off-Duty (Rotation)">
+                        Off-Duty (Rotation)
+                      </option>
+                    </select>
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setIsAddWorkerModalOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-navy">
+                      Add Crew Member →
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Assign Workload Modal */}
+          {workerToAssign && (
+            <div
+              className="confirmation-overlay"
+              role="presentation"
+              onClick={() => setWorkerToAssign(null)}
+            >
+              <div
+                className="confirmation-modal"
+                role="dialog"
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxWidth: 560, padding: 28 }}
+              >
+                <div
+                  className="flex justify-between items-center"
+                  style={{ marginBottom: 16 }}
+                >
+                  <div>
+                    <h2
+                      style={{
+                        fontSize: 22,
+                        margin: 0,
+                        color: "var(--navy)",
+                      }}
+                    >
+                      Assign Workload / कार्य आवंटित करें
+                    </h2>
+                    <p className="small text-body" style={{ margin: "4px 0 0" }}>
+                      Assign task to{" "}
+                      <strong>{workerToAssign.name}</strong> ({workerToAssign.role})
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setWorkerToAssign(null)}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    maxHeight: 280,
+                    overflowY: "auto",
+                    margin: "16px 0",
+                  }}
+                >
+                  <label
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 12,
+                      display: "block",
+                      marginBottom: 8,
+                      textTransform: "uppercase",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    SELECT ACTIVE COMPLAINT TO DISPATCH:
+                  </label>
+                  {availableComplaints.length === 0 ? (
+                    <p className="small text-muted">
+                      No open complaints awaiting assignment. You can enter a custom task below.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {availableComplaints.map((c) => {
+                        const isSelected = selectedGrievanceId === c.id;
+                        return (
+                          <div
+                            key={c.id}
+                            onClick={() => {
+                              setSelectedGrievanceId(c.id);
+                              setCustomTicketInput("");
+                            }}
+                            style={{
+                              padding: "10px 14px",
+                              borderRadius: 8,
+                              border: isSelected
+                                ? "2px solid var(--navy)"
+                                : "1px solid var(--border)",
+                              background: isSelected
+                                ? "var(--blue-50)"
+                                : "#fff",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <div className="flex justify-between items-center">
+                              <strong
+                                style={{ fontSize: 13, color: "var(--navy)" }}
+                              >
+                                #{c.id}
+                              </strong>
+                              <span
+                                className="small text-body"
+                                style={{ fontWeight: 600 }}
+                              >
+                                {c.priority}
+                              </span>
+                            </div>
+                            <p
+                              className="small text-body"
+                              style={{ margin: "4px 0 2px" }}
+                            >
+                              {c.description || (c as any).title}
+                            </p>
+                            <span className="small text-muted">
+                              📍 {c.address || c.ward}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <label
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 12,
+                      display: "block",
+                      marginBottom: 6,
+                      textTransform: "uppercase",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    OR ENTER CUSTOM TICKET / TASK REFERENCE:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. #GRV-W14-8890 or Site Inspection"
+                    value={customTicketInput}
+                    onChange={(e) => {
+                      setCustomTicketInput(e.target.value);
+                      if (e.target.value) setSelectedGrievanceId("");
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border)",
+                    }}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setWorkerToAssign(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-navy"
+                    disabled={
+                      !selectedGrievanceId && !customTicketInput.trim()
+                    }
+                    onClick={handleConfirmAssignWorkload}
+                  >
+                    Confirm Dispatch →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         <footer className="site-footer">

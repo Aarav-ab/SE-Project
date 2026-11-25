@@ -1,3 +1,5 @@
+import { useComplaint } from "../ComplaintContext";
+
 function CitizenPortal({
   onFileComplaint,
   onGoHome,
@@ -9,6 +11,13 @@ function CitizenPortal({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
+  const { totalCount, inProgressCount, resolvedCount, updateComplaint } =
+    useComplaint();
+
+  function handleCategorySelect(complaintType: string) {
+    updateComplaint({ complaintType });
+    onFileComplaint();
+  }
   return (
     <div className="page-wrap">
       {/* Header */}
@@ -118,11 +127,11 @@ function CitizenPortal({
             </div>
             <div className="stat-strip">
               <div>
-                <div className="num">1</div>
+                <div className="num">{inProgressCount}</div>
                 <div className="lbl">In Progress</div>
               </div>
               <div>
-                <div className="num">2</div>
+                <div className="num">{resolvedCount}</div>
                 <div className="lbl">Resolved</div>
               </div>
               <div>
@@ -218,7 +227,7 @@ function CitizenPortal({
                       color: "var(--text-body)",
                     }}
                   >
-                    4 Total Grievances
+                    {totalCount} Total Grievances
                   </span>
                 </div>
 
@@ -247,124 +256,6 @@ function CitizenPortal({
             </div>
           </div>
 
-          {/* Active Complaint */}
-          <div className="card card-pad active-complaint">
-            <div
-              className="flex justify-between items-center"
-              style={{
-                borderBottom: "1px solid var(--border)",
-                paddingBottom: "9px",
-              }}
-            >
-              <div className="flex items-center gap-1">
-                <span
-                  className="small"
-                  style={{
-                    fontWeight: 700,
-                    color: "var(--amber)",
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  ACTIVE IN-PROGRESS COMPLAINT
-                </span>
-
-                <span
-                  className="dot"
-                  style={{
-                    background: "#fe8439",
-                  }}
-                />
-              </div>
-
-              <span
-                className="small"
-                style={{
-                  fontWeight: 700,
-                  color: "var(--text-body)",
-                }}
-              >
-                Registered on Oct 24, 2025 • Target SLA: 24h
-              </span>
-            </div>
-
-            <div
-              className="flex justify-between items-center mt-3"
-              style={{
-                flexWrap: "wrap",
-                gap: "12px",
-              }}
-            >
-              <div>
-                <div className="flex gap-1" style={{ marginBottom: "2px" }}>
-                  <span
-                    className="badge"
-                    style={{
-                      background: "var(--blue-100)",
-                      color: "var(--navy)",
-                    }}
-                  >
-                    #GRV-2025-W14-8902
-                  </span>
-
-                  <span
-                    className="badge"
-                    style={{
-                      background: "rgba(254,132,57,.2)",
-                      color: "var(--amber)",
-                    }}
-                  >
-                    Roads &amp; Infrastructure
-                  </span>
-                </div>
-
-                <h3
-                  style={{
-                    margin: "0 0 2px",
-                    color: "var(--navy)",
-                  }}
-                >
-                  Pothole repair on 12th Main Road, Ward 14
-                </h3>
-
-                <p className="small text-body" style={{ margin: 0 }}>
-                  Stage 3 of 4:{" "}
-                  <strong>On-Site Asphalt Patching &amp; Levelling</strong> •
-                  Assigned to Er. Manoj Kumar (Junior Engineer)
-                </p>
-              </div>
-
-              <a href="#" className="btn btn-navy btn-sm">
-                View Live Timeline →
-              </a>
-            </div>
-
-            <div
-              className="flex justify-between items-center mt-3"
-              style={{
-                background: "var(--blue-50)",
-                borderRadius: "4px",
-                padding: "8px",
-                flexWrap: "wrap",
-                gap: "8px",
-              }}
-            >
-              <span className="small text-body">
-                🚧 Field crew active at site with cold-mix asphalt equipment
-              </span>
-
-              <span
-                className="small"
-                style={{
-                  fontWeight: 600,
-                  color: "var(--navy)",
-                }}
-              >
-                Expected completion: Today 4:00 PM
-              </span>
-            </div>
-          </div>
-
           {/* Services */}
           <div style={{ marginBottom: "24px" }}>
             <div
@@ -388,6 +279,7 @@ function CitizenPortal({
               {[
                 {
                   title: "Potholes & Road Repair",
+                  categoryType: "Pothole / Road",
                   description:
                     "Road craters, broken curb slabs, manhole leveling.",
                   sla: "24h",
@@ -395,6 +287,7 @@ function CitizenPortal({
                 },
                 {
                   title: "Door-to-Door Waste Collection",
+                  categoryType: "Garbage / Waste",
                   description:
                     "Missed garbage pickup, litter dumps, bulk disposal.",
                   sla: "2h",
@@ -402,6 +295,7 @@ function CitizenPortal({
                 },
                 {
                   title: "Streetlight Outage",
+                  categoryType: "Streetlight",
                   description:
                     "Flickering light, dark street zones, exposed wiring.",
                   sla: "8h",
@@ -409,17 +303,30 @@ function CitizenPortal({
                 },
                 {
                   title: "Water Supply & Leakage",
+                  categoryType: "Drainage / Water",
                   description:
                     "Low pipeline pressure, dirty supply, tanker booking.",
                   sla: "4h",
                   icon: "water",
                 },
               ].map((service) => (
-                <a
-                  href="#"
+                <div
+                  role="button"
+                  tabIndex={0}
                   className="card card-pad"
-                  style={{ padding: "13px" }}
+                  style={{
+                    padding: "13px",
+                    cursor: "pointer",
+                    textDecoration: "none",
+                  }}
                   key={service.title}
+                  onClick={() => handleCategorySelect(service.categoryType)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleCategorySelect(service.categoryType);
+                    }
+                  }}
                 >
                   <div className="service-icon">
                     {service.icon === "road" && (
@@ -524,9 +431,28 @@ function CitizenPortal({
                     >
                       SLA: {service.sla}
                     </span>
-                    →
+                    <button
+                      type="button"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--navy)",
+                        fontWeight: 700,
+                        fontSize: 18,
+                        cursor: "pointer",
+                        padding: 0,
+                        lineHeight: 1,
+                      }}
+                      title={`Report ${service.title}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCategorySelect(service.categoryType);
+                      }}
+                    >
+                      →
+                    </button>
                   </div>
-                </a>
+                </div>
               ))}
             </div>
           </div>

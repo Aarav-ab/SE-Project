@@ -84,7 +84,7 @@ function DepartmentPortal({
   onOpenAnalytics,
   onAssignComplaint,
   crewAssignments,
-  onUpdateCrewAssignment,
+  onUpdateCrewAssignment: _onUpdateCrewAssignment,
 }: DepartmentPortalProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -97,13 +97,23 @@ function DepartmentPortal({
   const newDepartmentComplaints = submittedComplaints.map((item) => {
     const categoryMap: Record<string, string> = {
       "Pothole / Road": "Roads (PWD)",
-      Streetlight: "Electrical",
+      Streetlight: "Streetlighting",
       Garbage: "Sanitation (SWM)",
+      "Garbage / Waste": "Sanitation (SWM)",
       "Water Supply": "Water Supply & Drainage",
-      Drainage: "Stormwater",
+      Drainage: "Stormwater & Drainage",
+      "Drainage / Water": "Water Supply & Drainage",
     };
 
     const category = categoryMap[item.complaintType] ?? item.department;
+    const assignedCrew = crewAssignments[item.id] || item.assignedWorker;
+    const isAssigned = Boolean(assignedCrew && !assignedCrew.includes("Unassigned"));
+    const assignedName = assignedCrew || "Unassigned (Action Needed)";
+    const currentStatus = item.status === "Resolved" || item.status === "Closed"
+      ? "Resolved"
+      : isAssigned
+      ? "In Progress"
+      : item.status || "Pending Dispatch";
 
     return {
       id: item.id,
@@ -112,40 +122,87 @@ function DepartmentPortal({
       age: `Reported ${new Date(item.submittedAt).toLocaleString()}`,
       title: item.description,
       location: item.address || item.ward,
-      assigned: "Unassigned (Action Needed)",
-      status: "Pending Dispatch",
+      assigned: assignedName,
+      status: currentStatus,
       icon: "📋",
       iconBg: "var(--blue-200)",
       tagStyle: {
-        background: "rgba(255,218,214,.4)",
-        color: "var(--red)",
+        background: currentStatus === "In Progress" ? "rgba(102,41,0,.1)" : "rgba(255,218,214,.4)",
+        color: currentStatus === "In Progress" ? "#fe8439" : "var(--red)",
       },
     };
   });
 
-  const allDepartmentComplaints = [...newDepartmentComplaints, ...complaints];
+  const submittedIds = new Set(newDepartmentComplaints.map((c) => c.id));
+  const uniqueFallbackComplaints = complaints.filter(
+    (c) => !submittedIds.has(c.id)
+  );
+  const allDepartmentComplaints = [
+    ...newDepartmentComplaints,
+    ...uniqueFallbackComplaints,
+  ];
+
+  const totalTickets = allDepartmentComplaints.length;
+  const inProgressTickets = allDepartmentComplaints.filter((c) => {
+    const isResolved = c.status === "Resolved" || c.status === "Closed";
+    const hasAssigned = Boolean(
+      crewAssignments[c.id] || (c.assigned && !c.assigned.includes("Unassigned"))
+    );
+    return !isResolved && (c.status === "In Progress" || hasAssigned);
+  }).length;
+  const pendingTickets = allDepartmentComplaints.filter((c) => {
+    const isResolved = c.status === "Resolved" || c.status === "Closed";
+    const hasAssigned = Boolean(
+      crewAssignments[c.id] || (c.assigned && !c.assigned.includes("Unassigned"))
+    );
+    return !isResolved && !hasAssigned && c.status !== "In Progress";
+  }).length;
+  const resolvedTickets = allDepartmentComplaints.filter(
+    (c) => c.status === "Resolved" || c.status === "Closed"
+  ).length;
 
   const filteredComplaints = allDepartmentComplaints.filter((complaint) => {
-    const query = search.toLowerCase();
+    const query = search.trim().toLowerCase();
     const matchesSearch =
-      complaint.id.toLowerCase().includes(query) ||
-      complaint.title.toLowerCase().includes(query) ||
-      complaint.location.toLowerCase().includes(query) ||
-      complaint.assigned.toLowerCase().includes(query);
+      !query ||
+      (complaint.id || "").toLowerCase().includes(query) ||
+      (complaint.title || "").toLowerCase().includes(query) ||
+      (complaint.location || "").toLowerCase().includes(query) ||
+      (complaint.category || "").toLowerCase().includes(query) ||
+      (complaint.assigned || "").toLowerCase().includes(query) ||
+      (complaint.status || "").toLowerCase().includes(query);
+
+    const hasAssigned = Boolean(
+      crewAssignments[complaint.id] ||
+      (complaint.assigned && !complaint.assigned.includes("Unassigned"))
+    );
+    const isResolved =
+      complaint.status === "Resolved" ||
+      complaint.status === "Closed" ||
+      Boolean((complaint as any).resolved);
+    const effectiveStatus = isResolved
+      ? "Resolved"
+      : hasAssigned || complaint.status === "In Progress"
+      ? "In Progress"
+      : "Pending";
 
     const matchesStatus =
       statusFilter === "All Status" ||
-      (statusFilter === "Pending" && complaint.status === "Pending Dispatch") ||
-      complaint.status === statusFilter;
+      (statusFilter === "Pending" && effectiveStatus === "Pending") ||
+      (statusFilter === "In Progress" && effectiveStatus === "In Progress") ||
+      (statusFilter === "Completed" && effectiveStatus === "Resolved");
 
+    const compCat = (complaint.category || "").toLowerCase();
     const matchesCategory =
       categoryFilter === "All" ||
       (categoryFilter === "Roads & PWD" &&
-        complaint.category.includes("Roads")) ||
+        (compCat.includes("road") || compCat.includes("pothole") || compCat.includes("pwd"))) ||
       (categoryFilter === "Sanitation & SWM" &&
-        complaint.category.includes("Sanitation")) ||
+        (compCat.includes("sanit") || compCat.includes("waste") || compCat.includes("garbage") || compCat.includes("swm"))) ||
       (categoryFilter === "Streetlighting" &&
-        complaint.category === "Electrical");
+        (compCat.includes("street") || compCat.includes("electric") || compCat.includes("light"))) ||
+      (categoryFilter === "Water & Drainage" &&
+        (compCat.includes("water") || compCat.includes("drain") || compCat.includes("storm")));
 
     return matchesSearch && matchesStatus && matchesCategory;
   });
@@ -278,7 +335,7 @@ function DepartmentPortal({
               <div>
                 <span className="kpi-label">Total Received</span>
                 <div className="kpi-val" style={{ color: "var(--navy)" }}>
-                  18{" "}
+                  {totalTickets}{" "}
                   <span className="small text-body" style={{ fontWeight: 400 }}>
                     tickets
                   </span>
@@ -287,7 +344,7 @@ function DepartmentPortal({
                   className="small mt-1"
                   style={{ color: "var(--amber)", fontWeight: 600 }}
                 >
-                  ▲ 4 pending assignment
+                  ▲ {pendingTickets} pending assignment
                 </p>
               </div>
               <div
@@ -302,7 +359,7 @@ function DepartmentPortal({
               <div>
                 <span className="kpi-label">In Progress</span>
                 <div className="kpi-val" style={{ color: "var(--amber)" }}>
-                  7{" "}
+                  {inProgressTickets}{" "}
                   <span className="small text-body" style={{ fontWeight: 400 }}>
                     in field
                   </span>
@@ -323,7 +380,7 @@ function DepartmentPortal({
               <div>
                 <span className="kpi-label">Resolved Today</span>
                 <div className="kpi-val" style={{ color: "var(--text-dark)" }}>
-                  5{" "}
+                  {resolvedTickets}{" "}
                   <span className="small text-body" style={{ fontWeight: 400 }}>
                     closed
                   </span>
@@ -403,27 +460,39 @@ function DepartmentPortal({
               <span className="small text-muted" style={{ fontWeight: 700 }}>
                 CATEGORY:
               </span>
-              {["All", "Roads & PWD", "Sanitation & SWM", "Streetlighting"].map(
-                (category) => (
-                  <button
-                    type="button"
-                    key={category}
-                    className={`cat-chip ${categoryFilter === category ? "active" : ""}`}
-                    onClick={() => setCategoryFilter(category)}
-                  >
-                    {category}
-                    {category === "All" && (
-                      <span className="cat-count">18</span>
-                    )}
-                  </button>
-                ),
-              )}
+              {[
+                "All",
+                "Roads & PWD",
+                "Sanitation & SWM",
+                "Streetlighting",
+                "Water & Drainage",
+              ].map((category) => (
+                <button
+                  type="button"
+                  key={category}
+                  className={`cat-chip ${categoryFilter === category ? "active" : ""}`}
+                  onClick={() => setCategoryFilter(category)}
+                >
+                  {category}
+                  {category === "All" && (
+                    <span className="cat-count">
+                      {allDepartmentComplaints.length}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
           {filteredComplaints.map((complaint) => {
-            const assignedCrew = crewAssignments[complaint.id];
-            const displayStatus = assignedCrew
+            const hasAssigned = Boolean(
+              crewAssignments[complaint.id] ||
+              (complaint.assigned && !complaint.assigned.includes("Unassigned"))
+            );
+            const assignedCrew = crewAssignments[complaint.id] || (hasAssigned ? complaint.assigned : null);
+            const displayStatus = complaint.status === "Resolved"
+              ? "Resolved"
+              : hasAssigned
               ? "In Progress"
               : complaint.status;
 
@@ -460,7 +529,7 @@ function DepartmentPortal({
                           ? "Executed by: "
                           : "👤 Assigned: "}
                         <strong>
-                          {crewAssignments[complaint.id] ?? complaint.assigned}
+                          {assignedCrew ?? complaint.assigned}
                         </strong>
                       </span>
                     </div>
@@ -498,7 +567,7 @@ function DepartmentPortal({
                     {displayStatus}
                   </span>
 
-                  {crewAssignments[complaint.id] ? (
+                  {hasAssigned ? (
                     <button
                       type="button"
                       className="btn btn-secondary btn-sm"
@@ -541,7 +610,7 @@ function DepartmentPortal({
           <div className="pager">
             <span className="small text-body">
               Showing <strong>{filteredComplaints.length}</strong> of{" "}
-              <strong>18</strong> complaints
+              <strong>{allDepartmentComplaints.length}</strong> complaints
             </span>
             <div className="flex gap-1 items-center">
               <button type="button" className="page-btn" disabled>

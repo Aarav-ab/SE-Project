@@ -2,139 +2,156 @@ import { useState } from "react";
 import ComplaintTimelineModal from "./ComplaintTimelineModal";
 import { useComplaint } from "../ComplaintContext";
 
-const complaints = [
-  {
-    id: "GRV-2025-W14-8902",
-    date: "Filed 24 Oct, 2025 (2 days ago)",
-    category: "Roads & Infrastructure",
-    title: "Pothole repair on 12th Main Road, Ward 14",
-    location: "Near 80ft Road Junction, Hoysala Nagar, Indiranagar",
-    status: "In Progress",
-    statusHindi: "काम जारी है",
-    step: 3,
-    icon: "📋",
-    progress:
-      "On-site asphalt patching team deployed • Junior Engineer Er. Manoj Kumar on site",
-    target: "Target completion: Today, 4:00 PM",
-    highlight: true,
-    resolved: false,
-  },
-  {
-    id: "GRV-2025-W14-9140",
-    date: "Filed Yesterday, 04:15 PM",
-    category: "Solid Waste Management",
-    title: "Overflowing Garbage Bin Near Community Park",
-    location: "5th Cross, Indiranagar East, Ward 14",
-    status: "Assigned to Sanitation Crew",
-    step: 2,
-    icon: "🚛",
-    progress:
-      "Assigned to Sanitary Inspector K. Ramesh • Compactor vehicle route #C-14 scheduled",
-    target: "SLA Target: 24 hrs",
-    highlight: false,
-    resolved: false,
-  },
-  {
-    id: "GRV-2025-W14-7812",
-    date: "Filed 18 Oct, 2025 • Resolved 19 Oct, 2025",
-    category: "Electrical & Streetlighting",
-    title: "Flickering Streetlight Pole #SL-104",
-    location: "80ft Road, Opposite SBI ATM, Ward 14",
-    status: "Resolved & Closed / समाधान",
-    step: 4,
-    icon: "✓",
-    progress:
-      "LED luminaire fixture replaced with energy-saving 70W bulb. Verified via citizen OTP authentication.",
-    target: "Resolved in 21 hrs",
-    highlight: false,
-    resolved: true,
-  },
-  {
-    id: "GRV-2025-W14-6504",
-    date: "Filed 10 Oct, 2025 • Resolved 12 Oct, 2025",
-    category: "Stormwater & Drainage",
-    title: "Blocked Stormwater Drain",
-    location: "2nd Main Road, Near Post Office, Ward 14",
-    status: "Resolved / समाधान",
-    step: 4,
-    icon: "✓",
-    progress:
-      "Complete de-silting and debris clearing of 45-meter drainage culvert executed prior to monsoon showers.",
-    target: "Resolved in 38 hrs",
-    highlight: false,
-    resolved: true,
-  },
-];
-
 type Filter = "All" | "In Progress" | "Resolved";
 
 function ComplaintsLog({
   onBack,
   onFileComplaint,
-  onViewComplaint,
+  onViewComplaint: _onViewComplaint,
   onSignOut,
 }: {
   onBack: () => void;
   onFileComplaint: () => void;
-  onViewComplaint: (complaintId: string) => void;
+  onViewComplaint?: (complaintId: string) => void;
   onSignOut: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>("All");
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(
     null,
   );
-  const [category, setCategory] = useState("All Categories");
-  const { submittedComplaints } = useComplaint();
+  const {
+    allComplaints: contextComplaints,
+    totalCount,
+    inProgressCount,
+    resolvedCount,
+    removeComplaint,
+  } = useComplaint();
 
-  const newComplaintCards = submittedComplaints.map((item) => {
+  async function handleDeleteComplaint(id: string) {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete complaint #${id}? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+    await removeComplaint(id);
+  }
+
+  const allComplaints = contextComplaints.map((item) => {
     const categoryMap: Record<string, string> = {
       "Pothole / Road": "Roads & Infrastructure",
       Streetlight: "Electrical & Streetlighting",
       Garbage: "Solid Waste Management",
+      "Garbage / Waste": "Solid Waste Management",
       "Water Supply": "Water Supply & Drainage",
       Drainage: "Stormwater & Drainage",
     };
 
+    const isResolved =
+      item.status === "Resolved" ||
+      item.status === "Closed" ||
+      item.status?.toLowerCase().includes("resolve") ||
+      Boolean(item.resolved);
+
+    const isInProgress =
+      !isResolved &&
+      (item.status === "In Progress" ||
+        item.status?.toLowerCase().includes("progress") ||
+        item.step === 3 ||
+        item.progress?.toLowerCase().includes("dispatch") ||
+        item.progress?.toLowerCase().includes("on-site") ||
+        item.progress?.toLowerCase().includes("repair"));
+
+    const isAssigned =
+      !isResolved &&
+      !isInProgress &&
+      (Boolean(item.assignedWorker) ||
+        item.status === "Assigned" ||
+        item.status?.toLowerCase().includes("assign") ||
+        item.step === 2);
+
+    const step = isResolved
+      ? 4
+      : isInProgress
+      ? 3
+      : isAssigned
+      ? 2
+      : item.step && item.step >= 1 && item.step <= 4
+      ? item.step
+      : 1;
+
+    const displayStatus = isResolved
+      ? "Resolved & Closed"
+      : step === 3
+      ? "In Progress"
+      : step === 2
+      ? "Assigned to Field Crew"
+      : item.status || "Pending Dispatch";
+
+    const statusHindi = isResolved
+      ? "समाधान"
+      : step === 3
+      ? "काम जारी है"
+      : step === 2
+      ? "दल आवंटित"
+      : "लंबित";
+
+    const icon = isResolved ? "✓" : step === 3 ? "🛠" : step === 2 ? "🚛" : "📋";
+
+    let progress = item.progress;
+    if (!progress) {
+      if (isResolved) {
+        progress =
+          "Work completed and verified on site. Verified via municipal site inspection.";
+      } else if (step === 3) {
+        progress = item.assignedWorker
+          ? `On-site crew deployed • ${item.assignedWorker} on site.`
+          : "On-site remediation currently in progress.";
+      } else if (step === 2) {
+        progress = `Assigned to ${
+          item.assignedWorker || "Field Crew"
+        } • Site inspection scheduled.`;
+      } else {
+        progress = `Complaint received by ${item.department}. Awaiting crew assignment.`;
+      }
+    }
+
+    const target = isResolved
+      ? "Resolved & Closed"
+      : step === 3
+      ? "Target completion: Today"
+      : item.priority === "Urgent"
+      ? "SLA Target: 24 hrs"
+      : "SLA Target: 48 hrs";
+
     return {
       id: item.id,
-      date: `Filed ${new Date(item.submittedAt).toLocaleString()}`,
+      date: item.submittedAt
+        ? `Filed ${new Date(item.submittedAt).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}`
+        : "Recently Filed",
       category: categoryMap[item.complaintType] ?? item.complaintType,
       title: item.description,
       location: item.address || item.ward,
-      status: item.status,
-      statusHindi: "लंबित",
-      step: 1,
-      icon: "📋",
-      progress: `Complaint received by ${item.department}. Awaiting crew assignment.`,
-      target: `Priority: ${item.priority}`,
-      highlight: false,
-      resolved: false,
+      status: displayStatus,
+      statusHindi,
+      step,
+      icon,
+      progress,
+      target,
+      highlight: step === 3,
+      resolved: isResolved,
+      assignedWorker: item.assignedWorker,
     };
   });
 
-  const allComplaints = [...newComplaintCards, ...complaints];
-
-  const categories = [
-    "All Categories",
-    "Roads & Footpaths",
-    "Solid Waste Management",
-    "Streetlighting",
-    "Stormwater & Drainage",
-  ];
-
   const filteredComplaints = allComplaints.filter((complaint) => {
-    const matchesStatus =
+    return (
       filter === "All" ||
       (filter === "In Progress" && !complaint.resolved) ||
-      (filter === "Resolved" && complaint.resolved);
-
-    const matchesCategory =
-      category === "All Categories" ||
-      (category === "Roads & Footpaths" &&
-        complaint.category === "Roads & Infrastructure") ||
-      complaint.category === category;
-
-    return matchesStatus && matchesCategory;
+      (filter === "Resolved" && complaint.resolved)
+    );
   });
 
   return (
@@ -201,18 +218,18 @@ function ComplaintsLog({
             <div className="filter-tabs">
               {(
                 [
-                  ["All", "✓", "All Complaints", complaints.length],
+                  ["All", "✓", "All Complaints", totalCount],
                   [
                     "In Progress",
                     "🟠",
                     "Active / In Progress",
-                    complaints.filter((c) => !c.resolved).length,
+                    inProgressCount,
                   ],
                   [
                     "Resolved",
                     "🟢",
                     "Resolved",
-                    complaints.filter((c) => c.resolved).length,
+                    resolvedCount,
                   ],
                 ] as const
               ).map(([value, icon, label, count]) => (
@@ -223,29 +240,6 @@ function ComplaintsLog({
                   aria-pressed={filter === value}
                 >
                   {icon} {label} ({count})
-                </button>
-              ))}
-            </div>
-
-            <div className="chip-row">
-              <span
-                className="small text-muted"
-                style={{
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  padding: "4px 0",
-                }}
-              >
-                FILTER BY:
-              </span>
-              {categories.map((item) => (
-                <button
-                  key={item}
-                  className={`chip ${category === item ? "active" : ""}`}
-                  onClick={() => setCategory(item)}
-                  aria-pressed={category === item}
-                >
-                  {item}
                 </button>
               ))}
             </div>
@@ -336,41 +330,46 @@ function ComplaintsLog({
                   </span>
                 </div>
 
-                <div
-                  className="cc-actions"
-                  style={
-                    complaint.resolved
-                      ? { justifyContent: "space-between" }
-                      : undefined
-                  }
-                >
-                  {complaint.resolved && (
+                <div className="cc-actions">
+                  {complaint.resolved ? (
                     <span className="small text-body">
                       {complaint.id.endsWith("7812")
                         ? "★★★★★ (Rated 5/5 Stars by Citizen)"
                         : "🛡 Quality Audit Signed off by Zonal QC Inspector"}
                     </span>
+                  ) : (
+                    <span />
                   )}
 
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => setSelectedComplaintId(complaint.id)}
-                  >
-                    🕒 View Timeline
-                  </button>
-
-                  {complaint.resolved && (
+                  <div className="cc-actions-right">
                     <button
                       className="btn btn-outline btn-sm"
-                      onClick={() =>
-                        window.alert(
-                          "Receipt download will be available later.",
-                        )
-                      }
+                      onClick={() => setSelectedComplaintId(complaint.id)}
                     >
-                      ⬇ Download Receipt
+                      🕒 View Timeline
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      style={{
+                        color: "#ba1a1a",
+                        border: "1px solid rgba(186, 26, 26, 0.35)",
+                        background: "rgba(186, 26, 26, 0.05)",
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}
+                      title="Delete this complaint"
+                      onClick={() => handleDeleteComplaint(complaint.id)}
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}
@@ -443,12 +442,17 @@ function ComplaintsLog({
           </div>
         </div>
       </footer>
-      {selectedComplaintId && (
-        <ComplaintTimelineModal
-          complaintId={selectedComplaintId}
-          onClose={() => setSelectedComplaintId(null)}
-        />
-      )}
+      {selectedComplaintId && (() => {
+        const selected = allComplaints.find((c) => c.id === selectedComplaintId);
+        return (
+          <ComplaintTimelineModal
+            complaintId={selectedComplaintId}
+            currentStep={selected?.step}
+            complaintData={selected}
+            onClose={() => setSelectedComplaintId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

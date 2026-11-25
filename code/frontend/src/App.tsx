@@ -9,13 +9,21 @@ import ComplaintStep3 from "./pages/ComplaintStep3";
 import DepartmentPortal from "./pages/DepartmentPortal";
 import FieldWorkers from "./pages/FieldWorkers";
 import DepartmentAnalytics from "./pages/DepartmentAnalytics";
+import { assignComplaintWorker } from "./api";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("login");
-  const [userRole, setUserRole] = useState<"citizen" | "admin" | null>(null);
+  const [, setUserRole] = useState<"citizen" | "admin" | null>(null);
   const [crewAssignments, setCrewAssignments] = useState<
     Record<string, string>
-  >({});
+  >(() => {
+    try {
+      const saved = localStorage.getItem("nc_crew_assignments");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [currentStep, setCurrentStep] = useState(1);
   const [, setSelectedComplaintId] = useState("");
   const [complaintToAssign, setComplaintToAssign] = useState<{
@@ -23,6 +31,23 @@ function App() {
     title: string;
     location: string;
   } | null>(null);
+
+  const handleCrewAssignment = async (complaintId: string, crewName: string) => {
+    setCrewAssignments((current) => {
+      const updated = {
+        ...current,
+        [complaintId]: crewName,
+      };
+      localStorage.setItem("nc_crew_assignments", JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      await assignComplaintWorker(complaintId, crewName);
+    } catch (e) {
+      console.warn("Failed to persist crew assignment to backend:", e);
+    }
+  };
 
   useEffect(() => {
     window.scrollTo({
@@ -71,12 +96,7 @@ function App() {
           setCurrentPage("field-workers");
         }}
         crewAssignments={crewAssignments}
-        onUpdateCrewAssignment={(complaintId, crewName) => {
-          setCrewAssignments((current) => ({
-            ...current,
-            [complaintId]: crewName,
-          }));
-        }}
+        onUpdateCrewAssignment={handleCrewAssignment}
       />
     );
   }
@@ -105,12 +125,7 @@ function App() {
         }}
         onDispatch={() => setCurrentPage("department")}
         complaintToAssign={complaintToAssign}
-        onAssignCrew={(complaintId, crewName) => {
-          setCrewAssignments((current) => ({
-            ...current,
-            [complaintId]: crewName,
-          }));
-        }}
+        onAssignCrew={handleCrewAssignment}
         onOpenAnalytics={() => setCurrentPage("department-analytics")}
       />
     );

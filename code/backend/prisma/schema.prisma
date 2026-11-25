@@ -1,0 +1,145 @@
+// Prisma Schema for NagrikConnect
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         String      @default("citizen") // "citizen" | "admin" | "department_staff" | "field_worker"
+  wardId       String?
+  ward         Ward?       @relation(fields: [wardId], references: [id])
+  complaints   Complaint[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Ward {
+  id          String      @id
+  name        String
+  code        String      @unique
+  zone        String
+  active      Boolean     @default(true)
+  complaints  Complaint[]
+  users       User[]
+  createdAt   DateTime    @default(now())
+}
+
+model Department {
+  id              String        @id
+  name            String
+  code            String        @unique
+  description     String?
+  contactPhone    String?
+  contactEmail    String?
+  defaultSlaHours Int           @default(48)
+  complaints      Complaint[]
+  fieldWorkers    FieldWorker[]
+  createdAt       DateTime      @default(now())
+}
+
+model FieldWorker {
+  id                 String      @id @default(uuid())
+  name               String
+  initials           String
+  role               String
+  departmentId       String
+  department         Department  @relation(fields: [departmentId], references: [id])
+  status             String      @default("Available Now")
+  dotColor           String      @default("#61b15f")
+  phone              String?
+  ticketsClosedMonth Int         @default(0)
+  avgResolutionHours Float       @default(24.0)
+  complaints         Complaint[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+}
+
+model Complaint {
+  id               String          @id
+  title            String
+  description      String
+  complaintType    String          // "Pothole / Road", "Garbage / Waste", "Streetlight", "Drainage / Water", etc.
+  priority         String          @default("Medium") // "Low", "Medium", "Urgent"
+  status           String          @default("Pending Dispatch") // "Pending Dispatch", "In Progress", "Resolved", "Closed"
+  address          String
+  pinCode          String?
+  landmark         String?
+  latitude         Float?
+  longitude        Float?
+  
+  wardId           String?
+  ward             Ward?           @relation(fields: [wardId], references: [id])
+  
+  departmentId     String?
+  department       Department?     @relation(fields: [departmentId], references: [id])
+  
+  assignedWorkerId String?
+  assignedWorker   FieldWorker?    @relation(fields: [assignedWorkerId], references: [id])
+  
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id])
+  
+  targetCompletion DateTime?
+  resolvedAt       DateTime?
+  
+  attachments      Attachment[]
+  timeline         TimelineEvent[]
+  feedback         Feedback?
+  
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model Attachment {
+  id           String    @id @default(uuid())
+  complaintId  String
+  complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  createdAt    DateTime  @default(now())
+}
+
+model TimelineEvent {
+  id          String    @id @default(uuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  status      String?
+  comment     String?
+  author      String?
+  step        Int       @default(1)
+  createdAt   DateTime  @default(now())
+}
+
+model Feedback {
+  id                  String    @id @default(uuid())
+  complaintId         String    @unique
+  complaint           Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  rating              Int       // 1 - 5
+  comment             String?
+  isResolvedSatisfied Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  category  String   @default("Advisory")
+  wardId    String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
