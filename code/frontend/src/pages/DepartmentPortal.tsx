@@ -43,7 +43,7 @@ function DepartmentPortal({
   const [selectedComplaint, setSelectedComplaint] = useState<
     DepartmentComplaint | null
   >(null);
-  const { submittedComplaints, updateSubmittedComplaint, user } = useComplaint();
+  const { submittedComplaints, updateSubmittedComplaint, user, openMyAccount } = useComplaint();
 
   const newDepartmentComplaints = submittedComplaints.map((item) => {
     const categoryMap: Record<string, string> = {
@@ -200,13 +200,13 @@ function DepartmentPortal({
               />
             </div>
 
-            <div className="user-chip">
+            <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
               <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
                 <div className="user-name">{user?.name}</div>
                 <div className="user-role">Administrator</div>
-              </div>
             </div>
+            </button>
 
             <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out

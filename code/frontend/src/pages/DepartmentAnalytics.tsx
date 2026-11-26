@@ -11,7 +11,7 @@ function DepartmentAnalytics({
   onOpenFieldWorkers,
   onSignOut,
 }: DepartmentAnalyticsProps) {
-  const { user } = useComplaint();
+  const { user, openMyAccount } = useComplaint();
   return (
     <div className="admin-wrap analytics-page">
       <aside className="admin-sidebar">
@@ -75,13 +75,13 @@ function DepartmentAnalytics({
               <span className="dot" style={{ background: "#61b15f" }} />
               Ward 14 • Indiranagar
             </span>
-            <div className="user-chip">
+            <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
               <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
                 <div className="user-name">{user?.name}</div>
                 <div className="user-role">Administrator</div>
-              </div>
             </div>
+            </button>
             <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
             </button>

@@ -24,7 +24,7 @@ function ComplaintStep1({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { complaint, updateComplaint, user } = useComplaint();
+  const { complaint, updateComplaint, user, openMyAccount } = useComplaint();
   const files = complaint.files;
 
   const [error, setError] = useState("");
@@ -155,13 +155,13 @@ function ComplaintStep1({
             </button>
           </nav>
           <div className="header-right">
-            <div className="user-chip">
+            <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
               <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
                 <div className="user-name">{user?.name}</div>
                 <div className="user-role">Citizen</div>
-              </div>
             </div>
+            </button>
             <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
             </button>

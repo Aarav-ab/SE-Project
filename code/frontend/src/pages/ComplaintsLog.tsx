@@ -16,7 +16,7 @@ function ComplaintsLog({
   const [filter, setFilter] = useState<Filter>("All");
   const [selectedComplaint, setSelectedComplaint] = useState<SubmittedComplaint | null>(null);
   const [category, setCategory] = useState("All Categories");
-  const { submittedComplaints, user } = useComplaint();
+  const { submittedComplaints, user, openMyAccount } = useComplaint();
 
   const categories = useMemo(
     () => ["All Categories", ...new Set(submittedComplaints.map((item) => item.complaintType))],
@@ -39,7 +39,19 @@ function ComplaintsLog({
       <header className="site-header">
         <div className="container">
           <div className="brand">
-            <div className="brand-mark" aria-hidden="true">⌂</div>
+            <div className="brand-mark">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path d="M3 21h18M4 21V8l8-5 8 5v13M9 21v-6h6v6" />
+              </svg>
+            </div>
             <div className="brand-name-row">
               <span className="brand-name">NagrikConnect</span>
               <span className="brand-tag complaint-ward-tag">WARD 14</span>
@@ -51,10 +63,10 @@ function ComplaintsLog({
             <button className="active" aria-current="page">Track Complaint</button>
           </nav>
           <div className="header-right">
-            <div className="user-chip">
+            <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
               <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div><div className="user-name">{user?.name}</div><div className="user-role">Citizen</div></div>
-            </div>
+            </button>
             <button className="btn-signout" onClick={onSignOut}>Sign Out</button>
           </div>
         </div>

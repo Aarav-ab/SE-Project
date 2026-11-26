@@ -10,9 +10,16 @@ import DepartmentPortal from "./pages/DepartmentPortal";
 import FieldWorkers from "./pages/FieldWorkers";
 import DepartmentAnalytics from "./pages/DepartmentAnalytics";
 import { useComplaint } from "./ComplaintContext";
+import MyAccountModal from "./pages/MyAccountModal";
 
-function App() {
-  const { user, authLoading, signOut, setAuthError } = useComplaint();
+function AppShell() {
+  const {
+    user,
+    authLoading,
+    signOut,
+    setAuthError,
+    prepareComplaintAddress,
+  } = useComplaint();
   const [currentPage, setCurrentPage] = useState("login");
   const [crewAssignments, setCrewAssignments] = useState<
     Record<string, string>
@@ -36,7 +43,13 @@ function App() {
     });
   }, [activePage, currentStep]);
 
-  function startComplaint() {
+  async function startComplaint() {
+    try {
+      await prepareComplaintAddress();
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Could not load your saved address.");
+      return;
+    }
     setCurrentStep(1);
     setCurrentPage("complaint");
   }
@@ -179,6 +192,15 @@ function App() {
         />
       );
   }
+}
+
+function App() {
+  return (
+    <>
+      <AppShell />
+      <MyAccountModal />
+    </>
+  );
 }
 
 export default App;

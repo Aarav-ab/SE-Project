@@ -27,7 +27,7 @@ function ComplaintStep3({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { complaint, updateComplaint, addSubmittedComplaint, user } = useComplaint();
+  const { complaint, updateComplaint, addSubmittedComplaint, user, openMyAccount } = useComplaint();
   const complaintType = complaint.complaintType;
   const description = complaint.description;
   const priority = complaint.priority;
@@ -180,13 +180,13 @@ function ComplaintStep3({
           </nav>
 
           <div className="header-right">
-            <div className="user-chip">
+            <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
               <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
                 <div className="user-name">{user?.name}</div>
                 <div className="user-role">Citizen</div>
-              </div>
             </div>
+            </button>
             <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
             </button>

@@ -5,9 +5,29 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT,
   google_id TEXT UNIQUE,
   role TEXT NOT NULL DEFAULT 'citizen' CHECK (role IN ('citizen', 'admin')),
+  mobile_number TEXT,
+  house_flat_number TEXT,
+  street_locality TEXT,
+  area_ward TEXT,
+  city TEXT,
+  state TEXT,
+  profile_pin_code TEXT,
+  profile_landmark TEXT,
+  preferred_language TEXT NOT NULL DEFAULT 'English'
+    CHECK (preferred_language IN ('English', 'Hindi')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (password_hash IS NOT NULL OR google_id IS NOT NULL)
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS mobile_number TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS house_flat_number TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS street_locality TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS area_ward TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS state TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pin_code TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_landmark TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language TEXT NOT NULL DEFAULT 'English';
 
 CREATE TABLE IF NOT EXISTS complaints (
   id TEXT PRIMARY KEY,

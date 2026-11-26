@@ -120,7 +120,7 @@ function FieldWorkers({
   onOpenAnalytics,
 }: FieldWorkersProps) {
   const [search, setSearch] = useState("");
-  const { user } = useComplaint();
+  const { user, openMyAccount } = useComplaint();
 
   const filteredWorkers = initialWorkers.filter((worker) =>
     `${worker.name} ${worker.role} ${worker.status} ${worker.assignment}`
@@ -203,13 +203,13 @@ function FieldWorkers({
               />
             </div>
 
-            <div className="user-chip">
+            <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
               <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
                 <div className="user-name">{user?.name}</div>
                 <div className="user-role">Administrator</div>
-              </div>
             </div>
+            </button>
 
             <button className="btn-signout" onClick={onSignOut}>
               Sign Out

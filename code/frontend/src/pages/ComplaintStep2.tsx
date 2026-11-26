@@ -48,7 +48,7 @@ function ComplaintStep2({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { complaint, updateComplaint, user } = useComplaint();
+  const { complaint, updateComplaint, user, openMyAccount, profile } = useComplaint();
 
   const address = complaint.address;
   const pinCode = complaint.pinCode;
@@ -292,13 +292,13 @@ function ComplaintStep2({
           </nav>
 
           <div className="header-right">
-            <div className="user-chip">
+            <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
               <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
                 <div className="user-name">{user?.name}</div>
                 <div className="user-role">Citizen</div>
-              </div>
             </div>
+            </button>
             <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
             </button>
@@ -418,15 +418,21 @@ function ComplaintStep2({
                     type="text"
                     value={address}
                     onChange={(event) =>
-                      updateComplaint({
-                        pinCode: event.target.value.replace(/\D/g, ""),
-                      })
+                      updateComplaint({ address: event.target.value })
                     }
                     required
                   />
                   <p className="small text-body">
-                    Demo address. GPS does not automatically convert coordinates
-                    into a street address yet.
+                    {profile?.houseFlatNumber || profile?.streetLocality || profile?.city ? (
+                      "Pre-filled from your saved residential address. You can change it for this complaint."
+                    ) : (
+                      <>
+                        No saved residential address. Enter the complaint location here or{" "}
+                        <button type="button" className="text-button" onClick={openMyAccount}>
+                          add your address in My Account
+                        </button>.
+                      </>
+                    )}
                   </p>
                 </div>
 

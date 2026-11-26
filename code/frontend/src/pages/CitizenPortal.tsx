@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useComplaint } from "../ComplaintContext";
 
 function CitizenPortal({
@@ -11,7 +12,31 @@ function CitizenPortal({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { user } = useComplaint();
+  const {
+    user,
+    submittedComplaints,
+    complaintsLoading,
+    refreshComplaints,
+    setAuthError,
+    openMyAccount,
+  } = useComplaint();
+  const displayName = user?.name.trim() || "there";
+  const inProgressCount = submittedComplaints.filter(
+    (item) => item.status === "In Progress",
+  ).length;
+  const resolvedCount = submittedComplaints.filter(
+    (item) => item.status === "Resolved",
+  ).length;
+  const latestComplaint = submittedComplaints[0];
+
+  useEffect(() => {
+    void refreshComplaints().catch((error: unknown) => {
+      setAuthError(
+        error instanceof Error ? error.message : "Could not refresh your complaints.",
+      );
+    });
+  }, [refreshComplaints, setAuthError]);
+
   return (
     <div className="page-wrap">
       {/* Header */}
@@ -82,14 +107,14 @@ function CitizenPortal({
             </a>
           </nav>
           <div className="header-right">
-            <div className="user-chip">
-              <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
+            <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
+              <div className="user-avatar">{displayName.slice(0, 1).toUpperCase()}</div>
               <div>
-                <div className="user-name">{user?.name}</div>
+                <div className="user-name">{displayName}</div>
 
                 <div className="user-role">Citizen</div>
-              </div>
             </div>
+            </button>
             <button type="button" className="btn-signout" onClick={onSignOut}>
               Sign Out
             </button>
@@ -114,25 +139,25 @@ function CitizenPortal({
                   • Indiranagar, Bengaluru
                 </span>
               </div>
-              <h1>Welcome back, Rajesh! / स्वागत है</h1>
+              <h1>Welcome back, {displayName}! / स्वागत है</h1>
               <p className="text-body">
                 Ward 14, Indiranagar • Citizen Civic Redressal Hub
               </p>
             </div>
             <div className="stat-strip">
               <div>
-                <div className="num">1</div>
+                <div className="num">{complaintsLoading ? "—" : inProgressCount}</div>
                 <div className="lbl">In Progress</div>
               </div>
               <div>
-                <div className="num">2</div>
+                <div className="num">{complaintsLoading ? "—" : resolvedCount}</div>
                 <div className="lbl">Resolved</div>
               </div>
               <div>
                 <div className="num" style={{ color: "var(--amber)" }}>
-                  100%
+                  N/A
                 </div>
-                <div className="lbl">SLA Met</div>
+                <div className="lbl" title="SLA tracking is not available for complaints yet">SLA Met</div>
               </div>
             </div>
           </div>
@@ -221,7 +246,9 @@ function CitizenPortal({
                       color: "var(--text-body)",
                     }}
                   >
-                    4 Total Grievances
+                    {complaintsLoading
+                      ? "Loading complaints…"
+                      : `${submittedComplaints.length} Total Grievances`}
                   </span>
                 </div>
 
@@ -250,7 +277,6 @@ function CitizenPortal({
             </div>
           </div>
 
-          {/* Active Complaint */}
           <div className="card card-pad active-complaint">
             <div
               className="flex justify-between items-center"
@@ -269,7 +295,7 @@ function CitizenPortal({
                     textTransform: "uppercase",
                   }}
                 >
-                  ACTIVE IN-PROGRESS COMPLAINT
+                  LATEST COMPLAINT
                 </span>
 
                 <span
@@ -280,17 +306,21 @@ function CitizenPortal({
                 />
               </div>
 
-              <span
+              {latestComplaint && <span
                 className="small"
                 style={{
                   fontWeight: 700,
                   color: "var(--text-body)",
                 }}
               >
-                Registered on Oct 24, 2025 • Target SLA: 24h
-              </span>
+                Registered on {new Date(latestComplaint.submittedAt).toLocaleDateString()} • {latestComplaint.status}
+              </span>}
             </div>
 
+            {complaintsLoading ? (
+              <p className="small text-body mt-3">Loading your complaints…</p>
+            ) : latestComplaint ? (
+            <>
             <div
               className="flex justify-between items-center mt-3"
               style={{
@@ -307,7 +337,7 @@ function CitizenPortal({
                       color: "var(--navy)",
                     }}
                   >
-                    #GRV-2025-W14-8902
+                    #{latestComplaint.id}
                   </span>
 
                   <span
@@ -317,7 +347,7 @@ function CitizenPortal({
                       color: "var(--amber)",
                     }}
                   >
-                    Roads &amp; Infrastructure
+                    {latestComplaint.department}
                   </span>
                 </div>
 
@@ -327,19 +357,19 @@ function CitizenPortal({
                     color: "var(--navy)",
                   }}
                 >
-                  Pothole repair on 12th Main Road, Ward 14
+                  {latestComplaint.description}
                 </h3>
 
                 <p className="small text-body" style={{ margin: 0 }}>
-                  Stage 3 of 4:{" "}
-                  <strong>On-Site Asphalt Patching &amp; Levelling</strong> •
-                  Assigned to Er. Manoj Kumar (Junior Engineer)
+                  Status: <strong>{latestComplaint.status}</strong> • Priority:{" "}
+                  <strong>{latestComplaint.priority}</strong> •{" "}
+                  {latestComplaint.address || latestComplaint.ward}
                 </p>
               </div>
 
-              <a href="#" className="btn btn-navy btn-sm">
-                View Live Timeline →
-              </a>
+              <button type="button" className="btn btn-navy btn-sm" onClick={onTrackComplaints}>
+                View Complaint →
+              </button>
             </div>
 
             <div
@@ -353,7 +383,7 @@ function CitizenPortal({
               }}
             >
               <span className="small text-body">
-                🚧 Field crew active at site with cold-mix asphalt equipment
+                {latestComplaint.feedback || `${latestComplaint.department} has received your complaint.`}
               </span>
 
               <span
@@ -363,9 +393,16 @@ function CitizenPortal({
                   color: "var(--navy)",
                 }}
               >
-                Expected completion: Today 4:00 PM
+                Submitted {new Date(latestComplaint.submittedAt).toLocaleString()}
               </span>
             </div>
+            </>
+            ) : (
+              <p className="text-body mt-3">
+                You have not submitted any complaints yet. File your first
+                grievance to get started.
+              </p>
+            )}
           </div>
 
           {/* Services */}

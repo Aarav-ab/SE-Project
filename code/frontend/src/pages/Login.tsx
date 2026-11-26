@@ -28,7 +28,19 @@ function Login() {
       <header className="site-header">
         <div className="container">
           <div className="brand">
-            <div className="brand-mark" aria-hidden="true">⌂</div>
+            <div className="brand-mark">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path d="M3 21h18M4 21V8l8-5 8 5v13M9 21v-6h6v6" />
+              </svg>
+            </div>
             <div className="brand-text">
               <div className="brand-name-row"><span className="brand-name">NagrikConnect</span></div>
               <span className="brand-sub">Civic Grievance &amp; Information Platform</span>

@@ -6,6 +6,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { authRouter } from "./auth.js";
 import { complaintsRouter } from "./complaints.js";
+import { profileRouter } from "./profile.js";
 import { initializeDatabase, pool } from "./db.js";
 
 const app = express();
@@ -33,6 +34,7 @@ app.use((req, res, next) => {
 app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false }));
 app.use("/api/auth", authRouter);
 app.use("/api/complaints", complaintsRouter);
+app.use("/api/profile", profileRouter);
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 app.use((error, _req, res, _next) => {

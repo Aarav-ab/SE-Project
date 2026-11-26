@@ -15,6 +15,21 @@ export type User = {
   role: "citizen" | "admin";
 };
 
+export type UserProfile = {
+  id: string;
+  name: string;
+  email: string;
+  mobileNumber: string;
+  houseFlatNumber: string;
+  streetLocality: string;
+  areaWard: string;
+  city: string;
+  state: string;
+  pinCode: string;
+  landmark: string;
+  preferredLanguage: "English" | "Hindi";
+};
+
 export type ComplaintData = {
   files: File[];
   address: string;
@@ -63,6 +78,7 @@ type ComplaintContextValue = {
   complaint: ComplaintData;
   updateComplaint: (updates: Partial<ComplaintData>) => void;
   submittedComplaints: SubmittedComplaint[];
+  complaintsLoading: boolean;
   addSubmittedComplaint: (complaint: ComplaintData) => Promise<SubmittedComplaint>;
   updateSubmittedComplaint: (
     id: string,
@@ -70,6 +86,16 @@ type ComplaintContextValue = {
     feedback: string,
   ) => Promise<void>;
   user: User | null;
+  profile: UserProfile | null;
+  profileOpen: boolean;
+  profileLoading: boolean;
+  profileError: string;
+  profileSaved: boolean;
+  openMyAccount: () => void;
+  closeMyAccount: () => void;
+  loadProfile: () => Promise<UserProfile>;
+  saveProfile: (profile: UserProfile) => Promise<void>;
+  prepareComplaintAddress: () => Promise<void>;
   authLoading: boolean;
   authError: string;
   setAuthError: (message: string) => void;
@@ -96,18 +122,109 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
 
 export function ComplaintProvider({ children }: { children: ReactNode }) {
   const [complaint, setComplaint] = useState<ComplaintData>(initialComplaintData);
-  const [submittedComplaints, setSubmittedComplaints] = useState<SubmittedComplaint[]>([]);
+  const [complaintRecords, setComplaintRecords] = useState<SubmittedComplaint[]>([]);
+  const [complaintsUserId, setComplaintsUserId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSaved, setProfileSaved] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
+  const submittedComplaints =
+    user && complaintsUserId === user.id ? complaintRecords : [];
+  const complaintsLoading = Boolean(user && complaintsUserId !== user.id);
 
   const refreshComplaints = useCallback(async () => {
     if (!user) {
       return;
     }
     const result = await apiRequest<{ complaints: SubmittedComplaint[] }>("/complaints");
-    setSubmittedComplaints(result.complaints);
+    setComplaintRecords(result.complaints);
+    setComplaintsUserId(user.id);
   }, [user]);
+
+  async function loadProfile() {
+    setProfileLoading(true);
+    setProfileError("");
+    try {
+      const result = await apiRequest<{ profile: UserProfile }>("/profile");
+      setProfile(result.profile);
+      return result.profile;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not load your profile.";
+      setProfileError(message);
+      throw error;
+    } finally {
+      setProfileLoading(false);
+    }
+  }
+
+  function openMyAccount() {
+    setProfileSaved(false);
+    setProfileError("");
+    setProfile(null);
+    setProfileOpen(true);
+    void loadProfile().catch(() => undefined);
+  }
+
+  function closeMyAccount() {
+    setProfileOpen(false);
+    setProfileError("");
+    setProfileSaved(false);
+  }
+
+  async function saveProfile(updatedProfile: UserProfile) {
+    setProfileError("");
+    setProfileSaved(false);
+    try {
+      const result = await apiRequest<{ profile: UserProfile }>("/profile", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: updatedProfile.name,
+          mobileNumber: updatedProfile.mobileNumber,
+          houseFlatNumber: updatedProfile.houseFlatNumber,
+          streetLocality: updatedProfile.streetLocality,
+          areaWard: updatedProfile.areaWard,
+          city: updatedProfile.city,
+          state: updatedProfile.state,
+          pinCode: updatedProfile.pinCode,
+          landmark: updatedProfile.landmark,
+          preferredLanguage: updatedProfile.preferredLanguage,
+        }),
+      });
+      setProfile(result.profile);
+      setUser((current) => current
+        ? { ...current, name: result.profile.name, email: result.profile.email }
+        : current);
+      setProfileSaved(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not save your profile.";
+      setProfileError(message);
+      throw error;
+    }
+  }
+
+  async function prepareComplaintAddress() {
+    const savedProfile = await loadProfile();
+    const address = [
+      savedProfile.houseFlatNumber,
+      savedProfile.streetLocality,
+      savedProfile.areaWard,
+      savedProfile.city,
+      savedProfile.state,
+    ].filter(Boolean).join(", ");
+    setComplaint((previous) => ({
+      ...initialComplaintData,
+      address,
+      pinCode: savedProfile.pinCode,
+      landmark: savedProfile.landmark,
+      complaintType: previous.complaintType,
+      priority: previous.priority,
+    }));
+  }
 
   useEffect(() => {
     let active = true;
@@ -132,14 +249,19 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     if (!user) {
       return;
     }
+    const userId = user.id;
     let active = true;
     async function loadComplaints() {
       try {
         const result = await apiRequest<{ complaints: SubmittedComplaint[] }>("/complaints");
-        if (active) setSubmittedComplaints(result.complaints);
+        if (active) {
+          setComplaintRecords(result.complaints);
+          setComplaintsUserId(userId);
+        }
       } catch (error) {
         if (active) {
           setAuthError(error instanceof Error ? error.message : "Could not load complaints.");
+          setComplaintsUserId(userId);
         }
       }
     }
@@ -172,7 +294,10 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     await apiRequest<void>("/auth/logout", { method: "POST" });
     setUser(null);
-    setSubmittedComplaints([]);
+    setProfile(null);
+    setProfileOpen(false);
+    setComplaintRecords([]);
+    setComplaintsUserId(null);
     setComplaint(initialComplaintData);
   }
 
@@ -192,7 +317,10 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       method: "POST",
       body: formData,
     });
-    setSubmittedComplaints((previous) => [result.complaint, ...previous]);
+    setComplaintRecords((previous) =>
+      [result.complaint, ...(complaintsUserId === user?.id ? previous : [])],
+    );
+    setComplaintsUserId(user?.id ?? null);
     return result.complaint;
   }
 
@@ -202,8 +330,10 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ status, feedback }),
     });
-    setSubmittedComplaints((previous) =>
-      previous.map((item) => item.id === id ? result.complaint : item),
+    setComplaintRecords((previous) =>
+      complaintsUserId === user?.id
+        ? previous.map((item) => item.id === id ? result.complaint : item)
+        : previous,
     );
   }
 
@@ -217,9 +347,20 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         complaint,
         updateComplaint,
         submittedComplaints,
+        complaintsLoading,
         addSubmittedComplaint,
         updateSubmittedComplaint,
         user,
+        profile,
+        profileOpen,
+        profileLoading,
+        profileError,
+        profileSaved,
+        openMyAccount,
+        closeMyAccount,
+        loadProfile,
+        saveProfile,
+        prepareComplaintAddress,
         authLoading,
         authError,
         setAuthError,
