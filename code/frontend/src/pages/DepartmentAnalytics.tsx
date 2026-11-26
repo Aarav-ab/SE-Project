@@ -102,7 +102,7 @@ function DepartmentAnalytics({
                 WARD 14 • INDIRANAGAR OPERATIONS
               </span>
               <h1>Department Analytics &amp; Performance</h1>
-              <p>विभाग एवं वार्ड सांख्यिकी</p>
+              <p>Department &amp; Ward Statistics</p>
               <p className="text-muted">
                 Overview of civic operations, resolution rates, department
                 workload, and ward-level municipal performance.

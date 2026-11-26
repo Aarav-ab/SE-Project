@@ -100,7 +100,7 @@ The server will run at **`http://localhost:5000`**.
 | `GET` | `/api/auth/me` | Current authenticated user profile | Yes (`Bearer <token>`) |
 
 **Demo Credentials seeded in DB:**
-- **Citizen**: `citizen123@gmail.com` / `citizen@123`
+- **Citizen**: `citizen123@gmail.com` / `Citizen@123`
 - **Department Admin**: `admin123@gmail.com` / `admin@123`
 
 ### Civic Complaints & Grievances

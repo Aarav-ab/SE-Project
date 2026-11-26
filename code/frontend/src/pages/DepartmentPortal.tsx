@@ -311,19 +311,7 @@ function DepartmentPortal({
         <main className="admin-body" id="complaints">
           <div style={{ marginBottom: 24 }}>
             <h1 style={{ margin: 0, fontSize: 24, color: "var(--navy)" }}>
-              Department Complaints{" "}
-              <span style={{ fontWeight: 600, color: "var(--text-muted)" }}>
-                /
-              </span>{" "}
-              <span
-                style={{
-                  fontWeight: 600,
-                  color: "var(--text-body)",
-                  fontSize: 18,
-                }}
-              >
-                सभी शिकायतें
-              </span>
+              Department Complaints
             </h1>
             <p className="small text-body mt-1">
               View and manage incoming ward grievances

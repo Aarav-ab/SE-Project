@@ -1,5 +1,7 @@
 import { useComplaint } from "../ComplaintContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { getCurrentUser } from "../api";
+import ChangePasswordModal from "./ChangePasswordModal";
 import {
   MapContainer,
   TileLayer,
@@ -49,6 +51,48 @@ function ComplaintStep2({
   onSignOut: () => void;
 }) {
   const { complaint, updateComplaint } = useComplaint();
+
+  const currentUser = getCurrentUser();
+  const userName = currentUser?.name || "Rajesh Sharma";
+  const initials =
+    userName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "RS";
+  const userLocationTag = currentUser?.city ? currentUser.city.toUpperCase() : "WARD 14";
+  const userRoleDisplay = currentUser?.city ? `${currentUser.city} Citizen` : "Ward 14 Citizen";
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      ) {
+        setSettingsOpen(false);
+      }
+    }
+    if (settingsOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    if (!complaint.address && currentUser?.address) {
+      updateComplaint({
+        address: currentUser.address,
+        pinCode: currentUser.pincode || complaint.pinCode || "",
+      });
+    }
+  }, []);
 
   const address = complaint.address;
   const pinCode = complaint.pinCode;
@@ -273,7 +317,7 @@ function ComplaintStep2({
             </div>{" "}
             <div className="brand-name-row">
               <span className="brand-name">NagrikConnect</span>
-              <span className="brand-tag complaint-ward-tag">WARD 14</span>
+              <span className="brand-tag complaint-ward-tag">{userLocationTag}</span>
             </div>
           </a>
 
@@ -293,15 +337,150 @@ function ComplaintStep2({
 
           <div className="header-right">
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{initials}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
-                <div className="user-role">Ward 14 Citizen</div>
+                <div className="user-name">{userName}</div>
+                <div className="user-role">{userRoleDisplay}</div>
               </div>
             </div>
-            <button type="button" className="btn-signout" onClick={onSignOut}>
-              Sign Out
-            </button>
+
+            {/* Settings Dialog Menu Button */}
+            <div style={{ position: "relative" }} ref={settingsRef}>
+              <button
+                type="button"
+                className="btn-settings"
+                title="Account Settings"
+                aria-label="Settings"
+                onClick={() => setSettingsOpen((prev) => !prev)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--border)",
+                  background: settingsOpen ? "var(--blue-100)" : "#ffffff",
+                  color: "var(--navy)",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  padding: 0,
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+              </button>
+
+              {settingsOpen && (
+                <div
+                  className="settings-dialog-popup"
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    width: "210px",
+                    background: "#ffffff",
+                    border: "1px solid var(--border)",
+                    borderRadius: "10px",
+                    boxShadow: "0 10px 25px rgba(0, 32, 69, 0.14)",
+                    padding: "6px",
+                    zIndex: 1000,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "8px 10px 6px",
+                      borderBottom: "1px solid var(--border-soft)",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      color: "var(--text-muted)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Settings
+                  </div>
+
+                  {/* Option 1: Change Password */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      setShowChangePassword(true);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "10px 12px",
+                      borderRadius: "6px",
+                      width: "100%",
+                      textAlign: "left",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "var(--navy)",
+                      background: "transparent",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "var(--blue-50)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <span style={{ fontSize: "16px" }}>🔑</span>
+                    <span>Change Password</span>
+                  </button>
+
+                  {/* Option 2: Sign Out */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      onSignOut();
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "10px 12px",
+                      borderRadius: "6px",
+                      width: "100%",
+                      textAlign: "left",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "#ba1a1a",
+                      background: "transparent",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#fff0f0")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <span style={{ fontSize: "16px" }}>🚪</span>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -330,11 +509,10 @@ function ComplaintStep2({
             <div className="location-heading">
               <div>
                 <h1 className="complaint-title">
-                  File a Complaint <span>| शिकायत दर्ज करें</span>
+                  File a Complaint
                 </h1>
                 <p className="small text-body">
-                  Step 2 of 3: Pinpoint Grievance Location / सटीक स्थान चिह्नित
-                  करें
+                  Step 2 of 3: Pinpoint Grievance Location
                 </p>
               </div>
             </div>
@@ -419,14 +597,13 @@ function ComplaintStep2({
                     value={address}
                     onChange={(event) =>
                       updateComplaint({
-                        pinCode: event.target.value.replace(/\D/g, ""),
+                        address: event.target.value,
                       })
                     }
                     required
                   />
                   <p className="small text-body">
-                    Demo address. GPS does not automatically convert coordinates
-                    into a street address yet.
+                    Confirmed civic location for field engineer inspection and dispatch.
                   </p>
                 </div>
 
@@ -525,6 +702,12 @@ function ComplaintStep2({
           </div>
         </div>
       </footer>
+
+      {/* Change Password Dialog Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
     </div>
   );
 }

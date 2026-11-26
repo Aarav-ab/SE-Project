@@ -5,21 +5,26 @@ type Role = "citizen" | "admin";
 
 type LoginProps = {
   onLogin: (role: Role) => void;
+  onGoToRegister?: () => void;
+  preFilledEmail?: string;
+  successMessage?: string;
 };
 
-function Login({ onLogin }: LoginProps) {
+function Login({ onLogin, onGoToRegister, preFilledEmail, successMessage }: LoginProps) {
   const [role, setRole] = useState<Role>("citizen");
-  const [email, setEmail] = useState("citizen123@gmail.com");
-  const [password, setPassword] = useState("citizen@123");
+  const [email, setEmail] = useState(preFilledEmail || "citizen123@gmail.com");
+  const [password, setPassword] = useState(preFilledEmail ? "" : "Citizen@123");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(successMessage || "");
   const [loading, setLoading] = useState(false);
 
   const handleRoleChange = (newRole: Role) => {
     setRole(newRole);
     setError("");
+    setSuccess("");
     if (newRole === "citizen") {
       setEmail("citizen123@gmail.com");
-      setPassword("citizen@123");
+      setPassword("Citizen@123");
     } else {
       setEmail("admin123@gmail.com");
       setPassword("admin@123");
@@ -82,7 +87,7 @@ function Login({ onLogin }: LoginProps) {
             Select your role to access grievances and municipal services
           </p>
 
-          <span className="role-label">Select access role / भूमिका चुनें</span>
+          <span className="role-label">Select access role</span>
 
           {/* Role selector */}
           <div className="role-toggle">
@@ -123,6 +128,28 @@ function Login({ onLogin }: LoginProps) {
               Admin / Officer
             </button>
           </div>
+
+          {/* Success Banner */}
+          {success && (
+            <div
+              style={{
+                background: "rgba(97, 177, 95, 0.12)",
+                color: "#2e7d32",
+                border: "1px solid rgba(97, 177, 95, 0.35)",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                marginBottom: "16px",
+                fontSize: "14px",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span>✓</span>
+              <span>{success}</span>
+            </div>
+          )}
 
           {/* Error Banner styled using the design system */}
           {error && (
@@ -175,7 +202,7 @@ function Login({ onLogin }: LoginProps) {
             <div className="field">
               <div className="flex justify-between items-center">
                 <label style={{ margin: 0 }}>
-                  Password / पासवर्ड <span className="req">*</span>
+                  Password <span className="req">*</span>
                 </label>
 
                 <a href="#" className="forgot-link">
@@ -222,7 +249,17 @@ function Login({ onLogin }: LoginProps) {
           </form>
 
           <div className="divider">
-            Don't have a citizen account? <a href="#">Register here</a>
+            Don't have a citizen account?{" "}
+            <a
+              href="#register"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onGoToRegister) onGoToRegister();
+              }}
+              style={{ fontWeight: 700, color: "var(--navy)", cursor: "pointer" }}
+            >
+              Register here
+            </a>
           </div>
         </div>
       </main>

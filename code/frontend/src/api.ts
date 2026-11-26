@@ -8,6 +8,12 @@ export interface ApiUser {
   name: string;
   role: "citizen" | "admin" | "department_staff";
   phone?: string;
+  address?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
   ward?: {
     id: string;
     name: string;
@@ -124,6 +130,28 @@ export function setAuthToken(token: string): void {
 
 export function removeAuthToken(): void {
   localStorage.removeItem("nc_token");
+  localStorage.removeItem("nc_current_user");
+}
+
+export function getCurrentUser(): {
+  id?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  phone?: string;
+  address?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+} | null {
+  try {
+    const raw = localStorage.getItem("nc_current_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
 function getHeaders(isFormData = false): HeadersInit {
@@ -156,12 +184,107 @@ export async function loginUser(role: "citizen" | "admin", email?: string, passw
     if (data.token) {
       setAuthToken(data.token);
     }
+    if (data.user) {
+      localStorage.setItem("nc_current_user", JSON.stringify(data.user));
+    }
     return data;
   } catch (err: any) {
     if (err.name === "TypeError" && err.message?.includes("fetch")) {
       throw new Error("Cannot connect to backend server. Please ensure the backend is running on port 5000 (cd code/backend && npm start).");
     }
     throw err;
+  }
+}
+
+export async function registerUser(data: {
+  name: string;
+  email: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  password: string;
+  phone?: string;
+}) {
+  try {
+    const fullAddress = [data.addressLine1, data.addressLine2, data.city, data.state, data.pincode]
+      .filter(Boolean)
+      .map((s) => s?.trim())
+      .join(", ");
+
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        address: fullAddress,
+        addressLine1: data.addressLine1.trim(),
+        addressLine2: data.addressLine2 ? data.addressLine2.trim() : null,
+        city: data.city.trim(),
+        state: data.state.trim(),
+        pincode: data.pincode.trim(),
+        password: data.password,
+        phone: data.phone?.trim() || null,
+        role: "citizen",
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Failed to register account.");
+    }
+
+    return result;
+  } catch (err: any) {
+    if (err.name === "TypeError" && err.message?.includes("fetch")) {
+      throw new Error("Cannot connect to backend server. Please ensure the backend is running on port 5000 (cd code/backend && npm start).");
+    }
+    throw err;
+  }
+}
+
+export async function changePasswordApi(
+  oldPassword: string,
+  newPassword: string,
+  email?: string
+) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ oldPassword, newPassword, email }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to update password.");
+    }
+    return data;
+  } catch (err: any) {
+    if (err.name === "TypeError" && err.message?.includes("fetch")) {
+      throw new Error("Cannot connect to backend server.");
+    }
+    throw err;
+  }
+}
+
+export async function verifyPasswordApi(
+  password: string,
+  email?: string
+): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-password`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ password, email }),
+    });
+    const data = await response.json();
+    return Boolean(data.valid);
+  } catch {
+    return false;
   }
 }
 

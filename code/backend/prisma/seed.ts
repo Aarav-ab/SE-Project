@@ -183,7 +183,7 @@ async function main() {
 
   // 5. Seed Users
   console.log("Seeding users...");
-  const citizenPasswordHash = await bcrypt.hash("citizen@123", 10);
+  const citizenPasswordHash = await bcrypt.hash("Citizen@123", 10);
   const adminPasswordHash = await bcrypt.hash("admin@123", 10);
   const fallbackPasswordHash = await bcrypt.hash("password123", 10);
 

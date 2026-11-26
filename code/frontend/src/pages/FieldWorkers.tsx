@@ -475,19 +475,7 @@ function FieldWorkers({
           >
             <div>
               <h1 style={{ margin: 0, fontSize: 24, color: "var(--navy)" }}>
-                Field Workers &amp; Crews{" "}
-                <span style={{ fontWeight: 600, color: "var(--text-muted)" }}>
-                  /
-                </span>{" "}
-                <span
-                  style={{
-                    fontWeight: 600,
-                    color: "var(--text-body)",
-                    fontSize: 18,
-                  }}
-                >
-                  फील्ड दल प्रबंधन
-                </span>
+                Field Workers &amp; Crews
               </h1>
 
               <p className="small text-body mt-1">
@@ -740,7 +728,7 @@ function FieldWorkers({
                       + Add New Crew Member
                     </h2>
                     <p className="small text-body" style={{ margin: "4px 0 0" }}>
-                      नया फील्ड दल सदस्य जोड़ें
+                      Register new department field personnel
                     </p>
                   </div>
                   <button
@@ -762,7 +750,7 @@ function FieldWorkers({
                         marginBottom: 4,
                       }}
                     >
-                      Full Name / पूरा नाम *
+                      Full Name *
                     </label>
                     <input
                       type="text"
@@ -788,7 +776,7 @@ function FieldWorkers({
                         marginBottom: 4,
                       }}
                     >
-                      Role &amp; Designation / पद *
+                      Role &amp; Designation *
                     </label>
                     <input
                       type="text"
@@ -814,7 +802,7 @@ function FieldWorkers({
                         marginBottom: 4,
                       }}
                     >
-                      Department / विभाग *
+                      Department *
                     </label>
                     <select
                       value={newWorkerDept}
@@ -851,7 +839,7 @@ function FieldWorkers({
                         marginBottom: 4,
                       }}
                     >
-                      Contact Phone / संपर्क नंबर
+                      Contact Phone
                     </label>
                     <input
                       type="tel"
@@ -876,7 +864,7 @@ function FieldWorkers({
                         marginBottom: 4,
                       }}
                     >
-                      Initial Availability / प्रारंभिक स्थिति
+                      Initial Availability
                     </label>
                     <select
                       value={newWorkerStatus}
@@ -940,7 +928,7 @@ function FieldWorkers({
                         color: "var(--navy)",
                       }}
                     >
-                      Assign Workload / कार्य आवंटित करें
+                      Assign Workload
                     </h2>
                     <p className="small text-body" style={{ margin: "4px 0 0" }}>
                       Assign task to{" "}

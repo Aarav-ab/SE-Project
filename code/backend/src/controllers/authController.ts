@@ -5,14 +5,52 @@ import { generateToken, AuthRequest } from "../middlewares/auth";
 
 export async function register(req: AuthRequest, res: Response) {
   try {
-    const { email, password, name, phone, role, wardId } = req.body;
+    const {
+      email,
+      password,
+      name,
+      phone,
+      address,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      pincode,
+      role,
+      wardId,
+    } = req.body;
 
     if (!email || !password || !name) {
       res.status(400).json({ error: "Email, password, and name are required." });
       return;
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const cleanEmail = String(email).trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(cleanEmail)) {
+      res.status(400).json({ error: "Please enter a valid email address." });
+      return;
+    }
+
+    const minLength = password.length >= 8;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+    if (!minLength || !hasUpper || !hasNumber || !hasSpecial) {
+      res.status(400).json({
+        error:
+          "Password must be at least 8 characters long, contain at least 1 uppercase letter, 1 number, and 1 special character.",
+      });
+      return;
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        email: cleanEmail,
+      },
+    });
+
     if (existingUser) {
       res.status(409).json({ error: "An account with this email already exists." });
       return;
@@ -21,12 +59,27 @@ export async function register(req: AuthRequest, res: Response) {
     const passwordHash = await bcrypt.hash(password, 10);
     const userRole = role === "admin" ? "admin" : "citizen";
 
+    const line1 = addressLine1 ? String(addressLine1).trim() : "";
+    const line2 = addressLine2 ? String(addressLine2).trim() : "";
+    const userCity = city ? String(city).trim() : "";
+    const userState = state ? String(state).trim() : "";
+    const userPincode = pincode ? String(pincode).trim() : "";
+    const combinedAddress = address
+      ? String(address).trim()
+      : [line1, line2, userCity, userState, userPincode].filter(Boolean).join(", ");
+
     const user = await prisma.user.create({
       data: {
-        email,
+        email: cleanEmail,
         passwordHash,
-        name,
+        name: String(name).trim(),
         phone: phone || null,
+        address: combinedAddress || null,
+        addressLine1: line1 || null,
+        addressLine2: line2 || null,
+        city: userCity || null,
+        state: userState || null,
+        pincode: userPincode || null,
         role: userRole,
         wardId: wardId || "ward-14",
       },
@@ -50,6 +103,12 @@ export async function register(req: AuthRequest, res: Response) {
         name: user.name,
         role: user.role,
         phone: user.phone,
+        address: user.address,
+        addressLine1: user.addressLine1,
+        addressLine2: user.addressLine2,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
         ward: user.ward,
       },
     });
@@ -113,6 +172,12 @@ export async function login(req: AuthRequest, res: Response) {
         name: user.name,
         role: user.role,
         phone: user.phone,
+        address: user.address,
+        addressLine1: user.addressLine1,
+        addressLine2: user.addressLine2,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
         ward: user.ward,
       },
     });
@@ -137,6 +202,12 @@ export async function getMe(req: AuthRequest, res: Response) {
         name: true,
         role: true,
         phone: true,
+        address: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        state: true,
+        pincode: true,
         ward: true,
         createdAt: true,
       },
@@ -151,5 +222,96 @@ export async function getMe(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error("getMe error:", error);
     res.status(500).json({ error: "Failed to retrieve user profile." });
+  }
+}
+
+export async function changePassword(req: AuthRequest, res: Response) {
+  try {
+    const { oldPassword, newPassword, email } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      res.status(400).json({ error: "Current password and new password are required." });
+      return;
+    }
+
+    const userId = req.user?.id;
+    const userEmail = req.user?.email || (email ? String(email).trim().toLowerCase() : undefined);
+
+    if (!userId && !userEmail) {
+      res.status(401).json({ error: "Authentication session or registered email is required." });
+      return;
+    }
+
+    const user = await prisma.user.findFirst({
+      where: userId ? { id: userId } : { email: userEmail },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: "User account not found." });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch) {
+      res.status(400).json({ error: "Current password does not match. Please verify your old password." });
+      return;
+    }
+
+    const minLength = newPassword.length >= 8;
+    const hasUpper = /[A-Z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+
+    if (!minLength || !hasUpper || !hasNumber || !hasSpecial) {
+      res.status(400).json({
+        error:
+          "New password must be at least 8 characters long, contain at least 1 uppercase letter, 1 number, and 1 special character.",
+      });
+      return;
+    }
+
+    if (oldPassword === newPassword) {
+      res.status(400).json({ error: "New password cannot be identical to the current password." });
+      return;
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    res.json({ message: "Password updated successfully!" });
+  } catch (error) {
+    console.error("changePassword error:", error);
+    res.status(500).json({ error: "Failed to update password." });
+  }
+}
+
+export async function verifyPassword(req: AuthRequest, res: Response) {
+  try {
+    const { password, email } = req.body;
+    const userId = req.user?.id;
+    const userEmail = req.user?.email || (email ? String(email).trim().toLowerCase() : undefined);
+
+    if (!userId && !userEmail) {
+      res.status(401).json({ error: "Authentication session required.", valid: false });
+      return;
+    }
+
+    const user = await prisma.user.findFirst({
+      where: userId ? { id: userId } : { email: userEmail },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: "User not found.", valid: false });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password || "", user.passwordHash);
+    res.json({ valid: isMatch });
+  } catch (error) {
+    console.error("verifyPassword error:", error);
+    res.status(500).json({ valid: false, error: "Verification failed." });
   }
 }
