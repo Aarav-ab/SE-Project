@@ -1,227 +1,117 @@
 import { useState } from "react";
+import { useComplaint } from "../ComplaintContext";
 
-type Role = "citizen" | "admin";
+function Login() {
+  const { login, register, authError, setAuthError } = useComplaint();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-type LoginProps = {
-  onLogin: (role: Role) => void;
-};
-
-function Login({ onLogin }: LoginProps) {
-  const [role, setRole] = useState<Role>("citizen");
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onLogin(role);
-  };
+    setSubmitting(true);
+    setAuthError("");
+    try {
+      if (mode === "register") await register(name, email, password);
+      else await login(email, password);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Could not sign in.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="page-wrap">
-      {/* Header */}
       <header className="site-header">
         <div className="container">
           <div className="brand">
-            <div className="brand-mark">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M3 21h18M4 21V8l8-5 8 5v13M9 21v-6h6v6" />
-              </svg>
-            </div>
-
+            <div className="brand-mark" aria-hidden="true">⌂</div>
             <div className="brand-text">
-              <div className="brand-name-row">
-                <span className="brand-name">NagrikConnect</span>
-
-                {/* <span className="brand-tag">Smart City Prototype</span> */}
-              </div>
-
-              <span className="brand-sub">
-                Civic Grievance &amp; Information Platform
-              </span>
+              <div className="brand-name-row"><span className="brand-name">NagrikConnect</span></div>
+              <span className="brand-sub">Civic Grievance &amp; Information Platform</span>
             </div>
           </div>
-
-          <div className="header-right">
-            <a href="#" className="small text-muted">
-              🌐 English / हिंदी
-            </a>
-          </div>
+          <div className="header-right"><span className="small text-muted">🌐 English / हिंदी</span></div>
         </div>
       </header>
 
-      {/* Login */}
       <main className="main-content login-shell">
-        <div className="card login-card">
-          <h1>Sign in</h1>
-
+        <section className="card login-card">
+          <h1>{mode === "login" ? "Sign in" : "Create your account"}</h1>
           <p className="login-sub">
-            Select your role to access grievances and municipal services
+            {mode === "login"
+              ? "Access your civic complaints and municipal services"
+              : "Register to report issues and track their resolution"}
           </p>
 
-          <span className="role-label">Select access role / भूमिका चुनें</span>
+          <button
+            type="button"
+            className="google-signin"
+            onClick={() => { window.location.href = "/api/auth/google"; }}
+          >
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.73 7.18l7.64 5.93c4.46-4.11 7.13-10.16 7.13-17.58z" />
+              <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19z" />
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.64-5.93c-2.12 1.42-4.83 2.26-8.26 2.26-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+            </svg>
+            Continue with Google
+          </button>
 
-          {/* Role selector */}
-          <div className="role-toggle">
-            <button
-              type="button"
-              className={role === "citizen" ? "active-role" : ""}
-              onClick={() => setRole("citizen")}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
-              </svg>
-              Citizen / User
-            </button>
+          <div className="login-divider"><span>or use email</span></div>
 
-            <button
-              type="button"
-              className={role === "admin" ? "active-role" : ""}
-              onClick={() => setRole("admin")}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" />
-              </svg>
-              Admin / Officer
-            </button>
-          </div>
-
-          {/* Role feedback
-            <div className="role-feedback">
-                Signing in as{" "}
-                <strong>
-                {role === "citizen" ? "Citizen" : "Officer"}
-                </strong>{" "}
-                to{" "}
-                {role === "citizen"
-                ? "track & report grievances."
-                : "manage department complaints."}
-            </div> */}
-
-          {/* Login form */}
           <form onSubmit={handleSubmit}>
+            {mode === "register" && (
+              <div className="field">
+                <label htmlFor="account-name">Full name <span className="req">*</span></label>
+                <input id="account-name" type="text" autoComplete="name" required minLength={2} maxLength={100} value={name} onChange={(event) => setName(event.target.value)} />
+              </div>
+            )}
             <div className="field">
-              <label>
-                Email or Registered Mobile Number <span className="req">*</span>
-              </label>
-
-              <div className="input-wrap">
-                <span className="icon">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                    <path d="M2 6l10 7 10-7" />
-                  </svg>
-                </span>
-
-                <input type="text" defaultValue="citizen@demo.com" />
-              </div>
+              <label htmlFor="account-email">Email address <span className="req">*</span></label>
+              <input id="account-email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} />
             </div>
-
             <div className="field">
-              <div className="flex justify-between items-center">
-                <label style={{ margin: 0 }}>
-                  Password / पासवर्ड <span className="req">*</span>
-                </label>
-
-                <a href="#" className="forgot-link">
-                  Forgot Password?
-                </a>
-              </div>
-
-              <div className="input-wrap" style={{ marginTop: "6px" }}>
-                <span className="icon">
-                  <svg
-                    width="12"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <rect x="3" y="11" width="18" height="10" rx="2" />
-                    <path d="M7 11V7a5 5 0 0110 0v4" />
-                  </svg>
-                </span>
-
-                <input type="password" defaultValue="citizen123" />
-              </div>
+              <label htmlFor="account-password">Password <span className="req">*</span></label>
+              <input id="account-password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={mode === "register" ? 10 : 1} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} />
+              {mode === "register" && <span className="password-hint">Use at least 10 characters.</span>}
             </div>
 
-            <div className="remember-row">
-              <input type="checkbox" defaultChecked />
+            {authError && <p className="auth-error" role="alert">{authError}</p>}
 
-              <span>Remember my session</span>
-            </div>
-
-            <button type="submit" className="btn btn-navy btn-block">
-              Sign in →
+            <button type="submit" className="btn btn-navy btn-block" disabled={submitting}>
+              {submitting ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
             </button>
           </form>
 
           <div className="divider">
-            Don't have a citizen account? <a href="#">Register here</a>
+            {mode === "login" ? "New to NagrikConnect? " : "Already have an account? "}
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                setMode(mode === "login" ? "register" : "login");
+                setAuthError("");
+              }}
+            >
+              {mode === "login" ? "Register here" : "Sign in"}
+            </button>
           </div>
-        </div>
+        </section>
       </main>
 
-      {/* Footer */}
       <footer className="site-footer">
         <div className="container">
           <div className="footer-col">
-            <div className="footer-brand">
-              <div className="footer-mark">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M3 21h18M4 21V8l8-5 8 5v13" />
-                </svg>
-              </div>
-
-              <span className="footer-name">NagrikConnect</span>
-            </div>
-
-            <p className="footer-desc">
-              Smart City Civic Redressal Infrastructure
-            </p>
+            <div className="footer-brand"><div className="footer-mark">⌂</div><span className="footer-name">NagrikConnect</span></div>
+            <p className="footer-desc">Smart City Civic Redressal Infrastructure</p>
           </div>
-
           <div className="footer-help">
             <h4>Emergency Helplines</h4>
-
-            <p>
-              112 – National Emergency • 101 – Fire • 1916 – Water Supply (24/7)
-            </p>
+            <p>112 – National Emergency • 101 – Fire • 1916 – Water Supply (24/7)</p>
           </div>
         </div>
       </footer>

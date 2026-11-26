@@ -2,6 +2,22 @@ import DepartmentComplaintModal from "./DepartmentComplaintModal";
 import { useState } from "react";
 import { useComplaint } from "../ComplaintContext";
 
+type DepartmentComplaint = {
+  id: string;
+  category: string;
+  age: string;
+  title: string;
+  location: string;
+  assigned: string;
+  status: string;
+  icon: string;
+  iconBg: string;
+  tagStyle: React.CSSProperties;
+  feedback: string;
+  priority: string;
+  reporterName: string;
+};
+
 type DepartmentPortalProps = {
   onSignOut: () => void;
   onOpenFieldWorkers: () => void;
@@ -12,71 +28,7 @@ type DepartmentPortalProps = {
     location: string;
   }) => void;
   crewAssignments: Record<string, string>;
-  onUpdateCrewAssignment: (complaintId: string, crewName: string) => void;
 };
-
-const complaints = [
-  {
-    id: "GRV-2025-W14-8902",
-    category: "Roads (PWD)",
-    age: "Reported 3 hrs ago",
-    title: "Pothole Repair on 12th Main Road",
-    location: "12th Main, near HAL 2nd Stage Junction",
-    assigned: "Er. Manoj Kumar",
-    status: "In Progress",
-    icon: "🛠",
-    iconBg: "var(--blue-200)",
-    tagStyle: { background: "rgba(102,41,0,.1)", color: "#fe8439" },
-  },
-  {
-    id: "GRV-2025-W14-9140",
-    category: "Stormwater • High Priority",
-    age: "Reported 1 hr ago",
-    title: "Broken Sump Grating & Drain Overflow",
-    location: "4th Cross Road, BDA Complex Perimeter",
-    assigned: "Unassigned (Action Needed)",
-    status: "Pending Dispatch",
-    icon: "🚨",
-    iconBg: "var(--red-bg)",
-    tagStyle: { background: "rgba(255,218,214,.4)", color: "var(--red)" },
-  },
-  {
-    id: "GRV-2025-W14-8841",
-    category: "Roads (PWD)",
-    age: "Reported Yesterday • Resolved in 19 hrs",
-    title: "Dislodged Pedestrian Paver Blocks",
-    location: "100 Feet Road, Near Metro Pillar 42",
-    assigned: "Er. Manoj Kumar",
-    status: "Resolved",
-    icon: "🧱",
-    iconBg: "var(--blue-200)",
-    tagStyle: { background: "rgba(102,41,0,.1)", color: "#fe8439" },
-  },
-  {
-    id: "GRV-2025-W14-8712",
-    category: "Electrical",
-    age: "Reported Yesterday",
-    title: "Streetlight Blackout near Sector 4 Park",
-    location: "Sector 4 Central Park, Lane 2 (Poles 14-16)",
-    assigned: "Suresh Rao (Electrician)",
-    status: "In Progress",
-    icon: "💡",
-    iconBg: "var(--blue-200)",
-    tagStyle: { background: "var(--blue-300)", color: "var(--navy)" },
-  },
-  {
-    id: "GRV-2025-W14-8650",
-    category: "Sanitation (SWM)",
-    age: "Reported 2 days ago • Resolved in 6 hrs",
-    title: "Overflowing Community Garbage Bin",
-    location: "Market Square Corner, Opposite Post Office",
-    assigned: "Sanitation Unit 3",
-    status: "Resolved",
-    icon: "🗑",
-    iconBg: "var(--blue-200)",
-    tagStyle: { background: "var(--green-bg)", color: "var(--green-text)" },
-  },
-];
 
 function DepartmentPortal({
   onSignOut,
@@ -84,15 +36,14 @@ function DepartmentPortal({
   onOpenAnalytics,
   onAssignComplaint,
   crewAssignments,
-  onUpdateCrewAssignment,
 }: DepartmentPortalProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [selectedComplaint, setSelectedComplaint] = useState<
-    (typeof complaints)[number] | null
+    DepartmentComplaint | null
   >(null);
-  const { submittedComplaints } = useComplaint();
+  const { submittedComplaints, updateSubmittedComplaint, user } = useComplaint();
 
   const newDepartmentComplaints = submittedComplaints.map((item) => {
     const categoryMap: Record<string, string> = {
@@ -113,17 +64,29 @@ function DepartmentPortal({
       title: item.description,
       location: item.address || item.ward,
       assigned: "Unassigned (Action Needed)",
-      status: "Pending Dispatch",
+      status: item.status,
       icon: "📋",
       iconBg: "var(--blue-200)",
       tagStyle: {
         background: "rgba(255,218,214,.4)",
         color: "var(--red)",
       },
+      feedback: item.feedback,
+      priority: item.priority,
+      reporterName: item.reporterName ?? "Citizen",
     };
   });
 
-  const allDepartmentComplaints = [...newDepartmentComplaints, ...complaints];
+  const allDepartmentComplaints = newDepartmentComplaints;
+  const pendingCount = allDepartmentComplaints.filter(
+    (item) => item.status === "Pending Dispatch",
+  ).length;
+  const inProgressCount = allDepartmentComplaints.filter(
+    (item) => item.status === "In Progress",
+  ).length;
+  const resolvedCount = allDepartmentComplaints.filter(
+    (item) => item.status === "Resolved",
+  ).length;
 
   const filteredComplaints = allDepartmentComplaints.filter((complaint) => {
     const query = search.toLowerCase();
@@ -238,10 +201,10 @@ function DepartmentPortal({
             </div>
 
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
-                <div className="user-role">Officer Gr. I</div>
+                <div className="user-name">{user?.name}</div>
+                <div className="user-role">Administrator</div>
               </div>
             </div>
 
@@ -278,7 +241,7 @@ function DepartmentPortal({
               <div>
                 <span className="kpi-label">Total Received</span>
                 <div className="kpi-val" style={{ color: "var(--navy)" }}>
-                  18{" "}
+                  {allDepartmentComplaints.length}{" "}
                   <span className="small text-body" style={{ fontWeight: 400 }}>
                     tickets
                   </span>
@@ -287,7 +250,7 @@ function DepartmentPortal({
                   className="small mt-1"
                   style={{ color: "var(--amber)", fontWeight: 600 }}
                 >
-                  ▲ 4 pending assignment
+                  ▲ {pendingCount} pending assignment
                 </p>
               </div>
               <div
@@ -302,7 +265,7 @@ function DepartmentPortal({
               <div>
                 <span className="kpi-label">In Progress</span>
                 <div className="kpi-val" style={{ color: "var(--amber)" }}>
-                  7{" "}
+                  {inProgressCount}{" "}
                   <span className="small text-body" style={{ fontWeight: 400 }}>
                     in field
                   </span>
@@ -323,7 +286,7 @@ function DepartmentPortal({
               <div>
                 <span className="kpi-label">Resolved Today</span>
                 <div className="kpi-val" style={{ color: "var(--text-dark)" }}>
-                  5{" "}
+                  {resolvedCount}{" "}
                   <span className="small text-body" style={{ fontWeight: 400 }}>
                     closed
                   </span>
@@ -381,7 +344,7 @@ function DepartmentPortal({
                 >
                   STATUS:
                 </span>
-                {["All Status", "Pending", "In Progress", "Completed"].map(
+                {["All Status", "Pending", "In Progress", "Resolved"].map(
                   (status) => (
                     <button
                       type="button"
@@ -413,7 +376,7 @@ function DepartmentPortal({
                   >
                     {category}
                     {category === "All" && (
-                      <span className="cat-count">18</span>
+                      <span className="cat-count">{allDepartmentComplaints.length}</span>
                     )}
                   </button>
                 ),
@@ -498,15 +461,7 @@ function DepartmentPortal({
                     {displayStatus}
                   </span>
 
-                  {crewAssignments[complaint.id] ? (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setSelectedComplaint(complaint)}
-                    >
-                      View Details →
-                    </button>
-                  ) : complaint.status === "Pending Dispatch" ? (
+                  {!assignedCrew && complaint.status === "Pending Dispatch" && (
                     <button
                       type="button"
                       className="btn btn-amber btn-sm"
@@ -514,19 +469,14 @@ function DepartmentPortal({
                     >
                       🚚 Assign Crew
                     </button>
-                  ) : complaint.status === "Resolved" ? (
-                    <button type="button" className="btn btn-secondary btn-sm">
-                      📷 View Proof
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setSelectedComplaint(complaint)}
-                    >
-                      View Details →
-                    </button>
                   )}
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setSelectedComplaint(complaint)}
+                  >
+                    View Details →
+                  </button>
                 </div>
               </div>
             );
@@ -541,7 +491,7 @@ function DepartmentPortal({
           <div className="pager">
             <span className="small text-body">
               Showing <strong>{filteredComplaints.length}</strong> of{" "}
-              <strong>18</strong> complaints
+              <strong>{allDepartmentComplaints.length}</strong> complaints
             </span>
             <div className="flex gap-1 items-center">
               <button type="button" className="page-btn" disabled>
@@ -603,6 +553,10 @@ function DepartmentPortal({
         <DepartmentComplaintModal
           complaint={selectedComplaint}
           onClose={() => setSelectedComplaint(null)}
+          onUpdate={async (status, feedback) => {
+            await updateSubmittedComplaint(selectedComplaint.id, status, feedback);
+            setSelectedComplaint(null);
+          }}
         />
       )}
     </div>

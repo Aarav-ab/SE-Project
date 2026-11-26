@@ -27,16 +27,17 @@ function ComplaintStep3({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { complaint, updateComplaint, addSubmittedComplaint } = useComplaint();
+  const { complaint, updateComplaint, addSubmittedComplaint, user } = useComplaint();
   const complaintType = complaint.complaintType;
   const description = complaint.description;
   const priority = complaint.priority;
 
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [demoComplaintId, setDemoComplaintId] = useState("");
+  const [complaintId, setComplaintId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!description.trim()) {
       setError("Please enter a description of the complaint.");
       return;
@@ -44,16 +45,25 @@ function ComplaintStep3({
 
     setError("");
 
-    addSubmittedComplaint({
-      ...complaint,
-      description: description.trim(),
-      complaintType,
-      priority,
-    });
-
-    const temporaryId = `NC-DEMO-${Date.now().toString().slice(-6)}`;
-    setDemoComplaintId(temporaryId);
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      const savedComplaint = await addSubmittedComplaint({
+        ...complaint,
+        description: description.trim(),
+        complaintType,
+        priority,
+      });
+      setComplaintId(savedComplaint.id);
+      setSubmitted(true);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "The complaint could not be saved. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -71,15 +81,14 @@ function ComplaintStep3({
             <h2 id="confirmation-title">Complaint Submitted!</h2>
 
             <p className="text-body">
-              Your complaint has been recorded in this demo. Backend submission
-              will be connected when the API is ready.
+              Your complaint has been saved. You can track its status from your
+              complaints page.
             </p>
 
             <div className="confirmation-details">
               <div className="confirmation-id">
-                <span>Temporary Complaint Reference</span>
-                <strong>{demoComplaintId}</strong>
-                <small>Demo ID — not yet registered with the backend</small>
+                <span>Complaint Reference</span>
+                <strong>{complaintId}</strong>
               </div>
               <div>
                 <span>Complaint category</span>
@@ -127,11 +136,9 @@ function ComplaintStep3({
             <button
               type="button"
               className="btn btn-navy"
-              onClick={() => {
-                setSubmitted(false);
-              }}
+              onClick={onTrackComplaints}
             >
-              Return to Complaint
+              Track this complaint
             </button>
           </section>
         </div>
@@ -174,10 +181,10 @@ function ComplaintStep3({
 
           <div className="header-right">
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
-                <div className="user-role">Ward 14 Citizen</div>
+                <div className="user-name">{user?.name}</div>
+                <div className="user-role">Citizen</div>
               </div>
             </div>
             <button type="button" className="btn-signout" onClick={onSignOut}>
@@ -339,8 +346,9 @@ function ComplaintStep3({
                 className="btn btn-navy"
                 style={{ padding: "12px 32px" }}
                 onClick={handleSubmit}
+                disabled={submitting}
               >
-                Submit Complaint / शिकायत दर्ज करें
+                {submitting ? "Submitting…" : "Submit Complaint / शिकायत दर्ज करें"}
               </button>
             </div>
           </div>

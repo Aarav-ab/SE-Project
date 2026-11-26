@@ -1,3 +1,5 @@
+import { useComplaint } from "../ComplaintContext";
+
 type DepartmentAnalyticsProps = {
   onBack: () => void;
   onOpenFieldWorkers: () => void;
@@ -9,6 +11,7 @@ function DepartmentAnalytics({
   onOpenFieldWorkers,
   onSignOut,
 }: DepartmentAnalyticsProps) {
+  const { user } = useComplaint();
   return (
     <div className="admin-wrap analytics-page">
       <aside className="admin-sidebar">
@@ -73,10 +76,10 @@ function DepartmentAnalytics({
               Ward 14 • Indiranagar
             </span>
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
-                <div className="user-role">Officer Gr. I</div>
+                <div className="user-name">{user?.name}</div>
+                <div className="user-role">Administrator</div>
               </div>
             </div>
             <button type="button" className="btn-signout" onClick={onSignOut}>

@@ -1,3 +1,5 @@
+import { useComplaint } from "../ComplaintContext";
+
 function CitizenPortal({
   onFileComplaint,
   onGoHome,
@@ -9,6 +11,7 @@ function CitizenPortal({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
+  const { user } = useComplaint();
   return (
     <div className="page-wrap">
       {/* Header */}
@@ -80,11 +83,11 @@ function CitizenPortal({
           </nav>
           <div className="header-right">
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
+                <div className="user-name">{user?.name}</div>
 
-                <div className="user-role">Ward 14 Citizen</div>
+                <div className="user-role">Citizen</div>
               </div>
             </div>
             <button type="button" className="btn-signout" onClick={onSignOut}>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useComplaint } from "../ComplaintContext";
 
 type ComplaintToAssign = {
   id: string;
@@ -119,6 +120,7 @@ function FieldWorkers({
   onOpenAnalytics,
 }: FieldWorkersProps) {
   const [search, setSearch] = useState("");
+  const { user } = useComplaint();
 
   const filteredWorkers = initialWorkers.filter((worker) =>
     `${worker.name} ${worker.role} ${worker.status} ${worker.assignment}`
@@ -202,10 +204,10 @@ function FieldWorkers({
             </div>
 
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
-                <div className="user-role">Officer Gr. I</div>
+                <div className="user-name">{user?.name}</div>
+                <div className="user-role">Administrator</div>
               </div>
             </div>
 

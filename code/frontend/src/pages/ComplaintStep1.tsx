@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
+const MAX_FILES = 5;
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "video/mp4"];
 
@@ -23,7 +24,7 @@ function ComplaintStep1({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { complaint, updateComplaint } = useComplaint();
+  const { complaint, updateComplaint, user } = useComplaint();
   const files = complaint.files;
 
   const [error, setError] = useState("");
@@ -46,6 +47,7 @@ function ComplaintStep1({
     });
 
     const combined = [...files];
+    let countLimitReached = false;
 
     accepted.forEach((file) => {
       const alreadyAdded = combined.some(
@@ -56,10 +58,17 @@ function ComplaintStep1({
       );
 
       if (!alreadyAdded) {
-        combined.push(file);
+        if (combined.length >= MAX_FILES) {
+          countLimitReached = true;
+        } else {
+          combined.push(file);
+        }
       }
     });
 
+    if (countLimitReached) {
+      errors.push(`You can attach up to ${MAX_FILES} evidence files.`);
+    }
     updateComplaint({ files: combined });
 
     setError(errors.join(" "));
@@ -147,10 +156,10 @@ function ComplaintStep1({
           </nav>
           <div className="header-right">
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
-                <div className="user-role">Ward 14 Citizen</div>
+                <div className="user-name">{user?.name}</div>
+                <div className="user-role">Citizen</div>
               </div>
             </div>
             <button type="button" className="btn-signout" onClick={onSignOut}>
@@ -197,7 +206,7 @@ function ComplaintStep1({
                 <span className="req">*</span>
               </label>
               <span className="small text-muted">
-                JPG, PNG, MP4 (MAX 25MB Each)
+                JPG, PNG, MP4 (MAX 25MB Each, up to 5 files)
               </span>
             </div>
 

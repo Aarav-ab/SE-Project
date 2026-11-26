@@ -336,10 +336,11 @@ button {
 }
 
 input[type="text"],
-input[type="password"] {
+input[type="password"],
+input[type="email"] {
   width: 100%;
 
-  padding: 9px 13px 9px 37px;
+  padding: 10px 12px;
 
   border: 1px solid #cbd5e1;
 
@@ -458,6 +459,126 @@ input:focus {
 .divider a {
   font-weight: 700;
   color: var(--navy);
+}
+
+.google-signin {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  color: var(--text-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.google-signin:hover {
+  background: var(--blue-50);
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+}
+
+.text-button {
+  padding: 0;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.password-hint {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.auth-error {
+  padding: 10px 12px;
+  border: 1px solid #f1b5b0;
+  border-radius: 6px;
+  background: var(--red-bg);
+  color: var(--red);
+  font-size: 13px;
+}
+
+.auth-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.global-error {
+  position: fixed;
+  z-index: 1000;
+  right: 20px;
+  bottom: 20px;
+  max-width: min(520px, calc(100vw - 40px));
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border: 1px solid #f1b5b0;
+  border-radius: 8px;
+  background: white;
+  color: var(--red);
+  box-shadow: var(--shadow-md);
+}
+
+.global-error button {
+  color: var(--red);
+  font-size: 20px;
+}
+
+.admin-feedback-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.admin-feedback-form h3 {
+  margin: 0 0 4px;
+}
+
+.admin-feedback-form label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-feedback-form select,
+.admin-feedback-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: var(--text-dark);
+  background: white;
+  font: inherit;
+}
+
+.attachment-link {
+  display: block;
+  margin: 6px 0;
+  color: var(--navy);
+  text-decoration: underline;
 }
 
 /* =========================

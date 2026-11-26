@@ -48,7 +48,7 @@ function ComplaintStep2({
   onTrackComplaints: () => void;
   onSignOut: () => void;
 }) {
-  const { complaint, updateComplaint } = useComplaint();
+  const { complaint, updateComplaint, user } = useComplaint();
 
   const address = complaint.address;
   const pinCode = complaint.pinCode;
@@ -293,10 +293,10 @@ function ComplaintStep2({
 
           <div className="header-right">
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
-                <div className="user-role">Ward 14 Citizen</div>
+                <div className="user-name">{user?.name}</div>
+                <div className="user-role">Citizen</div>
               </div>
             </div>
             <button type="button" className="btn-signout" onClick={onSignOut}>

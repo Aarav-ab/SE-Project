@@ -9,20 +9,24 @@ import ComplaintStep3 from "./pages/ComplaintStep3";
 import DepartmentPortal from "./pages/DepartmentPortal";
 import FieldWorkers from "./pages/FieldWorkers";
 import DepartmentAnalytics from "./pages/DepartmentAnalytics";
+import { useComplaint } from "./ComplaintContext";
 
 function App() {
+  const { user, authLoading, signOut, setAuthError } = useComplaint();
   const [currentPage, setCurrentPage] = useState("login");
-  const [userRole, setUserRole] = useState<"citizen" | "admin" | null>(null);
   const [crewAssignments, setCrewAssignments] = useState<
     Record<string, string>
   >({});
   const [currentStep, setCurrentStep] = useState(1);
-  const [, setSelectedComplaintId] = useState("");
   const [complaintToAssign, setComplaintToAssign] = useState<{
     id: string;
     title: string;
     location: string;
   } | null>(null);
+  const activePage =
+    currentPage === "login" && user
+      ? user.role === "admin" ? "department" : "portal"
+      : currentPage;
 
   useEffect(() => {
     window.scrollTo({
@@ -30,33 +34,34 @@ function App() {
       left: 0,
       behavior: "instant",
     });
-  }, [currentPage, currentStep]);
+  }, [activePage, currentStep]);
 
   function startComplaint() {
     setCurrentStep(1);
     setCurrentPage("complaint");
   }
 
-  function handleSignOut() {
-    setCurrentStep(1);
-    setCurrentPage("login");
-    setUserRole(null);
+  async function handleSignOut() {
+    try {
+      await signOut();
+      setCurrentStep(1);
+      setCurrentPage("login");
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Could not sign out.");
+    }
   }
 
-  if (currentPage === "login") {
-    return (
-      <Login
-        onLogin={(role) => {
-          setUserRole(role);
-          setCurrentPage(role === "admin" ? "department" : "portal");
-        }}
-      />
-    );
+  if (authLoading) {
+    return <main className="auth-loading" aria-live="polite">Checking your session…</main>;
+  }
+
+  if (!user) {
+    return <Login />;
   }
 
   // Department Portal pages
 
-  if (currentPage === "department") {
+  if (activePage === "department") {
     return (
       <DepartmentPortal
         onSignOut={handleSignOut}
@@ -71,17 +76,11 @@ function App() {
           setCurrentPage("field-workers");
         }}
         crewAssignments={crewAssignments}
-        onUpdateCrewAssignment={(complaintId, crewName) => {
-          setCrewAssignments((current) => ({
-            ...current,
-            [complaintId]: crewName,
-          }));
-        }}
       />
     );
   }
 
-  if (currentPage === "department-analytics") {
+  if (activePage === "department-analytics") {
     return (
       <DepartmentAnalytics
         onBack={() => setCurrentPage("department")}
@@ -91,7 +90,7 @@ function App() {
     );
   }
 
-  if (currentPage === "field-workers") {
+  if (activePage === "field-workers") {
     return (
       <FieldWorkers
         onBack={() => {
@@ -99,10 +98,7 @@ function App() {
           setCurrentPage("department");
         }}
         onSignOut={handleSignOut}
-        onViewComplaint={(id) => {
-          setSelectedComplaintId(id);
-          setCurrentPage("department");
-        }}
+        onViewComplaint={() => setCurrentPage("department")}
         onDispatch={() => setCurrentPage("department")}
         complaintToAssign={complaintToAssign}
         onAssignCrew={(complaintId, crewName) => {
@@ -118,7 +114,7 @@ function App() {
 
   // Citizen Portal pages
 
-  if (currentPage === "portal") {
+  if (activePage === "portal") {
     return (
       <CitizenPortal
         onFileComplaint={startComplaint}
@@ -129,16 +125,12 @@ function App() {
     );
   }
 
-  if (currentPage === "complaints") {
+  if (activePage === "complaints") {
     return (
       <ComplaintsLog
         onBack={() => setCurrentPage("portal")}
         onFileComplaint={startComplaint}
         onSignOut={handleSignOut}
-        onViewComplaint={(complaintId) => {
-          setSelectedComplaintId(complaintId);
-          setCurrentPage("timeline");
-        }}
       />
     );
   }
