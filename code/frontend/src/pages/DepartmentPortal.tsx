@@ -146,7 +146,7 @@ function DepartmentPortal({
           <div className="admin-ward-pill">
             <span className="flex gap-1 items-center">
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              Municipal Operations
             </span>
             <span className="text-muted">Active</span>
           </div>
@@ -185,7 +185,7 @@ function DepartmentPortal({
             </strong>
             <span className="pill" style={{ background: "var(--blue-200)" }}>
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              Municipal Operations
             </span>
           </div>
 

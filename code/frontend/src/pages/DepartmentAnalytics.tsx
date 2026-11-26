@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useComplaint } from "../ComplaintContext";
 
 type DepartmentAnalyticsProps = {
@@ -11,7 +12,15 @@ function DepartmentAnalytics({
   onOpenFieldWorkers,
   onSignOut,
 }: DepartmentAnalyticsProps) {
-  const { user, openMyAccount } = useComplaint();
+  const { user, openMyAccount, submittedComplaints } = useComplaint();
+  const mostReportedLocation = useMemo(() => {
+    const locationCounts = new Map<string, number>();
+    for (const complaint of submittedComplaints) {
+      const location = complaint.address.trim();
+      if (location) locationCounts.set(location, (locationCounts.get(location) ?? 0) + 1);
+    }
+    return [...locationCounts.entries()].sort((first, second) => second[1] - first[1])[0] ?? null;
+  }, [submittedComplaints]);
   return (
     <div className="admin-wrap analytics-page">
       <aside className="admin-sidebar">
@@ -45,7 +54,7 @@ function DepartmentAnalytics({
           <div className="admin-ward-pill">
             <span className="flex gap-1 items-center">
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              Municipal Operations
             </span>
             <span className="text-muted">Active</span>
           </div>
@@ -73,7 +82,7 @@ function DepartmentAnalytics({
           <div className="flex gap-3 items-center">
             <span className="pill" style={{ background: "var(--blue-200)" }}>
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              Municipal Operations
             </span>
             <button type="button" className="user-chip profile-trigger" onClick={openMyAccount} aria-label="Open My Account">
               <div className="user-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
@@ -92,7 +101,7 @@ function DepartmentAnalytics({
           <div className="analytics-heading">
             <div>
               <span className="analytics-eyebrow">
-                WARD 14 • INDIRANAGAR OPERATIONS
+                DEPARTMENT OPERATIONS
               </span>
               <h1>Department Analytics &amp; Performance</h1>
               <p>विभाग एवं वार्ड सांख्यिकी</p>
@@ -288,9 +297,13 @@ function DepartmentAnalytics({
 
               <div className="stat-tile">
                 <span className="kpi-label">Most Reported Locality</span>
-                <h3>12th Main &amp; HAL 2nd Stg</h3>
-                <p className="text-muted">38% of road complaints</p>
-                <strong>Priority Inspection Zone</strong>
+                <h3>{mostReportedLocation?.[0] ?? "No complaint locations available"}</h3>
+                <p className="text-muted">
+                  {mostReportedLocation
+                    ? `${mostReportedLocation[1]} complaint${mostReportedLocation[1] === 1 ? "" : "s"} at this location`
+                    : "Location summaries will appear as complaints are submitted."}
+                </p>
+                <strong>{mostReportedLocation ? "Based on submitted complaints" : "No location data"}</strong>
               </div>
 
               <div className="stat-tile">

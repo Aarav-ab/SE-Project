@@ -68,11 +68,26 @@ const initialComplaintData: ComplaintData = {
   landmark: "",
   latitude: null,
   longitude: null,
-  ward: "Ward 14 - Indiranagar East",
+  ward: "",
   complaintType: "Pothole / Road",
   description: "",
   priority: "Medium",
 };
+
+export function isProfileComplete(
+  profile: Pick<UserProfile, "name" | "mobileNumber" | "houseFlatNumber" | "streetLocality" | "areaWard" | "city" | "state" | "pinCode">,
+) {
+  return Boolean(
+    profile.name.trim() &&
+    /^(?:\+?91[\s-]?)?[6-9]\d{9}$/.test(profile.mobileNumber.trim()) &&
+    profile.houseFlatNumber.trim() &&
+    profile.streetLocality.trim() &&
+    profile.areaWard.trim() &&
+    profile.city.trim() &&
+    profile.state.trim() &&
+    /^\d{6}$/.test(profile.pinCode.trim()),
+  );
+}
 
 type ComplaintContextValue = {
   complaint: ComplaintData;
@@ -88,13 +103,16 @@ type ComplaintContextValue = {
   user: User | null;
   profile: UserProfile | null;
   profileOpen: boolean;
+  profileCompletionRequired: boolean;
   profileLoading: boolean;
   profileError: string;
   profileSaved: boolean;
   openMyAccount: () => void;
+  beginProfileCompletion: (resumeComplaint?: boolean) => void;
+  completeProfileSetup: () => void;
   closeMyAccount: () => void;
   loadProfile: () => Promise<UserProfile>;
-  saveProfile: (profile: UserProfile) => Promise<void>;
+  saveProfile: (profile: UserProfile, complete?: boolean) => Promise<void>;
   prepareComplaintAddress: () => Promise<void>;
   authLoading: boolean;
   authError: string;
@@ -127,6 +145,8 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profileCompletionRequired, setProfileCompletionRequired] = useState(false);
+  const [resumeComplaintAfterProfile, setResumeComplaintAfterProfile] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [profileSaved, setProfileSaved] = useState(false);
@@ -145,7 +165,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     setComplaintsUserId(user.id);
   }, [user]);
 
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     setProfileLoading(true);
     setProfileError("");
     try {
@@ -159,7 +179,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     } finally {
       setProfileLoading(false);
     }
-  }
+  }, []);
 
   function openMyAccount() {
     setProfileSaved(false);
@@ -169,18 +189,38 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     void loadProfile().catch(() => undefined);
   }
 
+  const beginProfileCompletion = useCallback((resumeComplaint = false) => {
+    setProfileCompletionRequired(true);
+    setResumeComplaintAfterProfile(resumeComplaint);
+    setProfileSaved(false);
+    setProfileError("");
+    setProfileOpen(true);
+  }, []);
+
+  const completeProfileSetup = useCallback(() => {
+    if (resumeComplaintAfterProfile) {
+      window.dispatchEvent(new Event("nagrikconnect:profile-complete"));
+    }
+    setProfileCompletionRequired(false);
+    setResumeComplaintAfterProfile(false);
+    setProfileOpen(false);
+    setProfileError("");
+  }, [resumeComplaintAfterProfile]);
+
   function closeMyAccount() {
     setProfileOpen(false);
     setProfileError("");
     setProfileSaved(false);
   }
 
-  async function saveProfile(updatedProfile: UserProfile) {
+  async function saveProfile(updatedProfile: UserProfile, complete = false) {
     setProfileError("");
     setProfileSaved(false);
     try {
-      const result = await apiRequest<{ profile: UserProfile }>("/profile", {
-        method: "PATCH",
+      const result = await apiRequest<{ profile: UserProfile }>(
+        complete ? "/profile/complete" : "/profile",
+        {
+        method: complete ? "POST" : "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           name: updatedProfile.name,
@@ -207,7 +247,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function prepareComplaintAddress() {
+  const prepareComplaintAddress = useCallback(async () => {
     const savedProfile = await loadProfile();
     const address = [
       savedProfile.houseFlatNumber,
@@ -224,13 +264,23 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       complaintType: previous.complaintType,
       priority: previous.priority,
     }));
-  }
+  }, [loadProfile]);
 
   useEffect(() => {
     let active = true;
     apiRequest<{ user: User }>("/auth/me")
       .then(({ user: currentUser }) => {
-        if (active) setUser(currentUser);
+        if (active) {
+          setUser(currentUser);
+          const redirectUrl = new URL(window.location.href);
+          if (redirectUrl.searchParams.get("completeProfile") === "1") {
+            redirectUrl.searchParams.delete("completeProfile");
+            window.history.replaceState({}, "", redirectUrl);
+            setProfileCompletionRequired(true);
+            setProfileOpen(true);
+            void loadProfile().catch(() => undefined);
+          }
+        }
       })
       .catch((error: unknown) => {
         if (active && error instanceof Error && !error.message.includes("Not signed in")) {
@@ -243,7 +293,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadProfile]);
 
   useEffect(() => {
     if (!user) {
@@ -289,6 +339,8 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ name, email, password }),
     });
     setUser(result.user);
+    beginProfileCompletion();
+    await loadProfile();
   }
 
   async function signOut() {
@@ -296,12 +348,21 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(null);
     setProfileOpen(false);
+    setProfileCompletionRequired(false);
+    setResumeComplaintAfterProfile(false);
     setComplaintRecords([]);
     setComplaintsUserId(null);
     setComplaint(initialComplaintData);
   }
 
   async function addSubmittedComplaint(data: ComplaintData) {
+    if (user?.role === "citizen") {
+      const currentProfile = await loadProfile();
+      if (!isProfileComplete(currentProfile)) {
+        beginProfileCompletion(true);
+        throw new Error("Complete your required profile details before submitting a complaint.");
+      }
+    }
     const formData = new FormData();
     formData.set("complaintType", data.complaintType);
     formData.set("description", data.description);
@@ -353,10 +414,13 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         user,
         profile,
         profileOpen,
+        profileCompletionRequired,
         profileLoading,
         profileError,
         profileSaved,
         openMyAccount,
+        beginProfileCompletion,
+        completeProfileSetup,
         closeMyAccount,
         loadProfile,
         saveProfile,

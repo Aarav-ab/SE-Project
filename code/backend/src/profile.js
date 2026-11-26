@@ -26,6 +26,16 @@ const profileSchema = z.object({
   preferredLanguage: z.enum(["English", "Hindi"]),
 }).strict();
 
+const completeProfileSchema = profileSchema.extend({
+  mobileNumber: z.string().trim().regex(/^(?:\+?91[\s-]?)?[6-9]\d{9}$/, "Enter a valid Indian mobile number."),
+  houseFlatNumber: z.string().trim().min(1).max(100),
+  streetLocality: z.string().trim().min(1).max(200),
+  areaWard: z.string().trim().min(1).max(200),
+  city: z.string().trim().min(1).max(100),
+  state: z.string().trim().min(1).max(100),
+  pinCode: z.string().trim().regex(/^\d{6}$/, "PIN code must contain 6 digits."),
+}).strict();
+
 const profileColumns = `
   id, name, email, mobile_number, house_flat_number, street_locality,
   area_ward, city, state, profile_pin_code, profile_landmark, preferred_language
@@ -64,8 +74,8 @@ profileRouter.get("/", async (req, res, next) => {
   }
 });
 
-profileRouter.patch("/", async (req, res, next) => {
-  const parsed = profileSchema.safeParse(req.body);
+async function updateProfile(req, res, next, schema) {
+  const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid profile data." });
     return;
@@ -108,4 +118,8 @@ profileRouter.patch("/", async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-});
+}
+
+profileRouter.patch("/", (req, res, next) => updateProfile(req, res, next, profileSchema));
+profileRouter.post("/complete", (req, res, next) =>
+  updateProfile(req, res, next, completeProfileSchema));

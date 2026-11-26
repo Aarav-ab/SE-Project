@@ -54,7 +54,6 @@ function ComplaintsLog({
             </div>
             <div className="brand-name-row">
               <span className="brand-name">NagrikConnect</span>
-              <span className="brand-tag complaint-ward-tag">WARD 14</span>
             </div>
           </div>
           <nav className="nav">

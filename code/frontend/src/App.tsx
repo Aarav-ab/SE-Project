@@ -9,7 +9,7 @@ import ComplaintStep3 from "./pages/ComplaintStep3";
 import DepartmentPortal from "./pages/DepartmentPortal";
 import FieldWorkers from "./pages/FieldWorkers";
 import DepartmentAnalytics from "./pages/DepartmentAnalytics";
-import { useComplaint } from "./ComplaintContext";
+import { isProfileComplete, useComplaint } from "./ComplaintContext";
 import MyAccountModal from "./pages/MyAccountModal";
 
 function AppShell() {
@@ -19,6 +19,9 @@ function AppShell() {
     signOut,
     setAuthError,
     prepareComplaintAddress,
+    loadProfile,
+    beginProfileCompletion,
+    profileCompletionRequired,
   } = useComplaint();
   const [currentPage, setCurrentPage] = useState("login");
   const [crewAssignments, setCrewAssignments] = useState<
@@ -45,6 +48,11 @@ function AppShell() {
 
   async function startComplaint() {
     try {
+      const currentProfile = await loadProfile();
+      if (!isProfileComplete(currentProfile)) {
+        beginProfileCompletion(true);
+        return;
+      }
       await prepareComplaintAddress();
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "Could not load your saved address.");
@@ -53,6 +61,20 @@ function AppShell() {
     setCurrentStep(1);
     setCurrentPage("complaint");
   }
+
+  useEffect(() => {
+    async function resumeComplaint() {
+      try {
+        await prepareComplaintAddress();
+        setCurrentStep(1);
+        setCurrentPage("complaint");
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : "Could not load your saved address.");
+      }
+    }
+    window.addEventListener("nagrikconnect:profile-complete", resumeComplaint);
+    return () => window.removeEventListener("nagrikconnect:profile-complete", resumeComplaint);
+  }, [prepareComplaintAddress, setAuthError]);
 
   async function handleSignOut() {
     try {
@@ -66,6 +88,10 @@ function AppShell() {
 
   if (authLoading) {
     return <main className="auth-loading" aria-live="polite">Checking your session…</main>;
+  }
+
+  if (profileCompletionRequired) {
+    return <main className="auth-loading" aria-live="polite">Complete your profile to continue…</main>;
   }
 
   if (!user) {
@@ -195,10 +221,14 @@ function AppShell() {
 }
 
 function App() {
+  const { profileCompletionRequired } = useComplaint();
   return (
     <>
       <AppShell />
-      <MyAccountModal />
+      <MyAccountModal
+        key={profileCompletionRequired ? "required" : "account"}
+        required={profileCompletionRequired}
+      />
     </>
   );
 }

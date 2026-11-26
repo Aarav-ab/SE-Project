@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useComplaint, type UserProfile } from "../ComplaintContext";
+import { isProfileComplete, useComplaint, type UserProfile } from "../ComplaintContext";
 
 type ProfileFields = Omit<UserProfile, "id" | "email">;
 
@@ -31,7 +31,7 @@ function editableFields(profile: UserProfile): ProfileFields {
   };
 }
 
-function MyAccountModal() {
+function MyAccountModal({ required = false }: { required?: boolean }) {
   const {
     profile,
     profileOpen,
@@ -40,24 +40,39 @@ function MyAccountModal() {
     profileSaved,
     closeMyAccount,
     saveProfile,
+    completeProfileSetup,
   } = useComplaint();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ProfileFields>(emptyFields);
+  const [draftReady, setDraftReady] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const isEditing = required || editing;
 
-  if (!profileOpen) return null;
+  if (!required && !profileOpen) return null;
 
   function updateField<K extends keyof ProfileFields>(key: K, value: ProfileFields[K]) {
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => ({
+      ...(required && !draftReady && profile ? editableFields(profile) : current),
+      [key]: value,
+    }));
+    setDraftReady(true);
   }
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile) return;
+    setFormError("");
+    const valuesToSave = required && !draftReady ? editableFields(profile) : draft;
+    if (required && !isProfileComplete(valuesToSave)) {
+      setFormError("Complete all required profile fields before continuing.");
+      return;
+    }
     setSaving(true);
     try {
-      await saveProfile({ ...draft, id: profile.id, email: profile.email });
-      setEditing(false);
+      await saveProfile({ ...valuesToSave, id: profile.id, email: profile.email }, required);
+      if (required) completeProfileSetup();
+      else setEditing(false);
     } catch {
       // The context presents the API error in this dialog.
     } finally {
@@ -70,7 +85,9 @@ function MyAccountModal() {
     setEditing(false);
   }
 
-  const values = profile && !editing ? editableFields(profile) : draft;
+  const values = profile && required && !draftReady
+    ? editableFields(profile)
+    : profile && !isEditing ? editableFields(profile) : draft;
   const addressComplete = Boolean(
     values.houseFlatNumber &&
     values.streetLocality &&
@@ -89,7 +106,7 @@ function MyAccountModal() {
       className="confirmation-overlay profile-overlay"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) closeMyAccount();
+        if (!required && event.target === event.currentTarget) closeMyAccount();
       }}
     >
       <section
@@ -98,17 +115,22 @@ function MyAccountModal() {
         aria-modal="true"
         aria-labelledby="my-account-title"
       >
-        <button type="button" className="timeline-close" onClick={closeMyAccount} aria-label="Close My Account">×</button>
+        {!required && <button type="button" className="timeline-close" onClick={closeMyAccount} aria-label="Close My Account">×</button>}
         <div className="profile-modal-heading">
           <span className="timeline-eyebrow">NAGRIKCONNECT</span>
-          <h2 id="my-account-title">My Account</h2>
-          <p className="text-body">Manage your contact details and residential address.</p>
+          <h2 id="my-account-title">{required ? "Complete Your Profile" : "My Account"}</h2>
+          <p className="text-body">
+            {required
+              ? "Add the required personal and residential details to continue."
+              : "Manage your contact details and residential address."}
+          </p>
         </div>
 
         {profileLoading && !profile && <p className="text-body" role="status">Loading your profile…</p>}
         {!profileLoading && !profile && !profileError && (
           <p className="text-body" role="status">Your profile could not be loaded.</p>
         )}
+        {profileError && !profile && <p className="auth-error" role="alert">{profileError}</p>}
 
         {profile && (
           <form id="profile-edit-form" onSubmit={handleSave}>
@@ -126,7 +148,7 @@ function MyAccountModal() {
             <div className="profile-fields">
               <div className="field">
                 <label htmlFor="profile-name">Full Name <span className="req">*</span></label>
-                <input id="profile-name" type="text" autoComplete="name" maxLength={100} required disabled={!editing} value={values.name} onChange={(event) => updateField("name", event.target.value)} />
+                <input id="profile-name" type="text" autoComplete="name" maxLength={100} required disabled={!isEditing} value={values.name} onChange={(event) => updateField("name", event.target.value)} />
               </div>
               <div className="field">
                 <label htmlFor="profile-email">Email Address</label>
@@ -134,46 +156,46 @@ function MyAccountModal() {
                 <p className="small text-muted">Email changes require verification and aren’t available here.</p>
               </div>
               <div className="field">
-                <label htmlFor="profile-mobile">Mobile Number</label>
-                <input id="profile-mobile" type="tel" autoComplete="tel" inputMode="tel" pattern="(?:\+?91[\s-]?)?[6-9][0-9]{9}" maxLength={20} disabled={!editing} value={values.mobileNumber} onChange={(event) => updateField("mobileNumber", event.target.value)} />
+                <label htmlFor="profile-mobile">Mobile Number{required && <> <span className="req">*</span></>}</label>
+                <input id="profile-mobile" type="tel" autoComplete="tel" inputMode="tel" pattern="(?:\+?91[\s\-]?)?[6-9][0-9]{9}" maxLength={20} required={required} disabled={!isEditing} value={values.mobileNumber} onChange={(event) => updateField("mobileNumber", event.target.value)} />
                 <p className="small text-muted">Not verified. Enter a 10-digit Indian mobile number.</p>
               </div>
 
               <h3 className="profile-section-title">Residential address</h3>
               <div className="profile-grid">
                 <div className="field">
-                  <label htmlFor="profile-house">House / Flat Number</label>
-                  <input id="profile-house" autoComplete="address-line1" maxLength={100} disabled={!editing} value={values.houseFlatNumber} onChange={(event) => updateField("houseFlatNumber", event.target.value)} />
+                  <label htmlFor="profile-house">House / Flat Number{required && <> <span className="req">*</span></>}</label>
+                  <input id="profile-house" autoComplete="address-line1" maxLength={100} required={required} disabled={!isEditing} value={values.houseFlatNumber} onChange={(event) => updateField("houseFlatNumber", event.target.value)} />
                 </div>
                 <div className="field">
-                  <label htmlFor="profile-street">Street / Locality</label>
-                  <input id="profile-street" autoComplete="address-line2" maxLength={200} disabled={!editing} value={values.streetLocality} onChange={(event) => updateField("streetLocality", event.target.value)} />
+                  <label htmlFor="profile-street">Street / Locality{required && <> <span className="req">*</span></>}</label>
+                  <input id="profile-street" autoComplete="address-line2" maxLength={200} required={required} disabled={!isEditing} value={values.streetLocality} onChange={(event) => updateField("streetLocality", event.target.value)} />
                 </div>
                 <div className="field">
-                  <label htmlFor="profile-area">Area / Sector / Ward</label>
-                  <input id="profile-area" maxLength={200} disabled={!editing} value={values.areaWard} onChange={(event) => updateField("areaWard", event.target.value)} />
+                  <label htmlFor="profile-area">Area / Sector / Ward{required && <> <span className="req">*</span></>}</label>
+                  <input id="profile-area" maxLength={200} required={required} disabled={!isEditing} value={values.areaWard} onChange={(event) => updateField("areaWard", event.target.value)} />
                 </div>
                 <div className="field">
-                  <label htmlFor="profile-city">City</label>
-                  <input id="profile-city" autoComplete="address-level2" maxLength={100} disabled={!editing} value={values.city} onChange={(event) => updateField("city", event.target.value)} />
+                  <label htmlFor="profile-city">City{required && <> <span className="req">*</span></>}</label>
+                  <input id="profile-city" autoComplete="address-level2" maxLength={100} required={required} disabled={!isEditing} value={values.city} onChange={(event) => updateField("city", event.target.value)} />
                 </div>
                 <div className="field">
-                  <label htmlFor="profile-state">State</label>
-                  <input id="profile-state" autoComplete="address-level1" maxLength={100} disabled={!editing} value={values.state} onChange={(event) => updateField("state", event.target.value)} />
+                  <label htmlFor="profile-state">State{required && <> <span className="req">*</span></>}</label>
+                  <input id="profile-state" autoComplete="address-level1" maxLength={100} required={required} disabled={!isEditing} value={values.state} onChange={(event) => updateField("state", event.target.value)} />
                 </div>
                 <div className="field">
-                  <label htmlFor="profile-pin">PIN Code</label>
-                  <input id="profile-pin" autoComplete="postal-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} disabled={!editing} value={values.pinCode} onChange={(event) => updateField("pinCode", event.target.value.replace(/\D/g, ""))} />
+                  <label htmlFor="profile-pin">PIN Code{required && <> <span className="req">*</span></>}</label>
+                  <input id="profile-pin" autoComplete="postal-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required={required} disabled={!isEditing} value={values.pinCode} onChange={(event) => updateField("pinCode", event.target.value.replace(/\D/g, ""))} />
                 </div>
                 <div className="field profile-full-width">
                   <label htmlFor="profile-landmark">Landmark (optional)</label>
-                  <input id="profile-landmark" maxLength={200} disabled={!editing} value={values.landmark} onChange={(event) => updateField("landmark", event.target.value)} />
+                  <input id="profile-landmark" maxLength={200} disabled={!isEditing} value={values.landmark} onChange={(event) => updateField("landmark", event.target.value)} />
                 </div>
               </div>
 
               <div className="field profile-language">
                 <label htmlFor="profile-language">Preferred Language</label>
-                <select id="profile-language" disabled={!editing} value={values.preferredLanguage} onChange={(event) => updateField("preferredLanguage", event.target.value as ProfileFields["preferredLanguage"])}>
+                <select id="profile-language" disabled={!isEditing} value={values.preferredLanguage} onChange={(event) => updateField("preferredLanguage", event.target.value as ProfileFields["preferredLanguage"])}>
                   <option value="English">English</option>
                   <option value="Hindi">Hindi</option>
                 </select>
@@ -181,16 +203,19 @@ function MyAccountModal() {
             </div>
 
             {profileError && <p className="auth-error" role="alert">{profileError}</p>}
+            {formError && <p className="auth-error" role="alert">{formError}</p>}
             {profileSaved && <p className="profile-success" role="status">Your profile changes have been saved.</p>}
 
           </form>
         )}
         {profile && (
           <div className="profile-actions">
-            {editing ? (
+            {isEditing ? (
               <>
-                <button type="button" className="btn btn-secondary" onClick={cancelEdit} disabled={saving}>Cancel</button>
-                <button type="submit" form="profile-edit-form" className="btn btn-navy" disabled={saving}>{saving ? "Saving…" : "Save Changes"}</button>
+                {!required && <button type="button" className="btn btn-secondary" onClick={cancelEdit} disabled={saving}>Cancel</button>}
+                <button type="submit" form="profile-edit-form" className="btn btn-navy" disabled={saving}>
+                  {saving ? "Saving…" : required ? "Save and Continue" : "Save Changes"}
+                </button>
               </>
             ) : (
               <>
@@ -198,6 +223,7 @@ function MyAccountModal() {
                 <button type="button" className="btn btn-navy" onClick={(event) => {
                   event.preventDefault();
                   if (profile) setDraft(editableFields(profile));
+                  setDraftReady(true);
                   setEditing(true);
                 }}>Edit Profile</button>
               </>

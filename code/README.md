@@ -31,6 +31,8 @@ Sign out and back in after changing roles. Complaint listing and status/feedback
 
 - Passwords are stored as bcrypt hashes. Authentication uses a signed, HTTP-only, SameSite=Lax cookie; the JWT secret must remain private.
 - Complaints, status/feedback changes, and evidence file contents are stored in PostgreSQL. Evidence is limited to five JPG/PNG/MP4 files, up to 25 MB each.
-- Authenticated profile endpoints are `GET /api/profile` and `PATCH /api/profile`; profile updates are scoped to the signed-in user. Residential profile data is used as the editable default address for a new complaint, while each submitted complaint retains its own address.
+- Authenticated profile endpoints are `GET /api/profile`, `PATCH /api/profile`, and `POST /api/profile/complete`; profile updates are scoped to the signed-in user. New accounts are directed to complete required personal and residential details. Complaint creation checks profile completeness in the API, while existing complaints remain available and retain their submitted addresses.
+- The citizen dashboard location is loaded from the signed-in user's profile. New complaint forms use that residential address as an editable starting point; the location map does not assume a default geographic coordinate.
+- Google sign-in uses `GET /api/auth/google` and `GET /api/auth/google/callback`, requests only `openid email profile`, validates a short-lived CSRF state cookie, and verifies the ID token on the server. New Google accounts are citizens and are sent to profile completion when required. An existing email/password account is not silently linked to Google; sign in with that account instead.
 - Set `NODE_ENV=production` behind HTTPS so session cookies are marked Secure. Set `PGSSL=true` when the database provider requires verified TLS.
 - Set `FRONTEND_URL` to the exact public web-app origin. Use HTTPS URLs in production, including the Google callback URL.

@@ -28,7 +28,7 @@ const createComplaintSchema = z.object({
   address: z.string().trim().max(500),
   pinCode: z.string().trim().max(20),
   landmark: z.string().trim().max(500).default(""),
-  ward: z.string().trim().min(1).max(120),
+  ward: z.string().trim().max(120).default(""),
   latitude: z.string().optional().transform((value) => value ? Number(value) : null)
     .refine((value) => value === null || (Number.isFinite(value) && value >= -90 && value <= 90)),
   longitude: z.string().optional().transform((value) => value ? Number(value) : null)
@@ -138,6 +138,28 @@ complaintsRouter.post("/", upload.array("files", 5), async (req, res, next) => {
     const id = `NC-${new Date().getFullYear()}-${randomBytes(12).toString("hex").toUpperCase()}`;
     const department = departmentByType[data.complaintType] ?? "General Municipal Services";
     await client.query("BEGIN");
+    const { rows: profileRows } = await client.query(
+      `SELECT name, mobile_number, house_flat_number, street_locality,
+        area_ward, city, state, profile_pin_code
+       FROM users WHERE id = $1 FOR SHARE`,
+      [req.user.id],
+    );
+    const profile = profileRows[0];
+    const profileComplete = Boolean(
+      profile?.name?.trim() &&
+      /^(?:\+?91[\s-]?)?[6-9]\d{9}$/.test(profile.mobile_number?.trim() ?? "") &&
+      profile.house_flat_number?.trim() &&
+      profile.street_locality?.trim() &&
+      profile.area_ward?.trim() &&
+      profile.city?.trim() &&
+      profile.state?.trim() &&
+      /^\d{6}$/.test(profile.profile_pin_code?.trim() ?? ""),
+    );
+    if (!profileComplete) {
+      const error = new Error("Complete your required profile details before submitting a complaint.");
+      error.status = 403;
+      throw error;
+    }
     const { rows } = await client.query(
       `INSERT INTO complaints (
         id, user_id, complaint_type, description, priority, address, pin_code,

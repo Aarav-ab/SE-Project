@@ -19,6 +19,7 @@ const cookieOptions = {
   sameSite: "lax",
   path: "/",
 };
+const googleStateCookieName = "nagrikconnect_oauth_state";
 
 if (!tokenSecret || tokenSecret.length < 32) {
   throw new Error("JWT_SECRET must be set to a random value of at least 32 characters.");
@@ -60,6 +61,12 @@ function validateBody(schema, body) {
     throw error;
   }
   return parsed.data;
+}
+
+function googleRedirect(res, errorCode) {
+  const redirectUrl = new URL(frontendUrl);
+  redirectUrl.searchParams.set("googleError", errorCode);
+  res.redirect(redirectUrl.toString());
 }
 
 authRouter.post("/register", async (req, res, next) => {
@@ -104,11 +111,11 @@ authRouter.post("/login", async (req, res, next) => {
 
 authRouter.get("/google", (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    res.status(503).json({ error: "Google sign-in is not configured on this server." });
+    googleRedirect(res, "unavailable");
     return;
   }
   const state = randomBytes(32).toString("hex");
-  res.cookie("nagrikconnect_oauth_state", state, { ...cookieOptions, maxAge: 10 * 60 * 1000 });
+  res.cookie(googleStateCookieName, state, { ...cookieOptions, maxAge: 10 * 60 * 1000 });
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
     redirect_uri: googleCallbackUrl,
@@ -121,11 +128,12 @@ authRouter.get("/google", (req, res) => {
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
-authRouter.get("/google/callback", async (req, res, next) => {
+authRouter.get("/google/callback", async (req, res) => {
+  let client;
   try {
-    const state = req.cookies.nagrikconnect_oauth_state;
+    const state = req.cookies[googleStateCookieName];
     const suppliedState = req.query.state;
-    res.clearCookie("nagrikconnect_oauth_state", cookieOptions);
+    res.clearCookie(googleStateCookieName, cookieOptions);
     const validStateFormat =
       typeof state === "string" &&
       /^[0-9a-f]{64}$/.test(state) &&
@@ -135,11 +143,15 @@ authRouter.get("/google/callback", async (req, res, next) => {
       !validStateFormat ||
       !timingSafeEqual(Buffer.from(state), Buffer.from(suppliedState))
     ) {
-      res.status(400).send("Google sign-in could not be verified. Please try again.");
+      googleRedirect(res, "failed");
+      return;
+    }
+    if (req.query.error === "access_denied") {
+      googleRedirect(res, "cancelled");
       return;
     }
     if (typeof req.query.code !== "string") {
-      res.status(400).send("Google sign-in was not completed.");
+      googleRedirect(res, "failed");
       return;
     }
     const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -158,18 +170,25 @@ authRouter.get("/google/callback", async (req, res, next) => {
       throw new Error("Google token exchange failed.");
     }
     const tokens = await response.json();
+    if (typeof tokens.id_token !== "string") {
+      throw new Error("Google did not return an ID token.");
+    }
     const ticket = await googleOAuthClient.verifyIdToken({
       idToken: tokens.id_token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
     const profile = ticket.getPayload();
-    if (!profile?.sub || !profile.email || !profile.email_verified) {
-      res.status(401).send("Use a verified Google email address to sign in.");
-      return;
+    if (
+      !profile?.sub ||
+      typeof profile.email !== "string" ||
+      profile.email_verified !== true
+    ) {
+      throw new Error("Google identity did not include a verified email and name.");
     }
 
-    const client = await pool.connect();
+    client = await pool.connect();
     let user;
+    let isNewAccount = false;
     try {
       await client.query("BEGIN");
       const { rows } = await client.query(
@@ -183,21 +202,33 @@ authRouter.get("/google/callback", async (req, res, next) => {
       }
       if (rows.length) {
         user = rows[0];
-        if (user.google_id && user.google_id !== profile.sub) {
-          throw Object.assign(new Error("This email is already linked to another Google account."), { status: 409 });
+        if (user.google_id !== profile.sub) {
+          throw Object.assign(new Error("This email already belongs to an account. Sign in with that account first; Google sign-in will not link it automatically."), { status: 409 });
         }
-        await client.query(
-          "UPDATE users SET google_id = $1 WHERE id = $2 AND google_id IS NULL",
-          [profile.sub, user.id],
-        );
       } else {
         const inserted = await client.query(
-          `INSERT INTO users (name, email, google_id)
-           VALUES ($1, LOWER($2), $3)
+          `INSERT INTO users (name, email, google_id, role)
+           VALUES ($1, LOWER($2), $3, 'citizen')
+           ON CONFLICT DO NOTHING
            RETURNING id, name, email, role`,
-          [profile.name || profile.email, profile.email, profile.sub],
+          [profile.name?.trim() || profile.email, profile.email, profile.sub],
         );
-        user = inserted.rows[0];
+        if (inserted.rows.length) {
+          user = inserted.rows[0];
+          isNewAccount = true;
+        } else {
+          const concurrent = await client.query(
+            `SELECT id, name, email, role, google_id
+             FROM users
+             WHERE google_id = $1 OR email = LOWER($2)
+             FOR UPDATE`,
+            [profile.sub, profile.email],
+          );
+          if (concurrent.rows.length !== 1 || concurrent.rows[0].google_id !== profile.sub) {
+            throw Object.assign(new Error("This email already belongs to an account. Sign in with that account first; Google sign-in will not link it automatically."), { status: 409 });
+          }
+          user = concurrent.rows[0];
+        }
       }
       await client.query("COMMIT");
     } catch (error) {
@@ -205,12 +236,36 @@ authRouter.get("/google/callback", async (req, res, next) => {
       throw error;
     } finally {
       client.release();
+      client = undefined;
     }
 
+    const needsProfileCompletion =
+      isNewAccount ||
+      !(await pool.query(
+        `SELECT 1 FROM users
+         WHERE id = $1
+           AND NULLIF(BTRIM(mobile_number), '') IS NOT NULL
+           AND BTRIM(mobile_number) ~ '^(\\+?91[ -]?)?[6-9][0-9]{9}$'
+           AND NULLIF(BTRIM(house_flat_number), '') IS NOT NULL
+           AND NULLIF(BTRIM(street_locality), '') IS NOT NULL
+           AND NULLIF(BTRIM(area_ward), '') IS NOT NULL
+           AND NULLIF(BTRIM(city), '') IS NOT NULL
+           AND NULLIF(BTRIM(state), '') IS NOT NULL
+           AND BTRIM(profile_pin_code) ~ '^[0-9]{6}$'`,
+        [user.id],
+      )).rows.length;
     issueSession(res, user);
-    res.redirect(frontendUrl);
+    const redirectUrl = new URL(frontendUrl);
+    if (needsProfileCompletion) redirectUrl.searchParams.set("completeProfile", "1");
+    res.redirect(redirectUrl.toString());
   } catch (error) {
-    next(error);
+    if (client) client.release();
+    if (error.status === 409) {
+      googleRedirect(res, "account_exists");
+      return;
+    }
+    console.error("Google sign-in failed:", error instanceof Error ? error.name : "UnknownError");
+    googleRedirect(res, "failed");
   }
 });
 

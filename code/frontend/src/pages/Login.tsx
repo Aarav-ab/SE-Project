@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useComplaint } from "../ComplaintContext";
 
 function Login() {
@@ -8,6 +8,23 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const googleError = url.searchParams.get("googleError");
+    if (!googleError) return;
+
+    const messages: Record<string, string> = {
+      cancelled: "Google sign-in was cancelled.",
+      unavailable: "Google sign-in is currently unavailable. Please use email and password.",
+      account_exists: "An account already uses this email. Sign in with that account; Google sign-in will not link it automatically.",
+      failed: "Google sign-in could not be completed. Please try again.",
+    };
+    setAuthError(messages[googleError] ?? messages.failed);
+    url.searchParams.delete("googleError");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [setAuthError]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,6 +38,12 @@ function Login() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function startGoogleSignIn() {
+    setAuthError("");
+    setGoogleSubmitting(true);
+    window.location.assign("/api/auth/google");
   }
 
   return (
@@ -62,7 +85,9 @@ function Login() {
           <button
             type="button"
             className="google-signin"
-            onClick={() => { window.location.href = "/api/auth/google"; }}
+            onClick={startGoogleSignIn}
+            disabled={googleSubmitting || submitting}
+            aria-live="polite"
           >
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
@@ -70,7 +95,7 @@ function Login() {
               <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19z" />
               <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.64-5.93c-2.12 1.42-4.83 2.26-8.26 2.26-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
             </svg>
-            Continue with Google
+            {googleSubmitting ? "Connecting to Google…" : "Continue with Google"}
           </button>
 
           <div className="login-divider"><span>or use email</span></div>

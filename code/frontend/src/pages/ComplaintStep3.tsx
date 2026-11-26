@@ -161,7 +161,6 @@ function ComplaintStep3({
             </div>
             <div className="brand-name-row">
               <span className="brand-name">NagrikConnect</span>
-              <span className="brand-tag">WARD 14</span>
             </div>
           </div>
 

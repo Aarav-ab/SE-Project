@@ -19,6 +19,8 @@ function CitizenPortal({
     refreshComplaints,
     setAuthError,
     openMyAccount,
+    loadProfile,
+    profile,
   } = useComplaint();
   const displayName = user?.name.trim() || "there";
   const inProgressCount = submittedComplaints.filter(
@@ -35,7 +37,18 @@ function CitizenPortal({
         error instanceof Error ? error.message : "Could not refresh your complaints.",
       );
     });
-  }, [refreshComplaints, setAuthError]);
+    void loadProfile().catch(() => undefined);
+  }, [refreshComplaints, setAuthError, loadProfile]);
+
+  const currentProfile = profile?.id === user?.id ? profile : null;
+  const locationParts = [currentProfile?.areaWard, currentProfile?.city]
+    .filter((part): part is string => Boolean(part?.trim()));
+  if (!locationParts.length && currentProfile?.state.trim()) {
+    locationParts.push(currentProfile.state);
+  }
+  const locationLabel = locationParts.length
+    ? locationParts.join(", ")
+    : "Residential location not added";
 
   return (
     <div className="page-wrap">
@@ -60,16 +73,6 @@ function CitizenPortal({
               <div className="brand-name-row">
                 <span className="brand-name">NagrikConnect</span>
 
-                <span
-                  className="brand-tag"
-                  style={{
-                    background: "var(--amber-bg)",
-                    borderColor: "transparent",
-                    color: "#331100",
-                  }}
-                >
-                  WARD 14
-                </span>
               </div>
             </div>
           </div>
@@ -136,12 +139,12 @@ function CitizenPortal({
                     fontWeight: 700,
                   }}
                 >
-                  • Indiranagar, Bengaluru
+                  {currentProfile && locationParts.length ? `• ${locationLabel}` : ""}
                 </span>
               </div>
               <h1>Welcome back, {displayName}! / स्वागत है</h1>
               <p className="text-body">
-                Ward 14, Indiranagar • Citizen Civic Redressal Hub
+                {locationLabel} • Citizen Civic Redressal Hub
               </p>
             </div>
             <div className="stat-strip">
@@ -582,7 +585,7 @@ function CitizenPortal({
                     color: "var(--navy)",
                   }}
                 >
-                  Ward 14 Today's Schedule
+                  Community Schedule
                 </h3>
 
                 <span className="small text-muted" style={{ fontWeight: 600 }}>
@@ -608,8 +611,7 @@ function CitizenPortal({
                       className="small text-body"
                       style={{ margin: "2px 0 0" }}
                     >
-                      Wet &amp; dry segregation collection completed at 8:15 AM
-                      across Sector 2 &amp; 3.
+                      Wet &amp; dry segregation collection completed at 8:15 AM.
                     </p>
                   </div>
                 </div>
@@ -631,8 +633,7 @@ function CitizenPortal({
                       className="small text-body"
                       style={{ margin: "2px 0 0" }}
                     >
-                      Pipeline interconnection scheduled 10:00 AM – 02:00 PM
-                      today in Sector 4 (Blocks C &amp; D).
+                      Pipeline interconnection scheduled 10:00 AM – 02:00 PM today.
                     </p>
                   </div>
                 </div>
@@ -648,7 +649,7 @@ function CitizenPortal({
                     color: "var(--navy)",
                   }}
                 >
-                  Quick Help &amp; Ward Helplines
+                  Quick Help &amp; Emergency Helplines
                 </h3>
 
                 <span className="small text-muted" style={{ fontWeight: 600 }}>
@@ -657,23 +658,6 @@ function CitizenPortal({
               </div>
 
               <div className="helpline-grid mt-3">
-                <div className="helpline-item">
-                  <div className="small text-body" style={{ fontWeight: 700 }}>
-                    Ward 14 Helpdesk
-                  </div>
-
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      color: "var(--navy)",
-                    }}
-                  >
-                    1800-425-0014
-                  </div>
-
-                  <div className="small text-muted">Mon–Sat (9 AM – 6 PM)</div>
-                </div>
-
                 <div className="helpline-item">
                   <div className="small text-body" style={{ fontWeight: 700 }}>
                     Central Emergency
@@ -695,7 +679,7 @@ function CitizenPortal({
 
                 <div className="helpline-item">
                   <div className="small text-body" style={{ fontWeight: 700 }}>
-                    Water Board (BWSSB)
+                    Water Supply Helpline
                   </div>
 
                   <div

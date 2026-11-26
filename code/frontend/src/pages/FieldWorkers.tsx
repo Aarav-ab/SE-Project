@@ -161,7 +161,7 @@ function FieldWorkers({
           <div className="admin-ward-pill">
             <span className="flex gap-1 items-center">
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              Municipal Operations
             </span>
             <span className="text-muted">Active</span>
           </div>
@@ -188,7 +188,7 @@ function FieldWorkers({
             </strong>
             <span className="pill" style={{ background: "var(--blue-200)" }}>
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              Municipal Operations
             </span>
           </div>
 
@@ -240,8 +240,7 @@ function FieldWorkers({
               </h1>
 
               <p className="small text-body mt-1">
-                Monitor crew availability, current dispatch, and workload across
-                Ward 14
+                Monitor crew availability, current dispatch, and workload across municipal services.
               </p>
             </div>
 

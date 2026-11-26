@@ -54,10 +54,11 @@ function ComplaintStep2({
   const pinCode = complaint.pinCode;
   const landmark = complaint.landmark;
 
-  const [coordinates, setCoordinates] = useState({
-    lat: complaint.latitude ?? 30.3533,
-    lon: complaint.longitude ?? 76.3583,
-  });
+  const [coordinates, setCoordinates] = useState<{ lat: number; lon: number } | null>(
+    complaint.latitude !== null && complaint.longitude !== null
+      ? { lat: complaint.latitude, lon: complaint.longitude }
+      : null,
+  );
 
   const [gpsMessage, setGpsMessage] = useState("");
 
@@ -273,7 +274,6 @@ function ComplaintStep2({
             </div>{" "}
             <div className="brand-name-row">
               <span className="brand-name">NagrikConnect</span>
-              <span className="brand-tag complaint-ward-tag">WARD 14</span>
             </div>
           </a>
 
@@ -348,58 +348,59 @@ function ComplaintStep2({
                 📍 Use GPS / Auto-Detect Location
               </button>
 
-              {/* <div className="field ward-field">
-                <label htmlFor="ward">Ward Jurisdiction</label>
-                <select id="ward" defaultValue="ward14">
-                  <option value="ward14">
-                    Ward 14 - Indiranagar East (Selected)
-                  </option>
-                </select>
-              </div> */}
             </div>
 
             <div className="real-map-wrapper">
               <div className="map-overlay-top">
                 <span className="map-chip">🗺️ Street Map</span>
-                <span className="map-chip">
-                  Lat: {coordinates.lat.toFixed(4)}°, Lon:{" "}
-                  {coordinates.lon.toFixed(4)}°
-                </span>
+                {coordinates && (
+                  <span className="map-chip">
+                    Lat: {coordinates.lat.toFixed(4)}°, Lon:{" "}
+                    {coordinates.lon.toFixed(4)}°
+                  </span>
+                )}
               </div>
 
-              <MapContainer
-                center={[coordinates.lat, coordinates.lon]}
-                zoom={16}
-                scrollWheelZoom
-                className="real-map"
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
+              {coordinates ? (
+                <MapContainer
+                  center={[coordinates.lat, coordinates.lon]}
+                  zoom={16}
+                  scrollWheelZoom
+                  className="real-map"
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
 
-                <MapClickHandler
-                  onSelect={(lat, lon) => {
-                    setCoordinates({ lat, lon });
+                  <MapClickHandler
+                    onSelect={(lat, lon) => {
+                      setCoordinates({ lat, lon });
 
-                    updateComplaint({
-                      latitude: lat,
-                      longitude: lon,
-                    });
+                      updateComplaint({
+                        latitude: lat,
+                        longitude: lon,
+                      });
 
-                    void updateAddressFromCoordinates(lat, lon);
-                  }}
-                />
+                      void updateAddressFromCoordinates(lat, lon);
+                    }}
+                  />
 
-                <RecenterMap lat={coordinates.lat} lon={coordinates.lon} />
+                  <RecenterMap lat={coordinates.lat} lon={coordinates.lon} />
 
-                <Marker position={[coordinates.lat, coordinates.lon]} />
-              </MapContainer>
+                  <Marker position={[coordinates.lat, coordinates.lon]} />
+                </MapContainer>
+              ) : (
+                <div className="real-map map-empty-state" role="status">
+                  Use GPS to locate the complaint, or enter its address below.
+                </div>
+              )}
             </div>
 
             <p className="map-hint">
-              Click anywhere on the map preview to reposition the pin. This is a
-              visual prototype, not a live map.
+              {coordinates
+                ? "Click the map to reposition the pin and update the incident address."
+                : "A map will appear after you choose a location using GPS."}
             </p>
 
             <section className="addr-box">
