@@ -57,6 +57,10 @@ function mapComplaint(row) {
     feedback: row.admin_feedback,
     submittedAt: row.created_at,
     attachments: row.attachments ?? [],
+    assignmentId: row.assignment_id ?? null,
+    assignedWorker: row.assigned_worker_id
+      ? { id: row.assigned_worker_id, name: row.assigned_worker_name }
+      : null,
     ...(row.reporter_name ? { reporterName: row.reporter_name, reporterEmail: row.reporter_email } : {}),
   };
 }
@@ -107,14 +111,27 @@ complaintsRouter.use(requireAuth);
 complaintsRouter.get("/", async (req, res, next) => {
   try {
     const isAdmin = req.user.role === "admin";
+    const assignmentSelect = isAdmin
+      ? `, active_assignment.id AS assignment_id,
+         active_assignment.worker_id AS assigned_worker_id,
+         active_assignment.worker_name AS assigned_worker_name`
+      : "";
     const { rows } = await pool.query(
       `SELECT ${complaintColumns},
         (SELECT COALESCE(json_agg(json_build_object(
           'id', a.id, 'name', a.file_name, 'type', a.mime_type, 'size', a.file_size
         )), '[]'::json) FROM complaint_attachments a WHERE a.complaint_id = c.id) AS attachments
+        ${assignmentSelect}
         ${isAdmin ? ", u.name AS reporter_name, u.email AS reporter_email" : ""}
        FROM complaints c
        ${isAdmin ? "JOIN users u ON u.id = c.user_id" : ""}
+       ${isAdmin ? `LEFT JOIN LATERAL (
+         SELECT a.id, a.worker_id, w.name AS worker_name
+         FROM complaint_assignments a
+         JOIN field_workers w ON w.id = a.worker_id
+         WHERE a.complaint_id = c.id AND a.status = 'active'
+         LIMIT 1
+       ) active_assignment ON TRUE` : ""}
        ${isAdmin ? "" : "WHERE c.user_id = $1"}
        ORDER BY c.created_at DESC`,
       isAdmin ? [] : [req.user.id],
@@ -210,6 +227,25 @@ complaintsRouter.patch("/:id", requireAdmin, async (req, res, next) => {
     let row;
     try {
       await client.query("BEGIN");
+      const current = await client.query(
+        "SELECT id, status FROM complaints WHERE id = $1 FOR UPDATE",
+        [req.params.id],
+      );
+      if (!current.rows.length) {
+        await client.query("ROLLBACK");
+        res.status(404).json({ error: "Complaint not found." });
+        return;
+      }
+      const activeAssignment = await client.query(
+        `SELECT id FROM complaint_assignments
+         WHERE complaint_id = $1 AND status = 'active' FOR UPDATE`,
+        [req.params.id],
+      );
+      if (data.status === "Pending Dispatch" && activeAssignment.rows.length) {
+        const error = new Error("Release the active assignment before returning this complaint to dispatch.");
+        error.status = 409;
+        throw error;
+      }
       const updated = await client.query(
         `UPDATE complaints
          SET status = $1, admin_feedback = $2, updated_at = NOW()
@@ -217,10 +253,13 @@ complaintsRouter.patch("/:id", requireAdmin, async (req, res, next) => {
          RETURNING ${complaintColumns.replaceAll("c.", "")}`,
         [data.status, data.feedback, req.params.id],
       );
-      if (!updated.rows.length) {
-        await client.query("ROLLBACK");
-        res.status(404).json({ error: "Complaint not found." });
-        return;
+      if (data.status === "Resolved" && activeAssignment.rows.length) {
+        await client.query(
+          `UPDATE complaint_assignments
+           SET status = 'completed', ended_by = $1, ended_at = NOW(), end_feedback = $2
+           WHERE id = $3`,
+          [req.user.id, data.feedback, activeAssignment.rows[0].id],
+        );
       }
       row = updated.rows[0];
       await client.query(
@@ -228,6 +267,14 @@ complaintsRouter.patch("/:id", requireAdmin, async (req, res, next) => {
          VALUES ($1, $2, $3, $4)`,
         [req.params.id, req.user.id, data.status, data.feedback],
       );
+      const assigned = await client.query(
+        `SELECT a.id AS assignment_id, w.id AS assigned_worker_id, w.name AS assigned_worker_name
+         FROM complaint_assignments a
+         JOIN field_workers w ON w.id = a.worker_id
+         WHERE a.complaint_id = $1 AND a.status = 'active'`,
+        [req.params.id],
+      );
+      if (assigned.rows[0]) Object.assign(row, assigned.rows[0]);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");

@@ -71,3 +71,41 @@ CREATE TABLE IF NOT EXISTS complaint_updates (
   feedback TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS field_workers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL CHECK (BTRIM(name) <> ''),
+  designation TEXT NOT NULL CHECK (BTRIM(designation) <> ''),
+  department TEXT NOT NULL CHECK (BTRIM(department) <> ''),
+  contact_info TEXT,
+  duty_status TEXT NOT NULL DEFAULT 'available'
+    CHECK (duty_status IN ('available', 'off_duty', 'on_leave')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS complaint_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  complaint_id TEXT NOT NULL REFERENCES complaints(id) ON DELETE RESTRICT,
+  worker_id UUID NOT NULL REFERENCES field_workers(id) ON DELETE RESTRICT,
+  assigned_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'completed', 'released')),
+  ended_by UUID REFERENCES users(id) ON DELETE RESTRICT,
+  ended_at TIMESTAMPTZ,
+  end_feedback TEXT NOT NULL DEFAULT '',
+  CHECK (
+    (status = 'active' AND ended_at IS NULL AND ended_by IS NULL)
+    OR (status <> 'active' AND ended_at IS NOT NULL AND ended_by IS NOT NULL)
+  )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS complaint_assignments_one_active_worker_idx
+  ON complaint_assignments (worker_id)
+  WHERE status = 'active';
+CREATE UNIQUE INDEX IF NOT EXISTS complaint_assignments_one_active_complaint_idx
+  ON complaint_assignments (complaint_id)
+  WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS complaint_assignments_history_idx
+  ON complaint_assignments (complaint_id, assigned_at DESC);

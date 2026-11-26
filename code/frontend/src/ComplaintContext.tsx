@@ -59,6 +59,67 @@ export type SubmittedComplaint = Omit<ComplaintData, "files"> & {
   attachments: ComplaintAttachment[];
   reporterName?: string;
   reporterEmail?: string;
+  assignmentId?: string | null;
+  assignedWorker?: { id: string; name: string } | null;
+};
+
+export type FieldWorker = {
+  id: string;
+  name: string;
+  designation: string;
+  department: string;
+  contactInfo: string;
+  dutyStatus: "available" | "off_duty" | "on_leave";
+  availability: "available" | "busy" | "off_duty" | "on_leave";
+  activeAssignment: {
+    id: string;
+    complaintId: string;
+    title: string;
+    assignedAt: string;
+  } | null;
+};
+
+export type DepartmentAnalyticsData = {
+  range: {
+    period: "today" | "7d" | "30d" | "custom";
+    from: string;
+    toExclusive: string;
+    timezone: "Asia/Kolkata";
+  };
+  kpis: {
+    totalComplaints: number;
+    resolvedComplaints: number;
+    inProgressComplaints: number;
+    pendingComplaints: number;
+    averageResolutionHours: number | null;
+    slaCompliancePercent: number | null;
+    slaUnavailableReason: string | null;
+  };
+  departments: Array<{
+    department: string;
+    total: number;
+    resolved: number;
+    pending: number;
+    inProgress: number;
+    contributionPercent: number;
+  }>;
+  resolutionBuckets: Array<{
+    key: string;
+    label: string;
+    count: number;
+    percent: number | null;
+  }>;
+  operations: {
+    mostReportedLocality: { name: string; complaints: number } | null;
+    peakReportingHour: { hourIst: number; complaints: number } | null;
+    workers: {
+      total: number;
+      active: number;
+      available: number;
+      assigned: number;
+      offDuty: number;
+    };
+  };
 };
 
 const initialComplaintData: ComplaintData = {
@@ -100,6 +161,14 @@ type ComplaintContextValue = {
     status: string,
     feedback: string,
   ) => Promise<void>;
+  loadFieldWorkers: () => Promise<FieldWorker[]>;
+  loadDepartmentAnalytics: (
+    range: { period: "today" | "7d" | "30d" | "custom"; from?: string; to?: string },
+  ) => Promise<DepartmentAnalyticsData>;
+  createFieldWorker: (worker: Pick<FieldWorker, "name" | "designation" | "department" | "contactInfo">) => Promise<void>;
+  updateFieldWorkerDuty: (id: string, dutyStatus: FieldWorker["dutyStatus"]) => Promise<void>;
+  assignFieldWorker: (complaintId: string, workerId: string) => Promise<void>;
+  endFieldAssignment: (assignmentId: string, status: "completed" | "released", feedback?: string) => Promise<void>;
   user: User | null;
   profile: UserProfile | null;
   profileOpen: boolean;
@@ -398,6 +467,54 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  const loadFieldWorkers = useCallback(async () => {
+    const result = await apiRequest<{ workers: FieldWorker[] }>("/workers");
+    return result.workers;
+  }, []);
+
+  const loadDepartmentAnalytics = useCallback(async (
+    range: { period: "today" | "7d" | "30d" | "custom"; from?: string; to?: string },
+  ) => {
+    const params = new URLSearchParams({ period: range.period });
+    if (range.from) params.set("from", range.from);
+    if (range.to) params.set("to", range.to);
+    return apiRequest<DepartmentAnalyticsData>(`/analytics?${params.toString()}`);
+  }, []);
+
+  async function createFieldWorker(worker: Pick<FieldWorker, "name" | "designation" | "department" | "contactInfo">) {
+    await apiRequest("/workers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(worker),
+    });
+  }
+
+  async function updateFieldWorkerDuty(id: string, dutyStatus: FieldWorker["dutyStatus"]) {
+    await apiRequest(`/workers/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ dutyStatus }),
+    });
+  }
+
+  async function assignFieldWorker(complaintId: string, workerId: string) {
+    await apiRequest(`/complaints/${encodeURIComponent(complaintId)}/assign`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ workerId }),
+    });
+    await refreshComplaints();
+  }
+
+  async function endFieldAssignment(assignmentId: string, status: "completed" | "released", feedback = "") {
+    await apiRequest(`/assignments/${encodeURIComponent(assignmentId)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status, feedback }),
+    });
+    await refreshComplaints();
+  }
+
   function updateComplaint(updates: Partial<ComplaintData>) {
     setComplaint((previous) => ({ ...previous, ...updates }));
   }
@@ -411,6 +528,12 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         complaintsLoading,
         addSubmittedComplaint,
         updateSubmittedComplaint,
+        loadFieldWorkers,
+        loadDepartmentAnalytics,
+        createFieldWorker,
+        updateFieldWorkerDuty,
+        assignFieldWorker,
+        endFieldAssignment,
         user,
         profile,
         profileOpen,

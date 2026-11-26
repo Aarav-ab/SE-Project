@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useComplaint } from "../ComplaintContext";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useComplaint, type FieldWorker } from "../ComplaintContext";
 
 type ComplaintToAssign = {
   id: string;
@@ -10,139 +10,189 @@ type ComplaintToAssign = {
 type FieldWorkersProps = {
   onBack: () => void;
   onSignOut: () => void;
-  onViewComplaint: (id: string) => void;
-  onDispatch: () => void;
   complaintToAssign: ComplaintToAssign | null;
-  onAssignCrew: (complaintId: string, crewName: string) => void;
   onOpenAnalytics: () => void;
 };
-
-const initialWorkers = [
-  {
-    initials: "MK",
-    name: "Er. Manoj Kumar",
-    role: "Junior Engineer • Roads & PWD",
-    status: "On-Site: Asphalt Patching",
-    color: "var(--navy)",
-    dot: "var(--amber)",
-    assignment: "#GRV-8902",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "14",
-    resolution: "22 hrs",
-    action: "View Active Ticket →",
-    complaintId: "GRV-2025-W14-8902",
-    type: "ticket",
-  },
-  {
-    initials: "SR",
-    name: "Suresh Rao",
-    role: "Electrician • Streetlighting",
-    status: "On-Site: Lamp Replacement",
-    color: "var(--amber)",
-    dot: "var(--amber)",
-    assignment: "#GRV-8712",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "19",
-    resolution: "9 hrs",
-    action: "View Active Ticket →",
-    complaintId: "GRV-2025-W14-8712",
-    type: "ticket",
-  },
-  {
-    initials: "KR",
-    name: "K. Ramesh",
-    role: "Sanitary Inspector • SWM Unit 3",
-    status: "Available Now",
-    color: "#61b15f",
-    dot: "#61b15f",
-    assignment: "—",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "27",
-    resolution: "5 hrs",
-    action: "Dispatch to Ticket →",
-    complaintId: "",
-    type: "dispatch",
-  },
-  {
-    initials: "AV",
-    name: "Anita Verma",
-    role: "Zonal QC Inspector",
-    status: "On-Site: Drain Audit",
-    color: "var(--red)",
-    dot: "var(--amber)",
-    assignment: "#GRV-9140",
-    metricLabel: "Audits Completed (30d)",
-    metric: "31",
-    resolution: "2 hrs",
-    action: "View Active Ticket →",
-    complaintId: "GRV-2025-W14-9140",
-    type: "ticket",
-  },
-  {
-    initials: "DP",
-    name: "Deepak Prasad",
-    role: "Compactor Driver • SWM Unit 1",
-    status: "Off-Duty (Rotation)",
-    color: "var(--text-muted)",
-    dot: "#c4c6cf",
-    assignment: "—",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "22",
-    resolution: "4 hrs",
-    action: "Back on duty tomorrow",
-    complaintId: "",
-    type: "off-duty",
-  },
-  {
-    initials: "NP",
-    name: "Nisha Pillai",
-    role: "Junior Engineer • Roads & PWD",
-    status: "Available Now",
-    color: "#61b15f",
-    dot: "#61b15f",
-    assignment: "—",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "16",
-    resolution: "26 hrs",
-    action: "Dispatch to Ticket →",
-    complaintId: "",
-    type: "dispatch",
-  },
-];
 
 function FieldWorkers({
   onBack,
   onSignOut,
-  onViewComplaint,
-  onDispatch,
   complaintToAssign,
-  onAssignCrew,
   onOpenAnalytics,
 }: FieldWorkersProps) {
   const [search, setSearch] = useState("");
-  const { user, openMyAccount } = useComplaint();
+  const [workers, setWorkers] = useState<FieldWorker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busyWorkerId, setBusyWorkerId] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newWorker, setNewWorker] = useState({ name: "", designation: "", department: "", contactInfo: "" });
+  const [createWorkerError, setCreateWorkerError] = useState("");
+  const [creatingWorker, setCreatingWorker] = useState(false);
+  const creatingWorkerRef = useRef(false);
+  const addWorkerButtonRef = useRef<HTMLButtonElement>(null);
+  const createWorkerDialogRef = useRef<HTMLDivElement>(null);
+  const {
+    user,
+    openMyAccount,
+    loadFieldWorkers,
+    createFieldWorker,
+    updateFieldWorkerDuty,
+    assignFieldWorker,
+    endFieldAssignment,
+  } = useComplaint();
 
-  const filteredWorkers = initialWorkers.filter((worker) =>
-    `${worker.name} ${worker.role} ${worker.status} ${worker.assignment}`
+  async function refreshWorkers() {
+    setError("");
+    try {
+      setWorkers(await loadFieldWorkers());
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Could not load field workers.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let active = true;
+    loadFieldWorkers()
+      .then((loadedWorkers) => {
+        if (active) setWorkers(loadedWorkers);
+      })
+      .catch((loadError: unknown) => {
+        if (active) setError(loadError instanceof Error ? loadError.message : "Could not load field workers.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadFieldWorkers]);
+
+  const filteredWorkers = workers.filter((worker) =>
+    `${worker.name} ${worker.designation} ${worker.department} ${worker.availability}`
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
+  const availableCount = workers.filter((worker) => worker.availability === "available").length;
+  const busyCount = workers.filter((worker) => worker.availability === "busy").length;
+  const offDutyCount = workers.filter((worker) => worker.availability === "off_duty" || worker.availability === "on_leave").length;
+
+  useEffect(() => {
+    if (!showCreateForm) return;
+    const previousOverflow = document.body.style.overflow;
+    const addWorkerButton = addWorkerButtonRef.current;
+    document.body.style.overflow = "hidden";
+    createWorkerDialogRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !creatingWorkerRef.current) closeCreateWorkerModal();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      addWorkerButton?.focus();
+    };
+  }, [showCreateForm]);
+
+  function closeCreateWorkerModal() {
+    setShowCreateForm(false);
+    setCreateWorkerError("");
+    setNewWorker({ name: "", designation: "", department: "", contactInfo: "" });
+  }
+
+  async function handleDispatch(worker: FieldWorker) {
+    if (!complaintToAssign || worker.availability !== "available" || busyWorkerId) return;
+    setBusyWorkerId(worker.id);
+    setError("");
+    setNotice("");
+    try {
+      await assignFieldWorker(complaintToAssign.id, worker.id);
+      setNotice(`${worker.name} assigned to complaint ${complaintToAssign.id}.`);
+      await refreshWorkers();
+      onBack();
+    } catch (dispatchError) {
+      setError(dispatchError instanceof Error ? dispatchError.message : "Could not dispatch this worker.");
+    } finally {
+      setBusyWorkerId("");
+    }
+  }
+
+  async function handleEndAssignment(worker: FieldWorker, status: "completed" | "released") {
+    if (!worker.activeAssignment || busyWorkerId) return;
+    setBusyWorkerId(worker.id);
+    setError("");
+    setNotice("");
+    try {
+      await endFieldAssignment(worker.activeAssignment.id, status);
+      setNotice(status === "completed" ? "Assignment completed." : "Assignment released.");
+      await refreshWorkers();
+    } catch (assignmentError) {
+      setError(assignmentError instanceof Error ? assignmentError.message : "Could not update this assignment.");
+    } finally {
+      setBusyWorkerId("");
+    }
+  }
+
+  async function handleDutyChange(worker: FieldWorker, dutyStatus: FieldWorker["dutyStatus"]) {
+    setBusyWorkerId(worker.id);
+    setError("");
+    try {
+      await updateFieldWorkerDuty(worker.id, dutyStatus);
+      await refreshWorkers();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Could not update worker duty status.");
+    } finally {
+      setBusyWorkerId("");
+    }
+  }
+
+  async function handleCreateWorker(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCreateWorkerError("");
+    setNotice("");
+    const trimmedWorker = {
+      name: newWorker.name.trim(),
+      designation: newWorker.designation.trim(),
+      department: newWorker.department.trim(),
+      contactInfo: newWorker.contactInfo.trim(),
+    };
+    if (!trimmedWorker.name || !trimmedWorker.designation || !trimmedWorker.department) {
+      setCreateWorkerError("Enter a full name, designation, and department.");
+      return;
+    }
+    setCreatingWorker(true);
+    creatingWorkerRef.current = true;
+    try {
+      await createFieldWorker(trimmedWorker);
+      closeCreateWorkerModal();
+      setNotice("Field worker added.");
+      await refreshWorkers();
+    } catch (createError) {
+      setCreateWorkerError(createError instanceof Error ? createError.message : "Could not add field worker.");
+    } finally {
+      setCreatingWorker(false);
+      creatingWorkerRef.current = false;
+    }
+  }
 
   return (
     <div className="admin-wrap">
       <aside className="admin-sidebar">
         <div>
           <div className="brand">
-            <div className="brand-mark" style={{ width: 32, height: 32 }}>
+            <div className="brand-mark">
               <svg
-                width="16"
-                height="16"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path d="M3 21h18M4 21V8l8-5 8 5v13" />
+                <path d="M3 21h18M4 21V8l8-5 8 5v13M9 21v-6h6v6" />
               </svg>
             </div>
             <div>
@@ -186,13 +236,9 @@ function FieldWorkers({
             <strong style={{ color: "var(--navy)", fontSize: 18 }}>
               NagrikConnect Administration Core
             </strong>
-            <span className="pill" style={{ background: "var(--blue-200)" }}>
-              <span className="dot" style={{ background: "#61b15f" }} />
-              Municipal Operations
-            </span>
           </div>
 
-          <div className="flex gap-3 items-center">
+          <div className="flex items-center admin-header-actions">
             <div className="admin-search">
               🔍
               <input
@@ -244,7 +290,6 @@ function FieldWorkers({
               </p>
             </div>
 
-            {/* Selected complaint to assign */}
             {complaintToAssign && (
               <div
                 className="card card-pad"
@@ -265,25 +310,30 @@ function FieldWorkers({
             )}
 
             <button
+              ref={addWorkerButtonRef}
               type="button"
               className="btn btn-navy"
-              onClick={() =>
-                alert("Adding crew members will be implemented next.")
-              }
+              onClick={() => {
+                setCreateWorkerError("");
+                setShowCreateForm(true);
+              }}
             >
               + Add New Crew Member
             </button>
           </div>
+
+          {error && <div className="card card-pad" role="alert">{error}</div>}
+          {notice && <div className="card card-pad" role="status">{notice}</div>}
 
           <div className="kpi-row">
             <div className="kpi-card">
               <div>
                 <span className="kpi-label">Total Field Staff</span>
                 <div className="kpi-val" style={{ color: "var(--navy)" }}>
-                  24
+                  {workers.length}
                 </div>
                 <p className="small mt-1" style={{ fontWeight: 600 }}>
-                  Across 6 municipal units
+                  Registered field workers
                 </p>
               </div>
               <div
@@ -298,7 +348,7 @@ function FieldWorkers({
               <div>
                 <span className="kpi-label">On-Site Now</span>
                 <div className="kpi-val" style={{ color: "var(--amber)" }}>
-                  9
+                  {busyCount}
                 </div>
                 <p className="small mt-1" style={{ fontWeight: 600 }}>
                   Actively deployed
@@ -316,7 +366,7 @@ function FieldWorkers({
               <div>
                 <span className="kpi-label">Available / On Standby</span>
                 <div className="kpi-val" style={{ color: "#61b15f" }}>
-                  11
+                  {availableCount}
                 </div>
                 <p className="small mt-1" style={{ fontWeight: 600 }}>
                   Ready for dispatch
@@ -334,7 +384,7 @@ function FieldWorkers({
               <div>
                 <span className="kpi-label">On Leave / Off-Duty</span>
                 <div className="kpi-val" style={{ color: "var(--text-muted)" }}>
-                  4
+                  {offDutyCount}
                 </div>
                 <p className="small mt-1" style={{ fontWeight: 600 }}>
                   Scheduled rotation
@@ -349,73 +399,178 @@ function FieldWorkers({
             </div>
           </div>
 
+          {loading && <div className="card card-pad" aria-live="polite">Loading field workers…</div>}
+          {!loading && !filteredWorkers.length && (
+            <div className="card card-pad text-body">
+              {workers.length ? "No workers match your search." : "No field workers have been added yet."}
+            </div>
+          )}
+
           <div className="crew-grid">
             {filteredWorkers.map((worker) => (
-              <article className="crew-card" key={worker.initials}>
+              <article className="crew-card" key={worker.id}>
                 <div className="crew-top">
                   <div
                     className="crew-avatar"
-                    style={{ background: worker.color }}
+                    style={{ background: worker.availability === "available" ? "#61b15f" : worker.availability === "busy" ? "var(--amber)" : "var(--text-muted)" }}
                   >
-                    {worker.initials}
+                    {worker.name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")}
                   </div>
                   <div>
                     <strong>{worker.name}</strong>
-                    <div className="small text-body">{worker.role}</div>
+                    <div className="small text-body">{worker.designation} • {worker.department}</div>
                     <span
                       className="small mt-1"
                       style={{ display: "inline-block" }}
                     >
                       <span
                         className="avail-dot"
-                        style={{ background: worker.dot }}
+                        style={{ background: worker.availability === "available" ? "#61b15f" : worker.availability === "busy" ? "var(--amber)" : "#c4c6cf" }}
                       />
-                      {worker.status}
+                      {worker.availability === "busy" ? "On-site / Busy" : worker.availability === "available" ? "Available" : worker.availability === "on_leave" ? "On leave" : "Off-duty"}
                     </span>
                   </div>
                 </div>
 
                 <div className="crew-stat-row">
                   <span className="text-body">Active Assignment</span>
-                  <strong>{worker.assignment}</strong>
+                  <strong>{worker.activeAssignment ? `#${worker.activeAssignment.complaintId}` : "—"}</strong>
                 </div>
                 <div className="crew-stat-row">
-                  <span className="text-body">{worker.metricLabel}</span>
-                  <strong>{worker.metric}</strong>
+                  <span className="text-body">Complaint</span>
+                  <strong>{worker.activeAssignment?.title ?? "No active assignment"}</strong>
                 </div>
                 <div className="crew-stat-row">
-                  <span className="text-body">Avg. Resolution</span>
-                  <strong>{worker.resolution}</strong>
+                  <span className="text-body">Duty status</span>
+                  <div
+                    className={`worker-duty-control worker-duty-${worker.dutyStatus}${worker.activeAssignment ? " worker-duty-locked" : ""}`}
+                    title={worker.activeAssignment ? "Duty status cannot be changed while this worker has an active assignment." : undefined}
+                  >
+                    <span className="worker-duty-indicator" aria-hidden="true" />
+                    <select
+                      className="worker-duty-select"
+                      value={worker.dutyStatus}
+                      disabled={Boolean(worker.activeAssignment) || busyWorkerId === worker.id}
+                      onChange={(event) => void handleDutyChange(worker, event.target.value as FieldWorker["dutyStatus"])}
+                      aria-label={`Duty status for ${worker.name}${worker.activeAssignment ? ". Locked while an active assignment is in progress." : ""}`}
+                    >
+                      <option value="available">Available</option>
+                      <option value="off_duty">Off-duty</option>
+                      <option value="on_leave">On leave</option>
+                    </select>
+                    {worker.activeAssignment && (
+                      <span className="worker-duty-lock" aria-hidden="true">🔒</span>
+                    )}
+                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  className={`btn ${worker.type === "dispatch" ? "btn-navy" : "btn-secondary"} btn-block btn-sm mt-3`}
-                  disabled={worker.type === "off-duty"}
-                  style={
-                    worker.type === "off-duty"
-                      ? { opacity: 0.6, cursor: "not-allowed" }
-                      : undefined
-                  }
-                  onClick={() => {
-                    if (worker.type === "ticket" && worker.complaintId) {
-                      onViewComplaint(worker.complaintId);
-                    } else if (worker.type === "dispatch") {
-                      if (complaintToAssign) {
-                        onAssignCrew(complaintToAssign.id, worker.name);
-                        onBack();
-                      } else {
-                        onDispatch();
-                      }
-                    }
-                  }}
-                >
-                  {worker.action}
-                </button>
+                {worker.activeAssignment ? (
+                  <div className="flex gap-2 mt-3">
+                    <button type="button" className="btn btn-navy btn-sm" disabled={Boolean(busyWorkerId)} onClick={() => void handleEndAssignment(worker, "completed")}>Complete</button>
+                    <button type="button" className="btn btn-secondary btn-sm" disabled={Boolean(busyWorkerId)} onClick={() => void handleEndAssignment(worker, "released")}>Release</button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className={`btn ${worker.dutyStatus !== "available" ? "btn-secondary worker-dispatch-unavailable" : "btn-navy"} btn-block btn-sm mt-3`}
+                    disabled={!complaintToAssign || worker.availability !== "available" || Boolean(busyWorkerId)}
+                    onClick={() => void handleDispatch(worker)}
+                  >
+                    {worker.dutyStatus === "off_duty"
+                      ? "Unavailable — Off Duty"
+                      : worker.dutyStatus === "on_leave"
+                        ? "Unavailable — On Leave"
+                      : busyWorkerId === worker.id
+                        ? "Dispatching…"
+                        : complaintToAssign
+                          ? "Dispatch to Ticket →"
+                          : "Select a complaint to dispatch"}
+                  </button>
+                )}
               </article>
             ))}
           </div>
         </section>
+
+        {showCreateForm && (
+          <div
+            className="confirmation-overlay worker-create-overlay"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !creatingWorkerRef.current) {
+                closeCreateWorkerModal();
+              }
+            }}
+          >
+            <section
+              ref={createWorkerDialogRef}
+              className="confirmation-modal worker-create-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-worker-title"
+              aria-describedby="create-worker-description"
+            >
+              <button
+                type="button"
+                className="timeline-close"
+                onClick={closeCreateWorkerModal}
+                aria-label="Close Add New Crew Member dialog"
+                disabled={creatingWorker}
+              >
+                ×
+              </button>
+              <div className="worker-create-heading">
+                <span className="timeline-eyebrow">NAGRIKCONNECT ADMINISTRATION</span>
+                <h2 id="create-worker-title">Add New Crew Member</h2>
+                <p id="create-worker-description">
+                  Register a municipal field worker to manage complaint assignments.
+                </p>
+              </div>
+              <form onSubmit={(event) => void handleCreateWorker(event)} noValidate>
+                <div className="worker-create-fields">
+                  {([
+                    ["name", "Full Name", "Enter the worker's full name"],
+                    ["designation", "Designation", "e.g. Field Engineer"],
+                    ["department", "Department", "e.g. Roads and Public Works"],
+                    ["contactInfo", "Contact Information (optional)", "Phone number or other contact details"],
+                  ] as const).map(([field, label, placeholder]) => (
+                    <label key={field} className="worker-create-field" htmlFor={`new-worker-${field}`}>
+                      <span>
+                        {label}
+                        {field !== "contactInfo" && <span className="worker-required"> *</span>}
+                      </span>
+                      <input
+                        id={`new-worker-${field}`}
+                        type="text"
+                        autoComplete={field === "name" ? "name" : "off"}
+                        value={newWorker[field]}
+                        onChange={(event) => setNewWorker((current) => ({ ...current, [field]: event.target.value }))}
+                        placeholder={placeholder}
+                        required={field !== "contactInfo"}
+                        maxLength={field === "contactInfo" ? 120 : 160}
+                        disabled={creatingWorker}
+                      />
+                    </label>
+                  ))}
+                </div>
+                {createWorkerError && <p className="worker-create-error" role="alert">{createWorkerError}</p>}
+                <div className="worker-create-actions">
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={closeCreateWorkerModal}
+                    disabled={creatingWorker}
+                  >
+                    Cancel
+                  </button>
+                  <button className="btn btn-navy" type="submit" disabled={creatingWorker}>
+                    {creatingWorker ? "Saving…" : "Save Worker"}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        )}
 
         <footer className="site-footer">
           <div className="container">

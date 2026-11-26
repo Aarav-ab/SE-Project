@@ -2,6 +2,8 @@ import DepartmentComplaintModal from "./DepartmentComplaintModal";
 import { useState } from "react";
 import { useComplaint } from "../ComplaintContext";
 
+const complaintsPerPage = 5;
+
 type DepartmentComplaint = {
   id: string;
   category: string;
@@ -16,6 +18,7 @@ type DepartmentComplaint = {
   feedback: string;
   priority: string;
   reporterName: string;
+  assignmentId: string | null;
 };
 
 type DepartmentPortalProps = {
@@ -27,7 +30,6 @@ type DepartmentPortalProps = {
     title: string;
     location: string;
   }) => void;
-  crewAssignments: Record<string, string>;
 };
 
 function DepartmentPortal({
@@ -35,11 +37,11 @@ function DepartmentPortal({
   onOpenFieldWorkers,
   onOpenAnalytics,
   onAssignComplaint,
-  crewAssignments,
 }: DepartmentPortalProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedComplaint, setSelectedComplaint] = useState<
     DepartmentComplaint | null
   >(null);
@@ -63,7 +65,8 @@ function DepartmentPortal({
       age: `Reported ${new Date(item.submittedAt).toLocaleString()}`,
       title: item.description,
       location: item.address || item.ward,
-      assigned: "Unassigned (Action Needed)",
+      assigned: item.assignedWorker?.name ?? "Unassigned (Action Needed)",
+      assignmentId: item.assignmentId ?? null,
       status: item.status,
       icon: "📋",
       iconBg: "var(--blue-200)",
@@ -112,22 +115,52 @@ function DepartmentPortal({
 
     return matchesSearch && matchesStatus && matchesCategory;
   });
+  const pageCount = Math.ceil(filteredComplaints.length / complaintsPerPage);
+  const displayedPage = Math.min(currentPage, Math.max(pageCount, 1));
+  const pageStartIndex = (displayedPage - 1) * complaintsPerPage;
+  const pageComplaints = filteredComplaints.slice(
+    pageStartIndex,
+    pageStartIndex + complaintsPerPage,
+  );
+  const firstDisplayedComplaint = filteredComplaints.length ? pageStartIndex + 1 : 0;
+  const lastDisplayedComplaint = Math.min(
+    pageStartIndex + complaintsPerPage,
+    filteredComplaints.length,
+  );
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    setCurrentPage(1);
+  }
+
+  function complaintStatusClass(status: string) {
+    switch (status) {
+      case "Resolved":
+        return "resolved";
+      case "In Progress":
+        return "in-progress";
+      case "Pending Dispatch":
+        return "pending";
+      default:
+        return "other";
+    }
+  }
 
   return (
     <div className="admin-wrap">
       <aside className="admin-sidebar">
         <div>
           <div className="brand">
-            <div className="brand-mark" style={{ width: 32, height: 32 }}>
+            <div className="brand-mark">
               <svg
-                width="16"
-                height="16"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path d="M3 21h18M4 21V8l8-5 8 5v13" />
+                <path d="M3 21h18M4 21V8l8-5 8 5v13M9 21v-6h6v6" />
               </svg>
             </div>
             <div>
@@ -183,20 +216,16 @@ function DepartmentPortal({
             <strong style={{ color: "var(--navy)", fontSize: 18 }}>
               NagrikConnect Administration Core
             </strong>
-            <span className="pill" style={{ background: "var(--blue-200)" }}>
-              <span className="dot" style={{ background: "#61b15f" }} />
-              Municipal Operations
-            </span>
           </div>
 
-          <div className="flex gap-3 items-center">
+          <div className="flex items-center admin-header-actions">
             <div className="admin-search">
               🔍
               <input
                 type="search"
                 placeholder="Search complaints, tokens..."
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => updateSearch(event.target.value)}
               />
             </div>
 
@@ -333,7 +362,7 @@ function DepartmentPortal({
                   type="search"
                   placeholder="Search by ID, keyword, or locality..."
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => updateSearch(event.target.value)}
                 />
               </div>
 
@@ -350,7 +379,10 @@ function DepartmentPortal({
                       type="button"
                       key={status}
                       className={`status-pill ${statusFilter === status ? "active" : ""}`}
-                      onClick={() => setStatusFilter(status)}
+                      onClick={() => {
+                        setStatusFilter(status);
+                        setCurrentPage(1);
+                      }}
                     >
                       {status}
                     </button>
@@ -372,7 +404,10 @@ function DepartmentPortal({
                     type="button"
                     key={category}
                     className={`cat-chip ${categoryFilter === category ? "active" : ""}`}
-                    onClick={() => setCategoryFilter(category)}
+                    onClick={() => {
+                      setCategoryFilter(category);
+                      setCurrentPage(1);
+                    }}
                   >
                     {category}
                     {category === "All" && (
@@ -384,14 +419,10 @@ function DepartmentPortal({
             </div>
           </div>
 
-          {filteredComplaints.map((complaint) => {
-            const assignedCrew = crewAssignments[complaint.id];
-            const displayStatus = assignedCrew
-              ? "In Progress"
-              : complaint.status;
-
+          {pageComplaints.map((complaint) => {
+            const statusClass = complaintStatusClass(complaint.status);
             return (
-              <div className="complaint-row" key={complaint.id}>
+              <div className={`complaint-row complaint-row--${statusClass}`} key={complaint.id}>
                 <div className="flex gap-3" style={{ flex: 1, minWidth: 260 }}>
                   <div
                     className="row-icon"
@@ -423,7 +454,7 @@ function DepartmentPortal({
                           ? "Executed by: "
                           : "👤 Assigned: "}
                         <strong>
-                          {crewAssignments[complaint.id] ?? complaint.assigned}
+                          {complaint.assigned}
                         </strong>
                       </span>
                     </div>
@@ -432,36 +463,12 @@ function DepartmentPortal({
 
                 <div className="flex gap-3 items-center">
                   <span
-                    className="pill"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "6px 12px",
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                      ...(complaint.status === "In Progress"
-                        ? {
-                            background: "var(--amber-bg)",
-                            color: "var(--amber)",
-                          }
-                        : complaint.status === "Resolved"
-                          ? {
-                              background: "var(--blue-100)",
-                              color: "var(--green-text)",
-                            }
-                          : {
-                              background: "var(--red-bg)",
-                              color: "var(--red)",
-                            }),
-                    }}
+                    className={`pill complaint-status-badge complaint-status-badge--${statusClass}`}
                   >
-                    {displayStatus}
+                    {complaint.status}
                   </span>
 
-                  {!assignedCrew && complaint.status === "Pending Dispatch" && (
+                  {!complaint.assignmentId && complaint.status === "Pending Dispatch" && (
                     <button
                       type="button"
                       className="btn btn-amber btn-sm"
@@ -488,32 +495,44 @@ function DepartmentPortal({
             </div>
           )}
 
-          <div className="pager">
-            <span className="small text-body">
-              Showing <strong>{filteredComplaints.length}</strong> of{" "}
-              <strong>{allDepartmentComplaints.length}</strong> complaints
-            </span>
-            <div className="flex gap-1 items-center">
-              <button type="button" className="page-btn" disabled>
-                ← Previous
-              </button>
-              <button type="button" className="page-btn active">
-                1
-              </button>
-              <button type="button" className="page-btn">
-                2
-              </button>
-              <button type="button" className="page-btn">
-                3
-              </button>
-              <button type="button" className="page-btn">
-                4
-              </button>
-              <button type="button" className="page-btn">
-                Next →
-              </button>
+          {filteredComplaints.length > complaintsPerPage && (
+            <div className="pager">
+              <span className="small text-body" aria-live="polite">
+                Showing <strong>{firstDisplayedComplaint}–{lastDisplayedComplaint}</strong> of{" "}
+                <strong>{filteredComplaints.length}</strong> complaints
+              </span>
+              <div className="flex gap-1 items-center" aria-label="Complaint pages">
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={displayedPage === 1}
+                  onClick={() => setCurrentPage(Math.max(1, displayedPage - 1))}
+                >
+                  ← Previous
+                </button>
+                {Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => (
+                  <button
+                    type="button"
+                    key={page}
+                    className={`page-btn ${displayedPage === page ? "active" : ""}`}
+                    aria-current={displayedPage === page ? "page" : undefined}
+                    aria-label={`Page ${page}`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="page-btn"
+                  disabled={displayedPage === pageCount}
+                  onClick={() => setCurrentPage(Math.min(pageCount, displayedPage + 1))}
+                >
+                  Next →
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </main>
 
         <footer className="site-footer">

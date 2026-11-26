@@ -7,6 +7,8 @@ import cookieParser from "cookie-parser";
 import { authRouter } from "./auth.js";
 import { complaintsRouter } from "./complaints.js";
 import { profileRouter } from "./profile.js";
+import { workersRouter } from "./workers.js";
+import { analyticsRouter } from "./analytics.js";
 import { initializeDatabase, pool } from "./db.js";
 
 const app = express();
@@ -35,6 +37,8 @@ app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHe
 app.use("/api/auth", authRouter);
 app.use("/api/complaints", complaintsRouter);
 app.use("/api/profile", profileRouter);
+app.use("/api", workersRouter);
+app.use("/api", analyticsRouter);
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 app.use((error, _req, res, _next) => {

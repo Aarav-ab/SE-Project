@@ -24,9 +24,6 @@ function AppShell() {
     profileCompletionRequired,
   } = useComplaint();
   const [currentPage, setCurrentPage] = useState("login");
-  const [crewAssignments, setCrewAssignments] = useState<
-    Record<string, string>
-  >({});
   const [currentStep, setCurrentStep] = useState(1);
   const [complaintToAssign, setComplaintToAssign] = useState<{
     id: string;
@@ -114,7 +111,6 @@ function AppShell() {
           });
           setCurrentPage("field-workers");
         }}
-        crewAssignments={crewAssignments}
       />
     );
   }
@@ -137,15 +133,7 @@ function AppShell() {
           setCurrentPage("department");
         }}
         onSignOut={handleSignOut}
-        onViewComplaint={() => setCurrentPage("department")}
-        onDispatch={() => setCurrentPage("department")}
         complaintToAssign={complaintToAssign}
-        onAssignCrew={(complaintId, crewName) => {
-          setCrewAssignments((current) => ({
-            ...current,
-            [complaintId]: crewName,
-          }));
-        }}
         onOpenAnalytics={() => setCurrentPage("department-analytics")}
       />
     );
