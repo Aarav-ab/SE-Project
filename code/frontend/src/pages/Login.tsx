@@ -200,15 +200,9 @@ function Login({ onLogin, onGoToRegister, preFilledEmail, successMessage }: Logi
             </div>
 
             <div className="field">
-              <div className="flex justify-between items-center">
-                <label style={{ margin: 0 }}>
-                  Password <span className="req">*</span>
-                </label>
-
-                <a href="#" className="forgot-link">
-                  Forgot Password?
-                </a>
-              </div>
+              <label style={{ margin: 0 }}>
+                Password <span className="req">*</span>
+              </label>
 
               <div className="input-wrap" style={{ marginTop: "6px" }}>
                 <span className="icon">

@@ -225,6 +225,102 @@ export async function getMe(req: AuthRequest, res: Response) {
   }
 }
 
+export async function updateProfile(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+
+    const {
+      name,
+      phone,
+      address,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      pincode,
+    } = req.body;
+
+    if (!name || !String(name).trim()) {
+      res.status(400).json({ error: "Full name is required." });
+      return;
+    }
+
+    const trimmedPincode = pincode ? String(pincode).trim() : "";
+    if (trimmedPincode && !/^\d{6}$/.test(trimmedPincode)) {
+      res.status(400).json({ error: "PIN code must be a valid 6-digit number." });
+      return;
+    }
+
+    const line1 = addressLine1 !== undefined ? String(addressLine1).trim() : undefined;
+    const line2 = addressLine2 !== undefined ? String(addressLine2).trim() : undefined;
+    const userCity = city !== undefined ? String(city).trim() : undefined;
+    const userState = state !== undefined ? String(state).trim() : undefined;
+
+    const hasStructuredParts =
+      line1 !== undefined ||
+      line2 !== undefined ||
+      userCity !== undefined ||
+      userState !== undefined ||
+      pincode !== undefined;
+
+    const combinedAddress = hasStructuredParts
+      ? [line1, line2, userCity, userState, trimmedPincode]
+          .filter(Boolean)
+          .join(", ")
+      : address !== undefined
+      ? String(address).trim()
+      : undefined;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        name: String(name).trim(),
+        ...(phone !== undefined ? { phone: String(phone).trim() || null } : {}),
+        ...(combinedAddress !== undefined ? { address: combinedAddress || null } : {}),
+        ...(line1 !== undefined ? { addressLine1: line1 || null } : {}),
+        ...(line2 !== undefined ? { addressLine2: line2 || null } : {}),
+        ...(userCity !== undefined ? { city: userCity || null } : {}),
+        ...(userState !== undefined ? { state: userState || null } : {}),
+        ...(pincode !== undefined ? { pincode: trimmedPincode || null } : {}),
+      },
+      include: { ward: true },
+    });
+
+    const token = generateToken({
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      role: updatedUser.role,
+      wardId: updatedUser.wardId,
+    });
+
+    res.json({
+      message: "Profile updated successfully!",
+      token,
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        phone: updatedUser.phone,
+        address: updatedUser.address,
+        addressLine1: updatedUser.addressLine1,
+        addressLine2: updatedUser.addressLine2,
+        city: updatedUser.city,
+        state: updatedUser.state,
+        pincode: updatedUser.pincode,
+        ward: updatedUser.ward,
+      },
+    });
+  } catch (error) {
+    console.error("updateProfile error:", error);
+    res.status(500).json({ error: "Failed to update profile details." });
+  }
+}
+
 export async function changePassword(req: AuthRequest, res: Response) {
   try {
     const { oldPassword, newPassword, email } = req.body;

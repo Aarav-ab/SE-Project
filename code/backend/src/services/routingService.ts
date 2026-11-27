@@ -7,38 +7,101 @@ export interface DepartmentSuggestion {
   reason: string;
 }
 
+const CATEGORY_ROUTING: Record<
+  string,
+  { departmentId: string; departmentName: string; category: string; reason: string }
+> = {
+  "pothole / road": {
+    departmentId: "pwd",
+    departmentName: "Roads & Public Works (PWD)",
+    category: "Pothole / Road",
+    reason: "Routed by selected category to Roads & Public Works (PWD).",
+  },
+  streetlight: {
+    departmentId: "electrical",
+    departmentName: "Electrical & Streetlighting",
+    category: "Streetlight",
+    reason: "Routed by selected category to Electrical & Streetlighting.",
+  },
+  "garbage / waste": {
+    departmentId: "swm",
+    departmentName: "Sanitation (SWM)",
+    category: "Garbage / Waste",
+    reason: "Routed by selected category to Sanitation (SWM).",
+  },
+  garbage: {
+    departmentId: "swm",
+    departmentName: "Sanitation (SWM)",
+    category: "Garbage / Waste",
+    reason: "Routed by selected category to Sanitation (SWM).",
+  },
+  "drainage / water": {
+    departmentId: "water",
+    departmentName: "Water Supply & Drainage",
+    category: "Drainage / Water",
+    reason: "Routed by selected category to Water Supply & Drainage.",
+  },
+  drainage: {
+    departmentId: "water",
+    departmentName: "Water Supply & Drainage",
+    category: "Drainage / Water",
+    reason: "Routed by selected category to Water Supply & Drainage.",
+  },
+  "water supply": {
+    departmentId: "water",
+    departmentName: "Water Supply & Drainage",
+    category: "Drainage / Water",
+    reason: "Routed by selected category to Water Supply & Drainage.",
+  },
+};
+
+function inferPriority(departmentId: string, text: string): "Low" | "Medium" | "Urgent" {
+  if (
+    departmentId === "pwd" &&
+    (text.includes("accident") || text.includes("deep") || text.includes("severe"))
+  ) {
+    return "Urgent";
+  }
+  if (
+    departmentId === "electrical" &&
+    (text.includes("spark") || text.includes("danger") || text.includes("shock"))
+  ) {
+    return "Urgent";
+  }
+  if (
+    departmentId === "water" &&
+    (text.includes("flood") || text.includes("sewer") || text.includes("contamination"))
+  ) {
+    return "Urgent";
+  }
+  if (departmentId === "swm") {
+    return text.includes("overflow") || text.includes("rotten") ? "Medium" : "Low";
+  }
+  return "Medium";
+}
+
 export function recommendDepartment(
   title: string,
   description: string,
   explicitCategory?: string
 ): DepartmentSuggestion {
-  const text = `${title} ${description} ${explicitCategory || ""}`.toLowerCase();
+  const descAndTitle = `${description} ${title}`.toLowerCase();
 
-  // 1. Roads & Public Works (PWD)
-  if (
-    text.includes("pothole") ||
-    text.includes("road") ||
-    text.includes("paver") ||
-    text.includes("footpath") ||
-    text.includes("sidewalk") ||
-    text.includes("asphalt") ||
-    text.includes("tar") ||
-    text.includes("crater") ||
-    text.includes("divider") ||
-    explicitCategory === "Pothole / Road"
-  ) {
-    const isUrgent = text.includes("accident") || text.includes("deep") || text.includes("severe");
+  // Honor explicit category selection first so street names (e.g. "Nabha Road") never override it
+  const normalizedCategory = explicitCategory?.trim().toLowerCase();
+  if (normalizedCategory && CATEGORY_ROUTING[normalizedCategory]) {
+    const matched = CATEGORY_ROUTING[normalizedCategory];
     return {
-      departmentId: "pwd",
-      departmentName: "Roads & Public Works (PWD)",
-      category: "Pothole / Road",
-      confidence: 0.95,
-      priority: isUrgent ? "Urgent" : "Medium",
-      reason: "Matched road infrastructure and pavement maintenance keywords.",
+      ...matched,
+      confidence: 0.98,
+      priority: inferPriority(matched.departmentId, descAndTitle),
     };
   }
 
-  // 2. Electrical & Streetlighting
+  // Fallback keyword classification prefers description over title/address
+  const text = `${description} ${title} ${explicitCategory || ""}`.toLowerCase();
+
+  // 1. Electrical & Streetlighting
   if (
     text.includes("streetlight") ||
     text.includes("light") ||
@@ -48,20 +111,19 @@ export function recommendDepartment(
     text.includes("dark") ||
     text.includes("wire") ||
     text.includes("blackout") ||
-    text.includes("flickering") ||
-    explicitCategory === "Streetlight"
+    text.includes("flickering")
   ) {
     return {
       departmentId: "electrical",
       departmentName: "Electrical & Streetlighting",
       category: "Streetlight",
       confidence: 0.92,
-      priority: text.includes("spark") || text.includes("danger") ? "Urgent" : "Medium",
+      priority: inferPriority("electrical", text),
       reason: "Matched municipal street lighting and public electrical keywords.",
     };
   }
 
-  // 3. Sanitation (SWM)
+  // 2. Sanitation (SWM)
   if (
     text.includes("garbage") ||
     text.includes("waste") ||
@@ -71,20 +133,19 @@ export function recommendDepartment(
     text.includes("litter") ||
     text.includes("smell") ||
     text.includes("debris") ||
-    text.includes("sweeper") ||
-    explicitCategory === "Garbage / Waste"
+    text.includes("sweeper")
   ) {
     return {
       departmentId: "swm",
       departmentName: "Sanitation (SWM)",
       category: "Garbage / Waste",
       confidence: 0.94,
-      priority: text.includes("overflow") || text.includes("rotten") ? "Medium" : "Low",
+      priority: inferPriority("swm", text),
       reason: "Matched solid waste management and sanitation keywords.",
     };
   }
 
-  // 4. Water Supply & Drainage
+  // 3. Water Supply & Drainage
   if (
     text.includes("drain") ||
     text.includes("drainage") ||
@@ -95,17 +156,37 @@ export function recommendDepartment(
     text.includes("leak") ||
     text.includes("contamination") ||
     text.includes("sump") ||
-    text.includes("flood") ||
-    explicitCategory === "Drainage / Water"
+    text.includes("flood")
   ) {
-    const isUrgent = text.includes("flood") || text.includes("sewer") || text.includes("contamination");
     return {
       departmentId: "water",
       departmentName: "Water Supply & Drainage",
       category: "Drainage / Water",
       confidence: 0.91,
-      priority: isUrgent ? "Urgent" : "Medium",
+      priority: inferPriority("water", text),
       reason: "Matched municipal water supply, stormwater, and drainage keywords.",
+    };
+  }
+
+  // 4. Roads & Public Works (PWD)
+  if (
+    text.includes("pothole") ||
+    text.includes("road") ||
+    text.includes("paver") ||
+    text.includes("footpath") ||
+    text.includes("sidewalk") ||
+    text.includes("asphalt") ||
+    text.includes("tar") ||
+    text.includes("crater") ||
+    text.includes("divider")
+  ) {
+    return {
+      departmentId: "pwd",
+      departmentName: "Roads & Public Works (PWD)",
+      category: "Pothole / Road",
+      confidence: 0.95,
+      priority: inferPriority("pwd", text),
+      reason: "Matched road infrastructure and pavement maintenance keywords.",
     };
   }
 

@@ -1,6 +1,7 @@
 import DepartmentComplaintModal from "./DepartmentComplaintModal";
 import { useState } from "react";
 import { useComplaint } from "../ComplaintContext";
+import { getCurrentUser } from "../api";
 
 type DepartmentPortalProps = {
   onSignOut: () => void;
@@ -84,8 +85,16 @@ function DepartmentPortal({
   onOpenAnalytics,
   onAssignComplaint,
   crewAssignments,
-  onUpdateCrewAssignment: _onUpdateCrewAssignment,
 }: DepartmentPortalProps) {
+  const currentUser = getCurrentUser();
+  const adminName = currentUser?.name || "Anita Rao (Admin)";
+  const adminInitials =
+    adminName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "AR";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -295,9 +304,9 @@ function DepartmentPortal({
             </div>
 
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{adminInitials}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
+                <div className="user-name">{adminName}</div>
                 <div className="user-role">Officer Gr. I</div>
               </div>
             </div>
@@ -536,12 +545,12 @@ function DepartmentPortal({
                       fontSize: 12,
                       fontWeight: 600,
                       whiteSpace: "nowrap",
-                      ...(complaint.status === "In Progress"
+                      ...(displayStatus === "In Progress" || displayStatus === "Assigned"
                         ? {
                             background: "var(--amber-bg)",
                             color: "var(--amber)",
                           }
-                        : complaint.status === "Resolved"
+                        : displayStatus === "Resolved"
                           ? {
                               background: "var(--blue-100)",
                               color: "var(--green-text)",

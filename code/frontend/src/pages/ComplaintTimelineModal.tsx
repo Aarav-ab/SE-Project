@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { fetchComplaintById, type ApiComplaint } from "../api";
+import {
+  fetchComplaintById,
+  type ApiComplaint,
+  type ApiTimelineEvent,
+} from "../api";
 
 type ComplaintTimelineModalProps = {
   complaintId: string;
@@ -8,6 +12,8 @@ type ComplaintTimelineModalProps = {
     id: string;
     title: string;
     category: string;
+    department?: string;
+    complaintType?: string;
     location: string;
     date: string;
     status: string;
@@ -17,7 +23,7 @@ type ComplaintTimelineModalProps = {
     step?: number;
     progress?: string;
     resolved?: boolean;
-    events?: any[];
+    timeline?: ApiTimelineEvent[];
   };
   onClose: () => void;
 };
@@ -211,49 +217,52 @@ function ComplaintTimelineModal({
   onClose,
 }: ComplaintTimelineModalProps) {
   const [serverComplaint, setServerComplaint] = useState<ApiComplaint | null>(null);
-  const [, setLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    if (complaintId) {
-      setLoading(true);
-      fetchComplaintById(complaintId)
-        .then((data) => {
-          if (mounted && data) {
-            setServerComplaint(data);
-          }
-        })
-        .finally(() => {
-          if (mounted) setLoading(false);
-        });
+    // Skip redundant fetch if timeline was already loaded into ComplaintContext
+    if (complaintId && !complaintData?.timeline) {
+      fetchComplaintById(complaintId).then((data) => {
+        if (mounted && data) {
+          setServerComplaint(data);
+        }
+      });
     }
     return () => {
       mounted = false;
     };
-  }, [complaintId]);
+  }, [complaintId, complaintData?.timeline]);
 
   // Fallback mock if complaintId matches demo data
   const mockFallback = timelineData[complaintId];
 
-  // Derive initial values from complaintData prop, serverComplaint, or mockFallback
+  // Derive initial values from serverComplaint, complaintData prop, or mockFallback
   const rawStatus =
     serverComplaint?.status ||
     complaintData?.status ||
     mockFallback?.status ||
-    "In Progress";
+    "Pending Dispatch";
+
+  const isPendingDispatch =
+    rawStatus === "Pending Dispatch" &&
+    !serverComplaint?.assignedWorker?.name &&
+    !complaintData?.assignedWorker;
 
   const isResolved =
-    Boolean(complaintData?.resolved) ||
-    rawStatus.toLowerCase().includes("resolve") ||
-    rawStatus.toLowerCase().includes("closed") ||
-    serverComplaint?.status === "Resolved" ||
-    serverComplaint?.status === "Closed" ||
-    Boolean(mockFallback?.status?.toLowerCase().includes("resolve"));
+    !isPendingDispatch &&
+    (Boolean(complaintData?.resolved) ||
+      rawStatus.toLowerCase().includes("resolve") ||
+      rawStatus.toLowerCase().includes("closed") ||
+      serverComplaint?.status === "Resolved" ||
+      serverComplaint?.status === "Closed" ||
+      Boolean(mockFallback?.status?.toLowerCase().includes("resolve")));
 
-  // Calculate effectiveStep (1-4) to match progress on card
+  // Calculate effectiveStep (1-4) consistently with ComplaintsLog
   let effectiveStep = 1;
   if (isResolved) {
     effectiveStep = 4;
+  } else if (isPendingDispatch) {
+    effectiveStep = 1;
   } else if (currentStep && currentStep >= 1 && currentStep <= 4) {
     effectiveStep = currentStep;
   } else if (complaintData?.step && complaintData.step >= 1 && complaintData.step <= 4) {
@@ -270,28 +279,29 @@ function ComplaintTimelineModal({
     effectiveStep = mockFallback.currentStep;
   }
 
-  // Check if server complaint timeline has higher step events
-  if (!isResolved && serverComplaint?.timeline && serverComplaint.timeline.length > 0) {
-    for (const ev of serverComplaint.timeline) {
+  const timelineEvents = serverComplaint?.timeline || complaintData?.timeline;
+
+  // Advance only from explicit step >= 3 timeline events when not Pending Dispatch
+  if (!isResolved && !isPendingDispatch && timelineEvents && timelineEvents.length > 0) {
+    for (const ev of timelineEvents) {
       if (ev.step && ev.step > effectiveStep && ev.step <= 4) {
         effectiveStep = ev.step;
-      }
-      if (ev.status === "In Progress" && effectiveStep < 3) {
-        effectiveStep = 3;
       }
     }
   }
 
   const title =
-    serverComplaint?.title ||
+    serverComplaint?.description ||
     complaintData?.title ||
+    serverComplaint?.title ||
     mockFallback?.title ||
     "Civic Grievance";
 
   const category =
     serverComplaint?.department?.name ||
-    serverComplaint?.complaintType ||
+    complaintData?.department ||
     complaintData?.category ||
+    serverComplaint?.complaintType ||
     mockFallback?.category ||
     "Civic Department";
 
@@ -309,12 +319,13 @@ function ComplaintTimelineModal({
       })
     : complaintData?.date || mockFallback?.date || "Recently filed";
 
-  const assignedOfficer =
-    serverComplaint?.assignedWorker?.name ||
-    complaintData?.assignedWorker ||
-    complaintData?.assignedTo ||
-    mockFallback?.assignedTo ||
-    (effectiveStep >= 2 ? "Assigned Field Officer" : "Pending Crew Assignment");
+  const assignedOfficer = isPendingDispatch
+    ? "Pending Crew Assignment"
+    : serverComplaint?.assignedWorker?.name ||
+      complaintData?.assignedWorker ||
+      complaintData?.assignedTo ||
+      mockFallback?.assignedTo ||
+      (effectiveStep >= 2 ? "Assigned Field Crew" : "Pending Crew Assignment");
 
   const priority =
     serverComplaint?.priority ||
@@ -322,11 +333,11 @@ function ComplaintTimelineModal({
     mockFallback?.priority ||
     "Medium";
 
-  // Build the 4-step timeline events
-  const step1Event = serverComplaint?.timeline?.find((t) => t.step === 1);
-  const step2Event = serverComplaint?.timeline?.find((t) => t.step === 2);
-  const step3Event = serverComplaint?.timeline?.find((t) => t.step === 3);
-  const step4Event = serverComplaint?.timeline?.find((t) => t.step === 4);
+  // Build the 4-step timeline events (hide stale step >= 2 events if Pending Dispatch)
+  const step1Event = timelineEvents?.find((t) => t.step === 1);
+  const step2Event = effectiveStep >= 2 ? timelineEvents?.find((t) => t.step === 2) : undefined;
+  const step3Event = effectiveStep >= 3 ? timelineEvents?.find((t) => t.step === 3) : undefined;
+  const step4Event = effectiveStep >= 4 ? timelineEvents?.find((t) => t.step === 4) : undefined;
 
   const mockEvents = mockFallback?.events;
 
@@ -374,7 +385,7 @@ function ComplaintTimelineModal({
       author:
         step2Event?.author ||
         mockEvents?.[1]?.author ||
-        (effectiveStep >= 2 ? "Anita Rao (Admin)" : undefined),
+        (effectiveStep >= 2 ? "Municipal Administrator" : undefined),
     },
     {
       title: "Work in Progress",

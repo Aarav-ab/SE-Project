@@ -1,14 +1,25 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
+import {
+  getCached,
+  setCached,
+  invalidateAllOperationalCaches,
+} from "../config/cache";
 
 export async function getAllWorkers(req: Request, res: Response) {
   try {
+    const cached = getCached("workers:all");
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const workers = await prisma.fieldWorker.findMany({
       include: {
         department: true,
         complaints: {
           where: {
-            status: { in: ["Pending Dispatch", "In Progress"] },
+            status: { in: ["Pending Dispatch", "Assigned", "In Progress"] },
           },
           select: {
             id: true,
@@ -61,7 +72,9 @@ export async function getAllWorkers(req: Request, res: Response) {
       };
     });
 
-    res.json({ workers: formattedWorkers });
+    const payload = { workers: formattedWorkers };
+    setCached("workers:all", payload);
+    res.json(payload);
   } catch (error) {
     console.error("getAllWorkers error:", error);
     res.status(500).json({ error: "Failed to retrieve field workers." });
@@ -81,6 +94,7 @@ export async function updateWorkerStatus(req: Request, res: Response) {
       },
     });
 
+    invalidateAllOperationalCaches();
     res.json({ message: "Worker status updated", worker });
   } catch (error) {
     console.error("updateWorkerStatus error:", error);
@@ -139,6 +153,7 @@ export async function createWorker(req: Request, res: Response) {
       },
     });
 
+    invalidateAllOperationalCaches();
     res.status(201).json({ worker });
   } catch (error) {
     console.error("createWorker error:", error);
@@ -151,16 +166,32 @@ export async function freeWorker(req: Request, res: Response) {
     const { id } = req.params;
 
     // Unassign complaints that were actively assigned to this worker
-    await prisma.complaint.updateMany({
+    const activeAssigned = await prisma.complaint.findMany({
       where: {
         assignedWorkerId: id,
-        status: "In Progress",
+        status: { in: ["Assigned", "In Progress"] },
       },
-      data: {
-        status: "Pending Dispatch",
-        assignedWorkerId: null,
-      },
+      select: { id: true },
     });
+
+    if (activeAssigned.length > 0) {
+      const affectedIds = activeAssigned.map((c) => c.id);
+      await prisma.complaint.updateMany({
+        where: { id: { in: affectedIds } },
+        data: {
+          status: "Pending Dispatch",
+          assignedWorkerId: null,
+        },
+      });
+
+      // Remove stale assignment/progress timeline entries so Pending Dispatch stays at step 1
+      await prisma.timelineEvent.deleteMany({
+        where: {
+          complaintId: { in: affectedIds },
+          step: { gte: 2 },
+        },
+      });
+    }
 
     const worker = await prisma.fieldWorker.update({
       where: { id },
@@ -171,6 +202,7 @@ export async function freeWorker(req: Request, res: Response) {
       include: { department: true },
     });
 
+    invalidateAllOperationalCaches();
     res.json({ message: "Worker freed and set to Available", worker });
   } catch (error) {
     console.error("freeWorker error:", error);

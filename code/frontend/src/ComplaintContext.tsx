@@ -3,13 +3,17 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
+  useCallback,
   type ReactNode,
 } from "react";
 import {
   fetchComplaints,
   submitGrievance,
   deleteComplaintApi,
+  getCurrentUser,
   type ApiComplaint,
+  type ApiTimelineEvent,
 } from "./api";
 
 export type ComplaintData = {
@@ -27,14 +31,17 @@ export type ComplaintData = {
 
 export type SubmittedComplaint = ComplaintData & {
   id: string;
+  title?: string;
+  userId?: string | null;
   submittedAt: string;
   status: string;
   department: string;
+  departmentId?: string;
   assignedWorker?: string;
   step?: number;
   progress?: string;
   resolved?: boolean;
-  timeline?: any[];
+  timeline?: ApiTimelineEvent[];
 };
 
 export const fallbackComplaints: SubmittedComplaint[] = [
@@ -141,6 +148,8 @@ type ComplaintContextValue = {
   complaint: ComplaintData;
   updateComplaint: (updates: Partial<ComplaintData>) => void;
   submittedComplaints: SubmittedComplaint[];
+  areaComplaints: SubmittedComplaint[];
+  myComplaints: SubmittedComplaint[];
   allComplaints: SubmittedComplaint[];
   totalCount: number;
   inProgressCount: number;
@@ -148,83 +157,116 @@ type ComplaintContextValue = {
   addSubmittedComplaint: (complaint: ComplaintData) => Promise<string>;
   removeComplaint: (id: string) => Promise<boolean>;
   refreshComplaints: () => Promise<void>;
+  syncUserSession: () => void;
   isLoading: boolean;
 };
 
 const ComplaintContext = createContext<ComplaintContextValue | null>(null);
 
-function mapApiToSubmitted(c: ApiComplaint): SubmittedComplaint {
-  // Check if resolved from status or timeline
-  const isResolved =
-    c.status === "Resolved" ||
-    c.status === "Closed" ||
-    c.status?.toLowerCase().includes("resolve") ||
-    Boolean(
-      c.timeline?.some(
-        (t) =>
-          t.step === 4 ||
-          t.status === "Resolved" ||
-          t.title?.toLowerCase().includes("resolv")
-      )
-    );
-
-  // Check crew assignment from API, local storage, or timeline event
-  let storedCrew: string | undefined;
+function removeStaleCrewAssignment(complaintId: string) {
   try {
-    const raw =
-      typeof window !== "undefined"
-        ? localStorage.getItem("nc_crew_assignments")
-        : null;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed[c.id] && !parsed[c.id].includes("Unassigned")) {
-        storedCrew = parsed[c.id];
-      }
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("nc_crew_assignments");
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed[complaintId]) {
+      delete parsed[complaintId];
+      localStorage.setItem("nc_crew_assignments", JSON.stringify(parsed));
     }
-  } catch {}
+  } catch {
+    // Ignore localStorage parse errors
+  }
+}
 
-  const timelineWorker = c.timeline
-    ?.find((t) => t.description?.startsWith("Assigned to "))
-    ?.description?.replace("Assigned to ", "")
-    .replace(".", "")
-    .trim();
+function mapApiToSubmitted(c: ApiComplaint): SubmittedComplaint {
+  const isPendingDispatch = c.status === "Pending Dispatch" && !c.assignedWorker;
 
-  const assignedWorkerName =
-    c.assignedWorker?.name || storedCrew || timelineWorker || undefined;
+  // Check if resolved from status or timeline (unless reset to Pending Dispatch)
+  const isResolved =
+    !isPendingDispatch &&
+    (c.status === "Resolved" ||
+      c.status === "Closed" ||
+      c.status?.toLowerCase().includes("resolve") ||
+      Boolean(
+        c.timeline?.some(
+          (t) =>
+            t.step === 4 ||
+            t.status === "Resolved" ||
+            t.title?.toLowerCase().includes("resolv")
+        )
+      ));
+
+  if (isPendingDispatch) {
+    removeStaleCrewAssignment(c.id);
+  }
+
+  let storedCrew: string | undefined;
+  if (!isPendingDispatch) {
+    try {
+      const raw =
+        typeof window !== "undefined"
+          ? localStorage.getItem("nc_crew_assignments")
+          : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed[c.id] && !parsed[c.id].includes("Unassigned")) {
+          storedCrew = parsed[c.id];
+        }
+      }
+    } catch {
+      // Ignore localStorage parse errors
+    }
+  }
+
+  const timelineWorker = !isPendingDispatch
+    ? c.timeline
+        ?.find((t) => t.description?.startsWith("Assigned to "))
+        ?.description?.replace("Assigned to ", "")
+        .replace(".", "")
+        .trim()
+    : undefined;
+
+  const assignedWorkerName = isPendingDispatch
+    ? undefined
+    : c.assignedWorker?.name || storedCrew || timelineWorker || undefined;
 
   const hasWorkerAssigned = Boolean(
     assignedWorkerName && !assignedWorkerName.includes("Unassigned")
   );
 
-  // Check timeline events for progress
-  const hasTimelineInProgress = Boolean(
-    c.timeline?.some(
-      (t) =>
-        t.step === 3 ||
-        t.status === "In Progress" ||
-        t.title?.toLowerCase().includes("progress") ||
-        (t.comment && t.comment.toLowerCase().includes("dispatch"))
-    )
-  );
-
-  const hasTimelineAssigned =
-    hasWorkerAssigned ||
+  // Only treat as Step 3 (In Progress) when complaint status is In Progress or a step-3 timeline event exists
+  const hasTimelineInProgress =
+    !isPendingDispatch &&
     Boolean(
       c.timeline?.some(
         (t) =>
-          t.step === 2 ||
-          t.status === "Assigned" ||
-          t.title?.toLowerCase().includes("assign")
+          t.step === 3 ||
+          (t.step !== 2 && t.status === "In Progress") ||
+          t.title?.toLowerCase().includes("work in progress")
       )
     );
 
-  // Unified resolution step calculation matching the timeline modal
-  let step = 1;
-  let status = c.status;
+  const hasTimelineAssigned =
+    !isPendingDispatch &&
+    (hasWorkerAssigned ||
+      Boolean(
+        c.timeline?.some(
+          (t) =>
+            t.step === 2 ||
+            t.status === "Assigned" ||
+            t.title?.toLowerCase().includes("assign")
+        )
+      ));
+
+  let step: number;
+  let status: string;
 
   if (isResolved) {
     step = 4;
     status = "Resolved & Closed";
+  } else if (isPendingDispatch) {
+    step = 1;
+    status = "Pending Dispatch";
   } else if (c.status === "In Progress" || hasTimelineInProgress) {
     step = 3;
     status = "In Progress";
@@ -253,11 +295,16 @@ function mapApiToSubmitted(c: ApiComplaint): SubmittedComplaint {
     } • Site inspection scheduled.`;
   }
 
-  // Look for any specific comment or description in timeline
-  if (c.timeline && c.timeline.length > 0) {
+  // Only use timeline comments from events up to the active step
+  if (!isPendingDispatch && c.timeline && c.timeline.length > 0) {
     const latestEventWithComment = [...c.timeline]
       .reverse()
-      .find((t) => t.comment && t.comment.trim().length > 0);
+      .find(
+        (t) =>
+          (t.step ?? 1) <= step &&
+          t.comment &&
+          t.comment.trim().length > 0
+      );
     if (latestEventWithComment?.comment) {
       progress = latestEventWithComment.comment;
     }
@@ -275,9 +322,12 @@ function mapApiToSubmitted(c: ApiComplaint): SubmittedComplaint {
     description: c.description,
     priority: c.priority,
     id: c.id,
+    title: c.title,
+    userId: c.userId ?? null,
     submittedAt: c.createdAt,
     status,
     department: c.department?.name || "General Municipal Services",
+    departmentId: c.department?.id || c.departmentId,
     assignedWorker: assignedWorkerName,
     step,
     progress,
@@ -292,27 +342,46 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
   const [submittedComplaints, setSubmittedComplaints] = useState<
     SubmittedComplaint[]
   >([]);
+  const [hasLoadedFromServer, setHasLoadedFromServer] = useState(false);
+  const [activeUserId, setActiveUserId] = useState<string | null>(
+    () => getCurrentUser()?.id ?? null
+  );
   const [isLoading, setIsLoading] = useState(false);
+  const inFlightRefreshRef = useRef<Promise<void> | null>(null);
 
-  async function refreshComplaints() {
-    setIsLoading(true);
-    try {
-      const serverComplaints = await fetchComplaints();
-      const stored = localStorage.getItem("nc_deleted_complaints");
-      const deletedIds = new Set(stored ? JSON.parse(stored) : []);
-      if (serverComplaints && serverComplaints.length > 0) {
+  const syncUserSession = useCallback(() => {
+    setActiveUserId(getCurrentUser()?.id ?? null);
+  }, []);
+
+  const refreshComplaints = useCallback(async () => {
+    if (inFlightRefreshRef.current) {
+      return inFlightRefreshRef.current;
+    }
+
+    const promise = (async () => {
+      setIsLoading(true);
+      try {
+        const serverComplaints = await fetchComplaints();
+        const stored = localStorage.getItem("nc_deleted_complaints");
+        const deletedIds = new Set(stored ? JSON.parse(stored) : []);
         setSubmittedComplaints(
           serverComplaints
             .filter((c) => !deletedIds.has(c.id))
             .map(mapApiToSubmitted)
         );
+        setHasLoadedFromServer(true);
+        setActiveUserId(getCurrentUser()?.id ?? null);
+      } catch (e) {
+        console.warn("Could not load complaints from API:", e);
+      } finally {
+        setIsLoading(false);
+        inFlightRefreshRef.current = null;
       }
-    } catch (e) {
-      console.warn("Could not load complaints from API:", e);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    })();
+
+    inFlightRefreshRef.current = promise;
+    return promise;
+  }, []);
 
   async function removeComplaint(id: string): Promise<boolean> {
     try {
@@ -322,6 +391,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
     }
 
     setSubmittedComplaints((prev) => prev.filter((c) => c.id !== id));
+    removeStaleCrewAssignment(id);
 
     try {
       const stored = localStorage.getItem("nc_deleted_complaints");
@@ -330,14 +400,16 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         list.push(id);
         localStorage.setItem("nc_deleted_complaints", JSON.stringify(list));
       }
-    } catch {}
+    } catch {
+      // Ignore localStorage write errors
+    }
 
     return true;
   }
 
   useEffect(() => {
-    refreshComplaints();
-  }, []);
+    void Promise.resolve().then(() => refreshComplaints());
+  }, [refreshComplaints]);
 
   function updateComplaint(updates: Partial<ComplaintData>) {
     setComplaint((previous) => ({ ...previous, ...updates }));
@@ -355,10 +427,12 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       // 2. Fallback in case backend is offline
       const departmentMap: Record<string, string> = {
         "Pothole / Road": "Roads & Public Works (PWD)",
-        "Streetlight": "Electrical",
+        "Streetlight": "Electrical & Streetlighting",
         "Garbage": "Sanitation (SWM)",
+        "Garbage / Waste": "Sanitation (SWM)",
         "Water Supply": "Water Supply & Drainage",
         "Drainage": "Water Supply & Drainage",
+        "Drainage / Water": "Water Supply & Drainage",
       };
 
       const fallbackId = `GRV-OFFLINE-${Date.now().toString().slice(-4)}`;
@@ -366,6 +440,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         ...data,
         files: [...data.files],
         id: fallbackId,
+        userId: getCurrentUser()?.id ?? null,
         submittedAt: new Date().toISOString(),
         status: "Pending Dispatch",
         department:
@@ -384,17 +459,26 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
   const deletedIds = new Set(storedDeleted ? JSON.parse(storedDeleted) : []);
 
   const submittedIds = new Set(submittedComplaints.map((c) => c.id));
-  const uniqueFallback = fallbackComplaints.filter(
-    (c) => !submittedIds.has(c.id) && !deletedIds.has(c.id)
-  );
+  const uniqueFallback = hasLoadedFromServer
+    ? []
+    : fallbackComplaints.filter(
+        (c) => !submittedIds.has(c.id) && !deletedIds.has(c.id)
+      );
 
-  const allComplaints = [...submittedComplaints, ...uniqueFallback].filter(
+  const areaComplaints = [...submittedComplaints, ...uniqueFallback].filter(
     (c) => !deletedIds.has(c.id)
   );
 
-  const totalCount = allComplaints.length;
-  const inProgressCount = allComplaints.filter((c) => !c.resolved).length;
-  const resolvedCount = allComplaints.filter((c) => c.resolved).length;
+  const currentUserId = activeUserId ?? getCurrentUser()?.id ?? null;
+  const myComplaints = currentUserId
+    ? areaComplaints.filter((c) => c.userId === currentUserId)
+    : [];
+
+  const allComplaints = areaComplaints;
+
+  const totalCount = myComplaints.length;
+  const inProgressCount = myComplaints.filter((c) => !c.resolved).length;
+  const resolvedCount = myComplaints.filter((c) => c.resolved).length;
 
   return (
     <ComplaintContext.Provider
@@ -402,6 +486,8 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         complaint,
         updateComplaint,
         submittedComplaints,
+        areaComplaints,
+        myComplaints,
         allComplaints,
         totalCount,
         inProgressCount,
@@ -409,6 +495,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         addSubmittedComplaint,
         removeComplaint,
         refreshComplaints,
+        syncUserSession,
         isLoading,
       }}
     >

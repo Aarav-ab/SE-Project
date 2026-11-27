@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchAnalytics, type ApiAnalytics } from "../api";
+import { fetchAnalytics, getCurrentUser, type ApiAnalytics } from "../api";
 
 type DepartmentAnalyticsProps = {
   onBack: () => void;
@@ -13,6 +13,15 @@ function DepartmentAnalytics({
   onSignOut,
 }: DepartmentAnalyticsProps) {
   const [analytics, setAnalytics] = useState<ApiAnalytics | null>(null);
+  const currentUser = getCurrentUser();
+  const adminName = currentUser?.name || "Anita Rao (Admin)";
+  const adminInitials =
+    adminName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "AR";
 
   useEffect(() => {
     fetchAnalytics().then((data) => {
@@ -83,9 +92,9 @@ function DepartmentAnalytics({
               Ward 14 • Indiranagar
             </span>
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{adminInitials}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
+                <div className="user-name">{adminName}</div>
                 <div className="user-role">Officer Gr. I</div>
               </div>
             </div>
@@ -141,7 +150,9 @@ function DepartmentAnalytics({
                 <span>⏱️</span>
               </div>
               <div className="kpi-val">
-                {analytics ? analytics.summary.avgResolutionHours : "28.4"}
+                {analytics
+                  ? analytics.summary.avgResolutionHours.replace(/\s*hrs$/i, "")
+                  : "28.4"}
               </div>
               <p className="text-muted">Hours</p>
               <p className="analytics-note">Target ≤ 48 Hours</p>

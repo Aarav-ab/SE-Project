@@ -2,6 +2,11 @@ import { Response } from "express";
 import { prisma } from "../config/prisma";
 import { AuthRequest } from "../middlewares/auth";
 import {
+  getCached,
+  setCached,
+  invalidateAllOperationalCaches,
+} from "../config/cache";
+import {
   recommendDepartment,
   calculateSlaTargetDate,
   generateComplaintId,
@@ -112,6 +117,8 @@ export async function createComplaint(req: AuthRequest, res: Response) {
       },
     });
 
+    invalidateAllOperationalCaches();
+
     res.status(201).json({
       message: "Complaint registered successfully",
       complaint,
@@ -125,6 +132,21 @@ export async function createComplaint(req: AuthRequest, res: Response) {
 export async function getAllComplaints(req: AuthRequest, res: Response) {
   try {
     const { status, category, departmentId, wardId, search, citizenOnly } = req.query;
+    const cacheKey = `complaints:list:${JSON.stringify({
+      status: status || "",
+      category: category || "",
+      departmentId: departmentId || "",
+      wardId: wardId || "",
+      search: search || "",
+      citizenOnly: citizenOnly || "",
+      userId: citizenOnly === "true" && req.user ? req.user.id : "",
+    })}`;
+
+    const cached = getCached(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
 
     const where: any = {};
 
@@ -176,7 +198,9 @@ export async function getAllComplaints(req: AuthRequest, res: Response) {
       },
     });
 
-    res.json({ complaints, total: complaints.length });
+    const payload = { complaints, total: complaints.length };
+    setCached(cacheKey, payload);
+    res.json(payload);
   } catch (error) {
     console.error("getAllComplaints error:", error);
     res.status(500).json({ error: "Failed to retrieve complaints." });
@@ -186,6 +210,13 @@ export async function getAllComplaints(req: AuthRequest, res: Response) {
 export async function getComplaintById(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
+
+    const cacheKey = `complaints:detail:${id}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
 
     const complaint = await prisma.complaint.findUnique({
       where: { id },
@@ -209,7 +240,9 @@ export async function getComplaintById(req: AuthRequest, res: Response) {
       return;
     }
 
-    res.json({ complaint });
+    const payload = { complaint };
+    setCached(cacheKey, payload);
+    res.json(payload);
   } catch (error) {
     console.error("getComplaintById error:", error);
     res.status(500).json({ error: "Failed to retrieve complaint details." });
@@ -270,6 +303,8 @@ export async function updateComplaintStatus(req: AuthRequest, res: Response) {
       },
     });
 
+    invalidateAllOperationalCaches();
+
     res.json({
       message: `Complaint status updated to ${status}`,
       complaint: fullUpdated,
@@ -316,7 +351,7 @@ export async function assignComplaintWorker(req: AuthRequest, res: Response) {
       where: { id },
       data: {
         assignedWorkerId: worker?.id || null,
-        status: existing.status === "Pending Dispatch" ? "In Progress" : existing.status,
+        status: existing.status === "Pending Dispatch" ? "Assigned" : existing.status,
       },
       include: {
         assignedWorker: true,
@@ -330,12 +365,14 @@ export async function assignComplaintWorker(req: AuthRequest, res: Response) {
         complaintId: id,
         title: "Field Crew Assigned",
         description: `Assigned to ${assignedWorkerName}.`,
-        status: "In Progress",
+        status: "Assigned",
         comment: comment || `Dispatch initiated for site inspection and resolution.`,
         author: req.user?.name || "Municipal Administrator",
         step: 2,
       },
     });
+
+    invalidateAllOperationalCaches();
 
     res.json({
       message: `Assigned complaint ${id} to ${assignedWorkerName}`,
@@ -390,6 +427,8 @@ export async function addComplaintFeedback(req: AuthRequest, res: Response) {
       },
     });
 
+    invalidateAllOperationalCaches();
+
     res.json({ message: "Feedback submitted successfully.", feedback });
   } catch (error) {
     console.error("addComplaintFeedback error:", error);
@@ -414,6 +453,8 @@ export async function deleteComplaint(req: AuthRequest, res: Response) {
 
     // Delete the complaint
     await prisma.complaint.delete({ where: { id } });
+
+    invalidateAllOperationalCaches();
 
     res.json({ message: "Complaint successfully deleted.", id });
   } catch (error) {

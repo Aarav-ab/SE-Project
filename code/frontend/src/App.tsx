@@ -11,8 +11,10 @@ import DepartmentPortal from "./pages/DepartmentPortal";
 import FieldWorkers from "./pages/FieldWorkers";
 import DepartmentAnalytics from "./pages/DepartmentAnalytics";
 import { assignComplaintWorker, removeAuthToken } from "./api";
+import { useComplaint } from "./ComplaintContext";
 
 function App() {
+  const { refreshComplaints, syncUserSession } = useComplaint();
   const [currentPage, setCurrentPage] = useState("login");
   const [, setUserRole] = useState<"citizen" | "admin" | null>(null);
   const [preFilledEmail, setPreFilledEmail] = useState("");
@@ -47,6 +49,7 @@ function App() {
 
     try {
       await assignComplaintWorker(complaintId, crewName);
+      await refreshComplaints();
     } catch (e) {
       console.warn("Failed to persist crew assignment to backend:", e);
     }
@@ -74,6 +77,7 @@ function App() {
   function confirmSignOut() {
     setShowSignOutConfirm(false);
     removeAuthToken();
+    syncUserSession();
     setCurrentStep(1);
     setCurrentPage("login");
     setUserRole(null);
@@ -104,6 +108,8 @@ function App() {
           preFilledEmail={preFilledEmail}
           successMessage={authSuccessMsg}
           onLogin={(role) => {
+            syncUserSession();
+            void refreshComplaints();
             setUserRole(role);
             setAuthSuccessMsg("");
             setCurrentPage(role === "admin" ? "department" : "portal");

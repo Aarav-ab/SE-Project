@@ -121,7 +121,6 @@ function FieldWorkers({
   onBack,
   onSignOut,
   onViewComplaint,
-  onDispatch: _onDispatch,
   complaintToAssign,
   onAssignCrew,
   onOpenAnalytics,
@@ -136,7 +135,7 @@ function FieldWorkers({
     }
   });
 
-  const { submittedComplaints } = useComplaint();
+  const { submittedComplaints, refreshComplaints } = useComplaint();
   const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false);
   const [newWorkerName, setNewWorkerName] = useState("");
   const [newWorkerRole, setNewWorkerRole] = useState("");
@@ -165,6 +164,21 @@ function FieldWorkers({
     if (worker.id) {
       await freeFieldWorker(worker.id);
     }
+    const targetComplaintId = worker.activeComplaintId || worker.complaintId;
+    if (targetComplaintId) {
+      try {
+        const raw = localStorage.getItem("nc_crew_assignments");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed[targetComplaintId]) {
+            delete parsed[targetComplaintId];
+            localStorage.setItem("nc_crew_assignments", JSON.stringify(parsed));
+          }
+        }
+      } catch {
+        // Ignore localStorage parse errors
+      }
+    }
     const updated = workers.map((w) => {
       if (w.name === worker.name || (w.id && w.id === worker.id)) {
         return {
@@ -185,6 +199,7 @@ function FieldWorkers({
     });
     setWorkers(updated);
     localStorage.setItem("nc_workers_cache", JSON.stringify(updated));
+    await refreshComplaints();
   }
 
   async function handleToggleDuty(worker: any, targetStatus: string) {
@@ -254,7 +269,8 @@ function FieldWorkers({
       complaintId = selectedGrievanceId;
       ticketDisplay = `#${selectedGrievanceId.split("-").pop()}`;
       onAssignCrew(selectedGrievanceId, workerToAssign.name);
-      assignComplaintWorker(selectedGrievanceId, workerToAssign.name);
+      await assignComplaintWorker(selectedGrievanceId, workerToAssign.name);
+      await refreshComplaints();
     } else if (customTicketInput.trim()) {
       ticketDisplay = customTicketInput.trim().startsWith("#")
         ? customTicketInput.trim()

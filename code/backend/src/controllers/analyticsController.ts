@@ -1,36 +1,58 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
+import { getCached, setCached } from "../config/cache";
 
 export async function getDepartmentAnalytics(req: Request, res: Response) {
   try {
-    const total = await prisma.complaint.count();
-    const inProgress = await prisma.complaint.count({
-      where: { status: "In Progress" },
-    });
-    const pending = await prisma.complaint.count({
-      where: { status: "Pending Dispatch" },
-    });
-    const resolved = await prisma.complaint.count({
-      where: { status: { in: ["Resolved", "Closed"] } },
-    });
+    const cached = getCached("analytics:summary");
+    if (cached) {
+      res.json(cached);
+      return;
+    }
 
-    // Category breakdown
-    const complaints = await prisma.complaint.findMany({
-      select: {
-        complaintType: true,
-        priority: true,
-        status: true,
-        createdAt: true,
-        resolvedAt: true,
-      },
-    });
+    const [complaints, recentActivity] = await Promise.all([
+      prisma.complaint.findMany({
+        select: {
+          complaintType: true,
+          priority: true,
+          status: true,
+          createdAt: true,
+          resolvedAt: true,
+        },
+      }),
+      prisma.timelineEvent.findMany({
+        take: 6,
+        orderBy: { createdAt: "desc" },
+        include: {
+          complaint: {
+            select: { id: true, title: true, complaintType: true },
+          },
+        },
+      }),
+    ]);
+
+    const total = complaints.length;
+    let inProgress = 0;
+    let pending = 0;
+    let resolved = 0;
+    let slaMetCount = 0;
 
     const categoryMap: Record<string, number> = {};
     const priorityMap: Record<string, number> = { Low: 0, Medium: 0, Urgent: 0 };
     let totalResolutionHours = 0;
     let resolvedCountWithTime = 0;
 
-    complaints.forEach((c) => {
+    for (const c of complaints) {
+      if (c.status === "Resolved" || c.status === "Closed") {
+        resolved++;
+        slaMetCount++;
+      } else if (c.status === "In Progress" || c.status === "Assigned") {
+        inProgress++;
+        slaMetCount++;
+      } else if (c.status === "Pending Dispatch") {
+        pending++;
+      }
+
       categoryMap[c.complaintType] = (categoryMap[c.complaintType] || 0) + 1;
       priorityMap[c.priority] = (priorityMap[c.priority] || 0) + 1;
 
@@ -40,31 +62,16 @@ export async function getDepartmentAnalytics(req: Request, res: Response) {
         totalResolutionHours += diffHours;
         resolvedCountWithTime++;
       }
-    });
+    }
 
     const avgResolutionHours =
       resolvedCountWithTime > 0
         ? Math.round((totalResolutionHours / resolvedCountWithTime) * 10) / 10
         : 18.5;
 
-    // SLA Calculation
-    const slaMetCount = complaints.filter(
-      (c) => c.status === "Resolved" || c.status === "Closed" || c.status === "In Progress"
-    ).length;
     const slaComplianceRate = total > 0 ? Math.round((slaMetCount / total) * 100) : 100;
 
-    // Recent activity
-    const recentActivity = await prisma.timelineEvent.findMany({
-      take: 6,
-      orderBy: { createdAt: "desc" },
-      include: {
-        complaint: {
-          select: { id: true, title: true, complaintType: true },
-        },
-      },
-    });
-
-    res.json({
+    const payload = {
       summary: {
         totalComplaints: total,
         inProgress,
@@ -76,7 +83,10 @@ export async function getDepartmentAnalytics(req: Request, res: Response) {
       categoryBreakdown: categoryMap,
       priorityBreakdown: priorityMap,
       recentActivity,
-    });
+    };
+
+    setCached("analytics:summary", payload);
+    res.json(payload);
   } catch (error) {
     console.error("getDepartmentAnalytics error:", error);
     res.status(500).json({ error: "Failed to compute analytics." });

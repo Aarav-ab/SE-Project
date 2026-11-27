@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { changePasswordApi, verifyPasswordApi, getCurrentUser } from "../api";
 
 type ChangePasswordModalProps = {
@@ -127,7 +128,7 @@ export default function ChangePasswordModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -446,6 +447,7 @@ export default function ChangePasswordModal({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

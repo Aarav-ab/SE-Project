@@ -90,6 +90,7 @@ export interface ApiComplaint {
   } | null;
   targetCompletion?: string | null;
   resolvedAt?: string | null;
+  userId?: string | null;
   attachments?: ApiAttachment[];
   timeline?: ApiTimelineEvent[];
   createdAt: string;
@@ -107,7 +108,7 @@ export interface ApiAnalytics {
   };
   categoryBreakdown: Record<string, number>;
   priorityBreakdown: Record<string, number>;
-  recentActivity: any[];
+  recentActivity: unknown[];
 }
 
 export interface SuggestionResult {
@@ -188,9 +189,9 @@ export async function loginUser(role: "citizen" | "admin", email?: string, passw
       localStorage.setItem("nc_current_user", JSON.stringify(data.user));
     }
     return data;
-  } catch (err: any) {
-    if (err.name === "TypeError" && err.message?.includes("fetch")) {
-      throw new Error("Cannot connect to backend server. Please ensure the backend is running on port 5000 (cd code/backend && npm start).");
+  } catch (err: unknown) {
+    if (err instanceof TypeError && err.message?.includes("fetch")) {
+      throw new Error("Cannot connect to backend server. Please ensure the backend is running on port 5000 (cd code/backend && npm start).", { cause: err });
     }
     throw err;
   }
@@ -238,9 +239,47 @@ export async function registerUser(data: {
     }
 
     return result;
-  } catch (err: any) {
-    if (err.name === "TypeError" && err.message?.includes("fetch")) {
-      throw new Error("Cannot connect to backend server. Please ensure the backend is running on port 5000 (cd code/backend && npm start).");
+  } catch (err: unknown) {
+    if (err instanceof TypeError && err.message?.includes("fetch")) {
+      throw new Error("Cannot connect to backend server. Please ensure the backend is running on port 5000 (cd code/backend && npm start).", { cause: err });
+    }
+    throw err;
+  }
+}
+
+export async function updateProfileApi(data: {
+  name: string;
+  phone?: string;
+  address?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || "Failed to update profile details.");
+    }
+
+    if (result.token) {
+      setAuthToken(result.token);
+    }
+    if (result.user) {
+      localStorage.setItem("nc_current_user", JSON.stringify(result.user));
+      window.dispatchEvent(new Event("nc_user_updated"));
+    }
+    return result;
+  } catch (err: unknown) {
+    if (err instanceof TypeError && err.message?.includes("fetch")) {
+      throw new Error("Cannot connect to backend server.", { cause: err });
     }
     throw err;
   }

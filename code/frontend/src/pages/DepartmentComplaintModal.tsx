@@ -110,7 +110,7 @@ function DepartmentComplaintModal({
 
         <div className="timeline-footer">
           <span className="small text-muted">
-            Demonstration data · Not connected to the backend
+            NagrikConnect Municipal Administration Core
           </span>
           <button type="button" className="btn btn-primary" onClick={onClose}>
             Close Details
