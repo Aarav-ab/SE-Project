@@ -165,17 +165,17 @@ export async function freeWorker(req: Request, res: Response) {
   try {
     const { id } = req.params;
 
-    // Unassign complaints that were actively assigned to this worker
+    // Unassign any non-resolved complaints currently assigned to this worker
     const activeAssigned = await prisma.complaint.findMany({
       where: {
         assignedWorkerId: id,
-        status: { in: ["Assigned", "In Progress"] },
+        status: { notIn: ["Resolved", "Closed"] },
       },
       select: { id: true },
     });
 
-    if (activeAssigned.length > 0) {
-      const affectedIds = activeAssigned.map((c) => c.id);
+    const affectedIds = activeAssigned.map((c) => c.id);
+    if (affectedIds.length > 0) {
       await prisma.complaint.updateMany({
         where: { id: { in: affectedIds } },
         data: {
@@ -203,7 +203,11 @@ export async function freeWorker(req: Request, res: Response) {
     });
 
     invalidateAllOperationalCaches();
-    res.json({ message: "Worker freed and set to Available", worker });
+    res.json({
+      message: "Worker freed and set to Available",
+      worker,
+      unassignedComplaintIds: affectedIds,
+    });
   } catch (error) {
     console.error("freeWorker error:", error);
     res.status(500).json({ error: "Failed to free worker." });

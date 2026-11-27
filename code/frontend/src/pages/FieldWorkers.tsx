@@ -5,8 +5,12 @@ import {
   freeFieldWorker,
   updateFieldWorkerStatus,
   assignComplaintWorker,
+  updateComplaintStatus,
+  fetchComplaintById,
+  getCurrentUser,
 } from "../api";
 import { useComplaint } from "../ComplaintContext";
+import DepartmentComplaintModal from "./DepartmentComplaintModal";
 
 type ComplaintToAssign = {
   id: string;
@@ -17,10 +21,11 @@ type ComplaintToAssign = {
 type FieldWorkersProps = {
   onBack: () => void;
   onSignOut: () => void;
-  onViewComplaint: (id: string) => void;
+  onViewComplaint?: (id: string) => void;
   onDispatch: () => void;
   complaintToAssign: ComplaintToAssign | null;
-  onAssignCrew: (complaintId: string, crewName: string) => void;
+  onAssignCrew: (complaintId: string, crewName: string) => Promise<void> | void;
+  onFreeCrew?: (workerName: string, complaintIds?: string[]) => void;
   onOpenAnalytics: () => void;
 };
 
@@ -120,9 +125,9 @@ const initialWorkers = [
 function FieldWorkers({
   onBack,
   onSignOut,
-  onViewComplaint,
   complaintToAssign,
   onAssignCrew,
+  onFreeCrew,
   onOpenAnalytics,
 }: FieldWorkersProps) {
   const [search, setSearch] = useState("");
@@ -135,7 +140,19 @@ function FieldWorkers({
     }
   });
 
-  const { submittedComplaints, refreshComplaints } = useComplaint();
+  const { areaComplaints, refreshComplaints } = useComplaint();
+  const currentUser = getCurrentUser();
+  const adminName = currentUser?.name || "Anita Rao (Admin)";
+  const adminInitials =
+    adminName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "AR";
+  const adminWardLabel = currentUser?.city
+    ? `${currentUser.city} • Municipal Core`
+    : "All Wards • Municipal Core";
   const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false);
   const [newWorkerName, setNewWorkerName] = useState("");
   const [newWorkerRole, setNewWorkerRole] = useState("");
@@ -146,6 +163,17 @@ function FieldWorkers({
   const [workerToAssign, setWorkerToAssign] = useState<any | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState("");
   const [customTicketInput, setCustomTicketInput] = useState("");
+  const [selectedTicketModal, setSelectedTicketModal] = useState<{
+    id: string;
+    category: string;
+    age: string;
+    title: string;
+    location: string;
+    assigned: string;
+    status: string;
+    icon: string;
+    isRealComplaint: boolean;
+  } | null>(null);
 
   useEffect(() => {
     fetchFieldWorkers().then((apiWorkers) => {
@@ -156,29 +184,133 @@ function FieldWorkers({
     });
   }, []);
 
-  const availableComplaints = submittedComplaints.filter(
+  const availableComplaints = areaComplaints.filter(
     (c) => c.status !== "Resolved" && c.status !== "Closed" && !c.resolved
   );
 
-  async function handleFreeWorker(worker: any) {
-    if (worker.id) {
-      await freeFieldWorker(worker.id);
-    }
-    const targetComplaintId = worker.activeComplaintId || worker.complaintId;
-    if (targetComplaintId) {
-      try {
-        const raw = localStorage.getItem("nc_crew_assignments");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && parsed[targetComplaintId]) {
-            delete parsed[targetComplaintId];
-            localStorage.setItem("nc_crew_assignments", JSON.stringify(parsed));
-          }
-        }
-      } catch {
-        // Ignore localStorage parse errors
+  async function handleViewTicket(worker: any) {
+    const rawId = worker.activeComplaintId || worker.complaintId || "";
+    const rawAssignment = String(worker.assignment || "").replace(/^#/, "").trim();
+    const shortTag = rawAssignment && rawAssignment !== "—" ? rawAssignment : "";
+
+    let matched = areaComplaints.find(
+      (c) =>
+        (rawId && c.id === rawId) ||
+        (shortTag && c.id.endsWith(shortTag)) ||
+        (c.assignedWorker === worker.name &&
+          c.status !== "Resolved" &&
+          c.status !== "Closed" &&
+          !c.resolved)
+    );
+
+    if (!matched && rawId) {
+      const serverComp = await fetchComplaintById(rawId);
+      if (serverComp) {
+        setSelectedTicketModal({
+          id: serverComp.id,
+          category:
+            serverComp.priority === "Urgent"
+              ? `${serverComp.department?.name || serverComp.complaintType} • High Priority`
+              : serverComp.department?.name || serverComp.complaintType,
+          age: `Reported ${new Date(serverComp.createdAt).toLocaleString()}`,
+          title: serverComp.description || serverComp.title,
+          location: serverComp.address || serverComp.ward?.name || "Municipal Ward",
+          assigned: serverComp.assignedWorker?.name || worker.name,
+          status: serverComp.status,
+          icon: "📋",
+          isRealComplaint: true,
+        });
+        return;
       }
     }
+
+    if (matched) {
+      setSelectedTicketModal({
+        id: matched.id,
+        category:
+          matched.priority === "Urgent"
+            ? `${matched.department || matched.complaintType} • High Priority`
+            : matched.department || matched.complaintType,
+        age: `Reported ${new Date(matched.submittedAt).toLocaleString()}`,
+        title: matched.description || matched.title || "Civic Grievance",
+        location: matched.address || matched.ward,
+        assigned: matched.assignedWorker || worker.name,
+        status: matched.status,
+        icon: "📋",
+        isRealComplaint: true,
+      });
+      return;
+    }
+
+    // Fallback for custom non-complaint task references (e.g. "#site inspection")
+    const statusTask = String(worker.status || "")
+      .replace(/^On-Site:\s*(?:Ticket\s*#?)?/i, "")
+      .trim();
+    const taskLabel = shortTag || statusTask || "Field Assignment";
+    setSelectedTicketModal({
+      id: taskLabel,
+      category: worker.department || "Field Task",
+      age: "Active Assignment",
+      title: `Field Task: ${taskLabel}`,
+      location: "Assigned Ward / Field Location",
+      assigned: worker.name,
+      status: "In Progress",
+      icon: "🛠️",
+      isRealComplaint: false,
+    });
+  }
+
+  async function handleResolveTicketFromModal(
+    complaintId: string,
+    comment?: string
+  ) {
+    const updated = await updateComplaintStatus(
+      complaintId,
+      "Resolved",
+      comment
+    );
+    if (!updated) {
+      throw new Error("Failed to mark complaint as resolved.");
+    }
+    onFreeCrew?.("", [complaintId]);
+    const refreshedWorkers = await fetchFieldWorkers();
+    if (refreshedWorkers && refreshedWorkers.length > 0) {
+      setWorkers(refreshedWorkers);
+      localStorage.setItem("nc_workers_cache", JSON.stringify(refreshedWorkers));
+    }
+    await refreshComplaints();
+  }
+
+  async function handleFreeWorker(worker: any) {
+    const freedIds: string[] = [];
+    const targetComplaintId = worker.activeComplaintId || worker.complaintId;
+    if (targetComplaintId) {
+      freedIds.push(targetComplaintId);
+    }
+
+    if (worker.id) {
+      const res = await freeFieldWorker(worker.id);
+      if (res.unassignedComplaintIds.length > 0) {
+        freedIds.push(...res.unassignedComplaintIds);
+      }
+    }
+
+    // Also unassign any matching complaint in context if workerId wasn't stored on worker
+    const matchingFromContext = areaComplaints.filter(
+      (c) =>
+        c.assignedWorker === worker.name &&
+        c.status !== "Resolved" &&
+        c.status !== "Closed" &&
+        !c.resolved
+    );
+    for (const c of matchingFromContext) {
+      if (!freedIds.includes(c.id)) {
+        freedIds.push(c.id);
+      }
+    }
+
+    onFreeCrew?.(worker.name, freedIds);
+
     const updated = workers.map((w) => {
       if (w.name === worker.name || (w.id && w.id === worker.id)) {
         return {
@@ -192,14 +324,20 @@ function FieldWorkers({
           type: "dispatch",
           complaintId: "",
           activeComplaintId: null,
-          metric: String(Number(w.metric || 0) + 1),
         };
       }
       return w;
     });
     setWorkers(updated);
     localStorage.setItem("nc_workers_cache", JSON.stringify(updated));
-    await refreshComplaints();
+    const [, apiWorkers] = await Promise.all([
+      refreshComplaints(),
+      fetchFieldWorkers(),
+    ]);
+    if (apiWorkers && apiWorkers.length > 0) {
+      setWorkers(apiWorkers);
+      localStorage.setItem("nc_workers_cache", JSON.stringify(apiWorkers));
+    }
   }
 
   async function handleToggleDuty(worker: any, targetStatus: string) {
@@ -228,7 +366,7 @@ function FieldWorkers({
     localStorage.setItem("nc_workers_cache", JSON.stringify(updated));
   }
 
-  function handleStartAssign(worker: any) {
+  async function handleStartAssign(worker: any) {
     if (complaintToAssign) {
       const assignedTicket = `#${complaintToAssign.id.split("-").pop()}`;
       const updatedWorkers = workers.map((w) =>
@@ -250,7 +388,7 @@ function FieldWorkers({
       setWorkers(updatedWorkers);
       localStorage.setItem("nc_workers_cache", JSON.stringify(updatedWorkers));
 
-      onAssignCrew(complaintToAssign.id, worker.name);
+      await onAssignCrew(complaintToAssign.id, worker.name);
       onBack();
     } else {
       setWorkerToAssign(worker);
@@ -428,7 +566,7 @@ function FieldWorkers({
           <div className="admin-ward-pill">
             <span className="flex gap-1 items-center">
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              {adminWardLabel}
             </span>
             <span className="text-muted">Active</span>
           </div>
@@ -455,7 +593,7 @@ function FieldWorkers({
             </strong>
             <span className="pill" style={{ background: "var(--blue-200)" }}>
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              {adminWardLabel}
             </span>
           </div>
 
@@ -471,9 +609,9 @@ function FieldWorkers({
             </div>
 
             <div className="user-chip">
-              <div className="user-avatar">RS</div>
+              <div className="user-avatar">{adminInitials}</div>
               <div>
-                <div className="user-name">Rajesh Sharma</div>
+                <div className="user-name">{adminName}</div>
                 <div className="user-role">Officer Gr. I</div>
               </div>
             </div>
@@ -496,7 +634,7 @@ function FieldWorkers({
 
               <p className="small text-body mt-1">
                 Monitor crew availability, current dispatch, and workload across
-                Ward 14
+                all municipal wards
               </p>
             </div>
 
@@ -649,13 +787,7 @@ function FieldWorkers({
                       type="button"
                       className="btn btn-secondary btn-sm"
                       style={{ flex: 1, padding: "8px 10px", fontSize: 12 }}
-                      onClick={() => {
-                        if (worker.complaintId) {
-                          onViewComplaint(worker.complaintId);
-                        } else {
-                          alert(`Active ticket: ${worker.assignment}`);
-                        }
-                      }}
+                      onClick={() => handleViewTicket(worker)}
                     >
                       View Ticket →
                     </button>
@@ -1121,6 +1253,17 @@ function FieldWorkers({
           </div>
         </footer>
       </main>
+      {selectedTicketModal && (
+        <DepartmentComplaintModal
+          complaint={selectedTicketModal}
+          onClose={() => setSelectedTicketModal(null)}
+          onResolve={
+            selectedTicketModal.isRealComplaint
+              ? handleResolveTicketFromModal
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

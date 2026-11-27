@@ -2,17 +2,8 @@ import { Request, Response } from "express";
 import { prisma } from "../config/prisma";
 import { recommendDepartment } from "../services/routingService";
 
-export async function getWards(req: Request, res: Response) {
-  try {
-    const wards = await prisma.ward.findMany({
-      where: { active: true },
-      orderBy: { code: "asc" },
-    });
-    res.json({ wards });
-  } catch (error) {
-    console.error("getWards error:", error);
-    res.status(500).json({ error: "Failed to fetch wards." });
-  }
+export async function getWards(_req: Request, res: Response) {
+  res.json({ wards: [] });
 }
 
 export async function getDepartments(req: Request, res: Response) {

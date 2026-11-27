@@ -98,6 +98,7 @@ export interface ApiComplaint {
 }
 
 export interface ApiAnalytics {
+  range?: string;
   summary: {
     totalComplaints: number;
     inProgress: number;
@@ -105,9 +106,41 @@ export interface ApiAnalytics {
     resolved: number;
     slaComplianceRate: string;
     avgResolutionHours: string;
+    avgRating?: string | null;
+    ratingCount?: number;
   };
   categoryBreakdown: Record<string, number>;
   priorityBreakdown: Record<string, number>;
+  departmentBreakdown?: {
+    id: string;
+    name: string;
+    code: string;
+    total: number;
+    resolved: number;
+    inProgress: number;
+    pending: number;
+    percentage: number;
+  }[];
+  slaTurnaround?: {
+    under24hCount: number;
+    under24hPct: number;
+    between24And48hCount: number;
+    between24And48hPct: number;
+    breachedCount: number;
+    breachedPct: number;
+  };
+  operations?: {
+    totalWorkers: number;
+    deployedWorkers: number;
+    availableWorkers: number;
+    offDutyWorkers: number;
+    utilizationPct: number;
+    topLocality: string;
+    topLocalityCount: number;
+    topLocalityPct: number;
+    peakReportingWindow: string;
+    peakCount: number;
+  };
   recentActivity: unknown[];
 }
 
@@ -505,16 +538,25 @@ export async function createFieldWorker(workerData: {
   }
 }
 
-export async function freeFieldWorker(id: string): Promise<boolean> {
+export async function freeFieldWorker(
+  id: string
+): Promise<{ ok: boolean; unassignedComplaintIds: string[] }> {
   try {
     const response = await fetch(`${API_BASE_URL}/workers/${encodeURIComponent(id)}/free`, {
       method: "POST",
       headers: getHeaders(),
     });
-    return response.ok;
+    if (!response.ok) return { ok: false, unassignedComplaintIds: [] };
+    const data = await response.json();
+    return {
+      ok: true,
+      unassignedComplaintIds: Array.isArray(data.unassignedComplaintIds)
+        ? data.unassignedComplaintIds
+        : [],
+    };
   } catch (err) {
     console.warn(`Could not free field worker ${id}:`, err);
-    return false;
+    return { ok: false, unassignedComplaintIds: [] };
   }
 }
 
@@ -536,11 +578,14 @@ export async function updateFieldWorkerStatus(
   }
 }
 
-export async function fetchAnalytics(): Promise<ApiAnalytics | null> {
+export async function fetchAnalytics(range = "all"): Promise<ApiAnalytics | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/analytics`, {
-      headers: getHeaders(),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/analytics?range=${encodeURIComponent(range)}`,
+      {
+        headers: getHeaders(),
+      }
+    );
     if (!response.ok) throw new Error("Failed to load analytics");
     return await response.json();
   } catch (err) {

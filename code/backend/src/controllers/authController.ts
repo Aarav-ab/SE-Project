@@ -17,7 +17,6 @@ export async function register(req: AuthRequest, res: Response) {
       state,
       pincode,
       role,
-      wardId,
     } = req.body;
 
     if (!email || !password || !name) {
@@ -81,9 +80,7 @@ export async function register(req: AuthRequest, res: Response) {
         state: userState || null,
         pincode: userPincode || null,
         role: userRole,
-        wardId: wardId || "ward-14",
       },
-      include: { ward: true },
     });
 
     const token = generateToken({
@@ -91,7 +88,6 @@ export async function register(req: AuthRequest, res: Response) {
       email: user.email,
       name: user.name,
       role: user.role,
-      wardId: user.wardId,
     });
 
     res.status(201).json({
@@ -109,7 +105,6 @@ export async function register(req: AuthRequest, res: Response) {
         city: user.city,
         state: user.state,
         pincode: user.pincode,
-        ward: user.ward,
       },
     });
   } catch (error) {
@@ -133,7 +128,6 @@ export async function login(req: AuthRequest, res: Response) {
       where: {
         email: cleanEmail,
       },
-      include: { ward: true },
     });
 
     if (!user) {
@@ -160,7 +154,6 @@ export async function login(req: AuthRequest, res: Response) {
       email: user.email,
       name: user.name,
       role: user.role,
-      wardId: user.wardId,
     });
 
     res.json({
@@ -178,7 +171,6 @@ export async function login(req: AuthRequest, res: Response) {
         city: user.city,
         state: user.state,
         pincode: user.pincode,
-        ward: user.ward,
       },
     });
   } catch (error) {
@@ -208,7 +200,6 @@ export async function getMe(req: AuthRequest, res: Response) {
         city: true,
         state: true,
         pincode: true,
-        ward: true,
         createdAt: true,
       },
     });
@@ -286,7 +277,6 @@ export async function updateProfile(req: AuthRequest, res: Response) {
         ...(userState !== undefined ? { state: userState || null } : {}),
         ...(pincode !== undefined ? { pincode: trimmedPincode || null } : {}),
       },
-      include: { ward: true },
     });
 
     const token = generateToken({
@@ -294,7 +284,6 @@ export async function updateProfile(req: AuthRequest, res: Response) {
       email: updatedUser.email,
       name: updatedUser.name,
       role: updatedUser.role,
-      wardId: updatedUser.wardId,
     });
 
     res.json({
@@ -312,7 +301,6 @@ export async function updateProfile(req: AuthRequest, res: Response) {
         city: updatedUser.city,
         state: updatedUser.state,
         pincode: updatedUser.pincode,
-        ward: updatedUser.ward,
       },
     });
   } catch (error) {

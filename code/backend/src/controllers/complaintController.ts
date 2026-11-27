@@ -24,7 +24,6 @@ export async function createComplaint(req: AuthRequest, res: Response) {
       landmark,
       latitude,
       longitude,
-      wardId,
       departmentId,
     } = req.body;
 
@@ -35,7 +34,7 @@ export async function createComplaint(req: AuthRequest, res: Response) {
 
     const effectiveTitle =
       title ||
-      `${complaintType || "Civic Grievance"} near ${landmark || address || "Ward 14"}`;
+      `${complaintType || "Civic Grievance"} near ${landmark || address || "Patiala"}`;
 
     // Smart routing recommendation if department not explicitly passed
     const recommendation = recommendDepartment(
@@ -48,10 +47,7 @@ export async function createComplaint(req: AuthRequest, res: Response) {
     const resolvedPriority = priority || recommendation.priority;
     const resolvedType = complaintType || recommendation.category;
 
-    // Get ward code for ID generation
-    const resolvedWardId = wardId || "ward-14";
-    const ward = await prisma.ward.findUnique({ where: { id: resolvedWardId } });
-    const complaintId = generateComplaintId(ward?.code || "W14");
+    const complaintId = generateComplaintId("NC");
 
     const targetDate = calculateSlaTargetDate(resolvedPriority);
 
@@ -66,12 +62,11 @@ export async function createComplaint(req: AuthRequest, res: Response) {
         complaintType: resolvedType,
         priority: resolvedPriority,
         status: "Pending Dispatch",
-        address: address || "Indiranagar, Bengaluru",
-        pinCode: pinCode || "560038",
+        address: address || "Municipal Area",
+        pinCode: pinCode || "147004",
         landmark: landmark || null,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
-        wardId: resolvedWardId,
         departmentId: resolvedDeptId,
         userId: userId || null,
         targetCompletion: targetDate,
@@ -110,7 +105,6 @@ export async function createComplaint(req: AuthRequest, res: Response) {
       where: { id: newComplaint.id },
       include: {
         department: true,
-        ward: true,
         attachments: true,
         timeline: true,
         assignedWorker: true,
@@ -131,12 +125,11 @@ export async function createComplaint(req: AuthRequest, res: Response) {
 
 export async function getAllComplaints(req: AuthRequest, res: Response) {
   try {
-    const { status, category, departmentId, wardId, search, citizenOnly } = req.query;
+    const { status, category, departmentId, search, citizenOnly } = req.query;
     const cacheKey = `complaints:list:${JSON.stringify({
       status: status || "",
       category: category || "",
       departmentId: departmentId || "",
-      wardId: wardId || "",
       search: search || "",
       citizenOnly: citizenOnly || "",
       userId: citizenOnly === "true" && req.user ? req.user.id : "",
@@ -164,10 +157,6 @@ export async function getAllComplaints(req: AuthRequest, res: Response) {
       where.departmentId = String(departmentId);
     }
 
-    if (wardId) {
-      where.wardId = String(wardId);
-    }
-
     if (citizenOnly === "true" && req.user) {
       where.userId = req.user.id;
     }
@@ -188,7 +177,6 @@ export async function getAllComplaints(req: AuthRequest, res: Response) {
       orderBy: { createdAt: "desc" },
       include: {
         department: true,
-        ward: true,
         assignedWorker: true,
         attachments: true,
         timeline: {
@@ -222,7 +210,6 @@ export async function getComplaintById(req: AuthRequest, res: Response) {
       where: { id },
       include: {
         department: true,
-        ward: true,
         assignedWorker: true,
         attachments: true,
         timeline: {
@@ -265,13 +252,13 @@ export async function updateComplaintStatus(req: AuthRequest, res: Response) {
       return;
     }
 
-    const isResolved = status === "Resolved";
+    const isResolved = status === "Resolved" || status === "Closed";
     const resolvedAt = isResolved ? new Date() : existing.resolvedAt;
 
     let step = 1;
     if (status === "Assigned") step = 2;
     else if (status === "In Progress") step = 3;
-    else if (status === "Resolved" || status === "Closed") step = 4;
+    else if (isResolved) step = 4;
 
     const updated = await prisma.complaint.update({
       where: { id },
@@ -280,6 +267,23 @@ export async function updateComplaintStatus(req: AuthRequest, res: Response) {
         resolvedAt,
       },
     });
+
+    // Free assigned field worker once complaint is resolved
+    if (
+      isResolved &&
+      existing.assignedWorkerId &&
+      existing.status !== "Resolved" &&
+      existing.status !== "Closed"
+    ) {
+      await prisma.fieldWorker.update({
+        where: { id: existing.assignedWorkerId },
+        data: {
+          status: "Available Now",
+          dotColor: "#61b15f",
+          ticketsClosedMonth: { increment: 1 },
+        },
+      });
+    }
 
     // Add timeline event
     await prisma.timelineEvent.create({

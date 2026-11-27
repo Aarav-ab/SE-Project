@@ -6,7 +6,6 @@ export interface AuthUser {
   email: string;
   role: string;
   name: string;
-  wardId?: string | null;
 }
 
 export interface AuthRequest extends Request {
@@ -22,7 +21,6 @@ export function generateToken(user: AuthUser): string {
       email: user.email,
       role: user.role,
       name: user.name,
-      wardId: user.wardId,
     },
     JWT_SECRET,
     { expiresIn: "7d" }

@@ -362,15 +362,14 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       try {
         const serverComplaints = await fetchComplaints();
-        const stored = localStorage.getItem("nc_deleted_complaints");
-        const deletedIds = new Set(stored ? JSON.parse(stored) : []);
-        setSubmittedComplaints(
-          serverComplaints
-            .filter((c) => !deletedIds.has(c.id))
-            .map(mapApiToSubmitted)
-        );
+        setSubmittedComplaints(serverComplaints.map(mapApiToSubmitted));
         setHasLoadedFromServer(true);
         setActiveUserId(getCurrentUser()?.id ?? null);
+        try {
+          localStorage.removeItem("nc_deleted_complaints");
+        } catch {
+          // Ignore localStorage cleanup errors
+        }
       } catch (e) {
         console.warn("Could not load complaints from API:", e);
       } finally {
@@ -384,24 +383,31 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function removeComplaint(id: string): Promise<boolean> {
+    let deletedOnServer = false;
     try {
-      await deleteComplaintApi(id);
+      deletedOnServer = await deleteComplaintApi(id);
     } catch (err) {
-      console.warn("deleteComplaintApi error, continuing with local removal:", err);
+      console.warn("deleteComplaintApi error:", err);
+    }
+
+    if (!deletedOnServer && hasLoadedFromServer && !id.startsWith("GRV-OFFLINE-")) {
+      return false;
     }
 
     setSubmittedComplaints((prev) => prev.filter((c) => c.id !== id));
     removeStaleCrewAssignment(id);
 
-    try {
-      const stored = localStorage.getItem("nc_deleted_complaints");
-      const list: string[] = stored ? JSON.parse(stored) : [];
-      if (!list.includes(id)) {
-        list.push(id);
-        localStorage.setItem("nc_deleted_complaints", JSON.stringify(list));
+    if (!hasLoadedFromServer || id.startsWith("GRV-OFFLINE-")) {
+      try {
+        const stored = localStorage.getItem("nc_deleted_complaints");
+        const list: string[] = stored ? JSON.parse(stored) : [];
+        if (!list.includes(id)) {
+          list.push(id);
+          localStorage.setItem("nc_deleted_complaints", JSON.stringify(list));
+        }
+      } catch {
+        // Ignore localStorage write errors
       }
-    } catch {
-      // Ignore localStorage write errors
     }
 
     return true;
@@ -465,9 +471,7 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
         (c) => !submittedIds.has(c.id) && !deletedIds.has(c.id)
       );
 
-  const areaComplaints = [...submittedComplaints, ...uniqueFallback].filter(
-    (c) => !deletedIds.has(c.id)
-  );
+  const areaComplaints = [...submittedComplaints, ...uniqueFallback];
 
   const currentUserId = activeUserId ?? getCurrentUser()?.id ?? null;
   const myComplaints = currentUserId

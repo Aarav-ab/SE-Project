@@ -55,6 +55,23 @@ function App() {
     }
   };
 
+  const handleClearCrewAssignments = (
+    workerName: string,
+    complaintIds: string[] = []
+  ) => {
+    setCrewAssignments((current) => {
+      const updated: Record<string, string> = {};
+      const idSet = new Set(complaintIds);
+      for (const [cid, assigned] of Object.entries(current)) {
+        if (!idSet.has(cid) && assigned !== workerName) {
+          updated[cid] = assigned;
+        }
+      }
+      localStorage.setItem("nc_crew_assignments", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   useEffect(() => {
     window.scrollTo({
       top: 0,
@@ -169,6 +186,7 @@ function App() {
           onDispatch={() => setCurrentPage("department")}
           complaintToAssign={complaintToAssign}
           onAssignCrew={handleCrewAssignment}
+          onFreeCrew={handleClearCrewAssignments}
           onOpenAnalytics={() => setCurrentPage("department-analytics")}
         />
       );

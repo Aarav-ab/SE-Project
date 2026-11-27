@@ -7,12 +7,28 @@ type DepartmentAnalyticsProps = {
   onSignOut: () => void;
 };
 
+const RANGE_OPTIONS = [
+  { key: "today", label: "Today" },
+  { key: "7d", label: "Last 7 Days" },
+  { key: "30d", label: "Last 30 Days" },
+  { key: "all", label: "All Time" },
+] as const;
+
+function getDeptBarClass(deptId: string): string {
+  if (deptId === "pwd") return "bar-roads";
+  if (deptId === "swm") return "bar-sanitation";
+  if (deptId === "electrical") return "bar-electrical";
+  return "bar-water";
+}
+
 function DepartmentAnalytics({
   onBack,
   onOpenFieldWorkers,
   onSignOut,
 }: DepartmentAnalyticsProps) {
   const [analytics, setAnalytics] = useState<ApiAnalytics | null>(null);
+  const [range, setRange] = useState<string>("all");
+  const [loading, setLoading] = useState<boolean>(true);
   const currentUser = getCurrentUser();
   const adminName = currentUser?.name || "Anita Rao (Admin)";
   const adminInitials =
@@ -22,12 +38,28 @@ function DepartmentAnalytics({
       .join("")
       .slice(0, 2)
       .toUpperCase() || "AR";
+  const adminWardLabel = currentUser?.city
+    ? `${currentUser.city} • Municipal Core`
+    : "All Wards • Municipal Core";
 
   useEffect(() => {
-    fetchAnalytics().then((data) => {
-      if (data) setAnalytics(data);
+    let mounted = true;
+    fetchAnalytics(range).then((data) => {
+      if (mounted) {
+        if (data) setAnalytics(data);
+        setLoading(false);
+      }
     });
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [range]);
+
+  const summary = analytics?.summary;
+  const departments = analytics?.departmentBreakdown || [];
+  const slaTurnaround = analytics?.slaTurnaround;
+  const ops = analytics?.operations;
+
   return (
     <div className="admin-wrap analytics-page">
       <aside className="admin-sidebar">
@@ -61,7 +93,7 @@ function DepartmentAnalytics({
           <div className="admin-ward-pill">
             <span className="flex gap-1 items-center">
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              {adminWardLabel}
             </span>
             <span className="text-muted">Active</span>
           </div>
@@ -82,15 +114,17 @@ function DepartmentAnalytics({
 
       <main className="admin-main">
         <header className="admin-topbar">
-          <strong style={{ color: "var(--navy)", fontSize: 18 }}>
-            NagrikConnect Administration Core
-          </strong>
-
           <div className="flex gap-3 items-center">
+            <strong style={{ color: "var(--navy)", fontSize: 18 }}>
+              NagrikConnect Administration Core
+            </strong>
             <span className="pill" style={{ background: "var(--blue-200)" }}>
               <span className="dot" style={{ background: "#61b15f" }} />
-              Ward 14 • Indiranagar
+              {adminWardLabel}
             </span>
+          </div>
+
+          <div className="flex gap-3 items-center">
             <div className="user-chip">
               <div className="user-avatar">{adminInitials}</div>
               <div>
@@ -108,25 +142,33 @@ function DepartmentAnalytics({
           <div className="analytics-heading">
             <div>
               <span className="analytics-eyebrow">
-                WARD 14 • INDIRANAGAR OPERATIONS
+                MUNICIPAL OPERATIONS • LIVE ANALYTICS
               </span>
               <h1>Department Analytics &amp; Performance</h1>
               <p>Department &amp; Ward Statistics</p>
               <p className="text-muted">
-                Overview of civic operations, resolution rates, department
-                workload, and ward-level municipal performance.
+                Real-time overview of civic operations, resolution rates,
+                department workload, and field squad utilization.
               </p>
             </div>
 
             <div className="analytics-date-filters">
-              <button type="button">Today</button>
-              <button type="button" className="active">
-                Last 7 Days
-              </button>
-              <button type="button">Last 30 Days</button>
-              <button type="button">Custom</button>
+              {RANGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={range === opt.key ? "active" : ""}
+                  onClick={() => {
+                    setLoading(true);
+                    setRange(opt.key);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
+
           <div className="kpi-row">
             <div className="kpi-card">
               <div className="kpi-top">
@@ -134,13 +176,13 @@ function DepartmentAnalytics({
                 <span>📋</span>
               </div>
               <div className="kpi-val">
-                {analytics ? analytics.summary.totalComplaints : "138"}
+                {loading && !summary ? "…" : (summary?.totalComplaints ?? 0)}
               </div>
               <p className="text-muted">Complaints</p>
               <p className="analytics-note">
-                {analytics
-                  ? `${analytics.summary.resolved} Resolved • ${analytics.summary.inProgress} In Progress`
-                  : "127 Resolved • 11 In Progress"}
+                {summary
+                  ? `${summary.resolved} Resolved • ${summary.inProgress} In Progress • ${summary.pendingDispatch} Pending`
+                  : "Loading live totals..."}
               </p>
             </div>
 
@@ -150,9 +192,9 @@ function DepartmentAnalytics({
                 <span>⏱️</span>
               </div>
               <div className="kpi-val">
-                {analytics
-                  ? analytics.summary.avgResolutionHours.replace(/\s*hrs$/i, "")
-                  : "28.4"}
+                {summary
+                  ? summary.avgResolutionHours.replace(/\s*hrs$/i, "")
+                  : "—"}
               </div>
               <p className="text-muted">Hours</p>
               <p className="analytics-note">Target ≤ 48 Hours</p>
@@ -164,7 +206,7 @@ function DepartmentAnalytics({
                 <span>✓</span>
               </div>
               <div className="kpi-val">
-                {analytics ? analytics.summary.slaComplianceRate : "92.0%"}
+                {summary ? summary.slaComplianceRate : "—"}
               </div>
               <p className="text-muted">On-Time Redressal Charter</p>
             </div>
@@ -175,75 +217,58 @@ function DepartmentAnalytics({
                 <span>★</span>
               </div>
               <div className="kpi-val">
-                4.6 <small>/ 5.0</small>
+                {summary?.avgRating ? (
+                  <>
+                    {summary.avgRating} <small>/ 5.0</small>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 22 }}>No ratings</span>
+                )}
               </div>
-              <p className="text-muted">115 post-resolution ratings</p>
+              <p className="text-muted">
+                {summary?.ratingCount
+                  ? `${summary.ratingCount} post-resolution rating(s)`
+                  : "Awaiting post-resolution feedback"}
+              </p>
             </div>
           </div>
+
           <div className="mid-grid">
             <section className="analytics-panel">
               <div className="analytics-panel-heading">
                 <div>
                   <h2>Department Workload &amp; Distribution</h2>
                   <p className="text-muted">
-                    Distribution of civic grievances, progress, and resolution
-                    status across ward municipal units.
+                    Live distribution of civic grievances and resolution counts
+                    across municipal departments.
                   </p>
                 </div>
-                <span className="analytics-badge">Total: 138</span>
+                <span className="analytics-badge">
+                  Total: {summary?.totalComplaints ?? 0}
+                </span>
               </div>
 
-              <div className="bar-row">
-                <div className="bar-top">
-                  <span>Roads &amp; Public Works (PWD)</span>
-                  <span>58 Resolved • 45% (62)</span>
-                </div>
-                <div className="bar-track">
-                  <div
-                    className="bar-fill bar-roads"
-                    style={{ width: "45%" }}
-                  />
-                </div>
-              </div>
-
-              <div className="bar-row">
-                <div className="bar-top">
-                  <span>Solid Waste &amp; Sanitation (SWM)</span>
-                  <span>39 Resolved • 30% (41)</span>
-                </div>
-                <div className="bar-track">
-                  <div
-                    className="bar-fill bar-sanitation"
-                    style={{ width: "30%" }}
-                  />
-                </div>
-              </div>
-
-              <div className="bar-row">
-                <div className="bar-top">
-                  <span>Streetlighting &amp; Electrical</span>
-                  <span>19 Resolved • 15% (21)</span>
-                </div>
-                <div className="bar-track">
-                  <div
-                    className="bar-fill bar-electrical"
-                    style={{ width: "15%" }}
-                  />
-                </div>
-              </div>
-
-              <div className="bar-row">
-                <div className="bar-top">
-                  <span>Water Supply &amp; Drainage</span>
-                  <span>11 Resolved • 10% (14)</span>
-                </div>
-                <div className="bar-track">
-                  <div
-                    className="bar-fill bar-water"
-                    style={{ width: "10%" }}
-                  />
-                </div>
-              </div>
+              {departments.length > 0 ? (
+                departments.map((dept) => (
+                  <div className="bar-row" key={dept.id}>
+                    <div className="bar-top">
+                      <span>{dept.name}</span>
+                      <span>
+                        {dept.resolved} Resolved • {dept.percentage}% (
+                        {dept.total})
+                      </span>
+                    </div>
+                    <div className="bar-track">
+                      <div
+                        className={`bar-fill ${getDeptBarClass(dept.id)}`}
+                        style={{ width: `${dept.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted">No department complaints in range.</p>
+              )}
             </section>
 
             <section className="analytics-panel">
@@ -251,81 +276,126 @@ function DepartmentAnalytics({
                 <div>
                   <h2>SLA &amp; Resolution Turnaround</h2>
                   <p className="text-muted">
-                    92% of civic issues closed within statutory time limit.
+                    {summary
+                      ? `${summary.slaComplianceRate} of tracked grievances are within SLA targets.`
+                      : "Calculating live SLA turnaround..."}
                   </p>
                 </div>
-                <span className="analytics-badge">Compliance: 92%</span>
+                <span className="analytics-badge">
+                  Compliance: {summary?.slaComplianceRate ?? "—"}
+                </span>
               </div>
 
               <div className="sla-row">
                 <div>
                   <strong>Resolved &lt;24 Hours</strong>
-                  <p className="text-muted">Fast Track Redressal</p>
+                  <p className="text-muted">
+                    {slaTurnaround?.under24hCount ?? 0} complaint(s) fast-tracked
+                  </p>
                 </div>
                 <strong>
-                  68% <span className="sla-status">Ahead</span>
+                  {slaTurnaround?.under24hPct ?? 0}%{" "}
+                  <span className="sla-status">Ahead</span>
                 </strong>
               </div>
 
               <div className="sla-row">
                 <div>
                   <strong>Resolved 24–48 Hours</strong>
-                  <p className="text-muted">Within Standard SLA</p>
+                  <p className="text-muted">
+                    {slaTurnaround?.between24And48hCount ?? 0} complaint(s)
+                    within SLA
+                  </p>
                 </div>
                 <strong>
-                  24% <span className="sla-status">On Target</span>
+                  {slaTurnaround?.between24And48hPct ?? 0}%{" "}
+                  <span className="sla-status">On Target</span>
                 </strong>
               </div>
 
               <div className="sla-row danger">
                 <div>
-                  <strong>Breached / Escalated (&gt;48 Hours)</strong>
-                  <p className="text-muted">Requires zonal review</p>
+                  <strong>Breached / Overdue (&gt;48 Hours)</strong>
+                  <p className="text-muted">
+                    {slaTurnaround?.breachedCount ?? 0} complaint(s) requiring
+                    review
+                  </p>
                 </div>
                 <strong>
-                  8% <span className="sla-status">Overdue</span>
+                  {slaTurnaround?.breachedPct ?? 0}%{" "}
+                  <span className="sla-status">Overdue</span>
                 </strong>
               </div>
             </section>
           </div>
+
           <section className="analytics-panel analytics-operations">
             <div className="analytics-panel-heading">
               <div>
                 <h2>Ward Operations &amp; Resource Utilization</h2>
                 <p className="text-muted">
-                  Live ward status and municipal resource allocation.
+                  Live squad deployment, active hotspots, and peak intake window.
                 </p>
               </div>
-              <span className="analytics-badge">Live Ward Status</span>
+              <span className="analytics-badge">Live Status</span>
             </div>
 
             <div className="bottom-grid">
               <div className="stat-tile">
                 <span className="kpi-label">Active Field Squads</span>
-                <h3>5 Units Deployed</h3>
-                <p className="text-muted">Out of 8 total ward squads</p>
-                <strong>3 On Standby</strong>
+                <h3>{ops?.deployedWorkers ?? 0} Deployed</h3>
+                <p className="text-muted">
+                  Out of {ops?.totalWorkers ?? 0} total staff (
+                  {ops?.offDutyWorkers ?? 0} off-duty)
+                </p>
+                <strong>{ops?.availableWorkers ?? 0} Available Now</strong>
               </div>
 
               <div className="stat-tile">
-                <span className="kpi-label">Equipment Utilization</span>
-                <h3>82% In Field</h3>
-                <p className="text-muted">Compactor, Jetting van, Roller</p>
-                <strong>Optimal Allocation</strong>
+                <span className="kpi-label">Active Crew Utilization</span>
+                <h3>{ops?.utilizationPct ?? 0}% In Field</h3>
+                <p className="text-muted">
+                  {ops?.deployedWorkers ?? 0} on-site /{" "}
+                  {Math.max(
+                    0,
+                    (ops?.totalWorkers ?? 0) - (ops?.offDutyWorkers ?? 0)
+                  )}{" "}
+                  on-duty
+                </p>
+                <strong>
+                  {(ops?.utilizationPct ?? 0) >= 80
+                    ? "High Load"
+                    : "Balanced Capacity"}
+                </strong>
               </div>
 
               <div className="stat-tile">
                 <span className="kpi-label">Most Reported Locality</span>
-                <h3>12th Main &amp; HAL 2nd Stg</h3>
-                <p className="text-muted">38% of road complaints</p>
+                <h3
+                  style={{
+                    fontSize: 16,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={ops?.topLocality}
+                >
+                  {ops?.topLocality ?? "No complaints"}
+                </h3>
+                <p className="text-muted">
+                  {ops?.topLocalityCount ?? 0} complaint(s) •{" "}
+                  {ops?.topLocalityPct ?? 0}% of total
+                </p>
                 <strong>Priority Inspection Zone</strong>
               </div>
 
               <div className="stat-tile">
                 <span className="kpi-label">Peak Reporting Hours</span>
-                <h3>08:30–11:00 AM</h3>
-                <p className="text-muted">Morning commute surge</p>
-                <strong>Dispatched Auto-Routing</strong>
+                <h3>{ops?.peakReportingWindow ?? "No data"}</h3>
+                <p className="text-muted">
+                  {ops?.peakCount ?? 0} complaint(s) logged in peak window
+                </p>
+                <strong>Auto-Routing Active</strong>
               </div>
             </div>
           </section>

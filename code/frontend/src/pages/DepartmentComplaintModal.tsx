@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 type Complaint = {
   id: string;
   category: string;
@@ -12,12 +14,52 @@ type Complaint = {
 type DepartmentComplaintModalProps = {
   complaint: Complaint;
   onClose: () => void;
+  onResolve?: (complaintId: string, comment?: string) => Promise<void>;
 };
 
 function DepartmentComplaintModal({
   complaint,
   onClose,
+  onResolve,
 }: DepartmentComplaintModalProps) {
+  const [resolutionNote, setResolutionNote] = useState("");
+  const [resolving, setResolving] = useState(false);
+  const [error, setError] = useState("");
+
+  const isResolved =
+    complaint.status === "Resolved" || complaint.status === "Closed";
+  const isInProgress =
+    !isResolved &&
+    (complaint.status === "In Progress" || complaint.status === "Assigned");
+
+  const statusColors = isResolved
+    ? { background: "#dcfce7", color: "#166534" }
+    : isInProgress
+    ? { background: "#fef3c7", color: "#b45309" }
+    : { background: "#ffdad6", color: "#ba1a1a" };
+
+  async function handleMarkResolved() {
+    if (!onResolve) return;
+    setError("");
+    setResolving(true);
+    try {
+      await onResolve(
+        complaint.id,
+        resolutionNote.trim() ||
+          "Work completed and verified by Municipal Administrator."
+      );
+      onClose();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to mark complaint as resolved."
+      );
+    } finally {
+      setResolving(false);
+    }
+  }
+
   return (
     <div
       className="confirmation-overlay department-modal-overlay"
@@ -64,7 +106,19 @@ function DepartmentComplaintModal({
             <div className="department-detail-item">
               <span className="small text-muted">CURRENT STATUS</span>
               <p>
-                <strong>{complaint.status}</strong>
+                <span
+                  className="pill"
+                  style={{
+                    ...statusColors,
+                    display: "inline-block",
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {complaint.status}
+                </span>
               </p>
             </div>
 
@@ -91,30 +145,73 @@ function DepartmentComplaintModal({
 
             <div className="timeline-item">
               <strong>
-                {complaint.status === "Resolved"
+                {isResolved
                   ? "Complaint resolved"
                   : complaint.status === "Pending Dispatch"
                     ? "Awaiting crew assignment"
                     : "Work in progress"}
               </strong>
               <p className="text-body">
-                {complaint.status === "Resolved"
-                  ? "The complaint is marked as resolved in this demonstration."
+                {isResolved
+                  ? "This grievance has been marked as resolved and closed."
                   : complaint.status === "Pending Dispatch"
-                    ? "A department officer needs to assign a field crew."
-                    : "The assigned team is working on this complaint."}
+                    ? "A department officer needs to assign a field crew or mark resolved."
+                    : "The assigned team is actively working on this complaint."}
               </p>
             </div>
           </div>
+
+          {!isResolved && onResolve && (
+            <div style={{ marginTop: 16 }}>
+              <label
+                htmlFor="admin-resolution-note"
+                className="small text-muted"
+                style={{ display: "block", fontWeight: 700, marginBottom: 6 }}
+              >
+                RESOLUTION REMARKS (OPTIONAL)
+              </label>
+              <input
+                id="admin-resolution-note"
+                type="text"
+                value={resolutionNote}
+                onChange={(e) => setResolutionNote(e.target.value)}
+                placeholder="e.g. Verified on site and repair completed"
+                style={{ width: "100%", padding: "9px 12px" }}
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="complaint-error" role="alert" style={{ marginTop: 12 }}>
+              {error}
+            </p>
+          )}
         </div>
 
         <div className="timeline-footer">
           <span className="small text-muted">
             NagrikConnect Municipal Administration Core
           </span>
-          <button type="button" className="btn btn-primary" onClick={onClose}>
-            Close Details
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            {!isResolved && onResolve && (
+              <button
+                type="button"
+                className="btn"
+                onClick={handleMarkResolved}
+                disabled={resolving}
+                style={{
+                  background: "#2e7d32",
+                  color: "#ffffff",
+                  fontWeight: 600,
+                }}
+              >
+                {resolving ? "Resolving..." : "✓ Mark as Resolved"}
+              </button>
+            )}
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              Close Details
+            </button>
+          </div>
         </div>
       </div>
     </div>
