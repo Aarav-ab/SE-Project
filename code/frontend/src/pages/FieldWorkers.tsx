@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   fetchFieldWorkers,
   createFieldWorker,
+  updateFieldWorker,
   freeFieldWorker,
   updateFieldWorkerStatus,
   assignComplaintWorker,
@@ -27,6 +28,7 @@ type FieldWorkersProps = {
   onAssignCrew: (complaintId: string, crewName: string) => Promise<void> | void;
   onFreeCrew?: (workerName: string, complaintIds?: string[]) => void;
   onOpenAnalytics: () => void;
+  onOpenSchedule: () => void;
 };
 
 const initialWorkers = [
@@ -37,10 +39,10 @@ const initialWorkers = [
     status: "On-Site: Asphalt Patching",
     color: "var(--navy)",
     dot: "var(--amber)",
+    phone: "+91 98765 43210",
     assignment: "#GRV-8902",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "14",
-    resolution: "22 hrs",
+    metricLabel: "Tickets Closed / Resolved",
+    metric: "1",
     action: "View Active Ticket →",
     complaintId: "GRV-2025-W14-8902",
     type: "ticket",
@@ -52,10 +54,10 @@ const initialWorkers = [
     status: "On-Site: Lamp Replacement",
     color: "var(--amber)",
     dot: "var(--amber)",
+    phone: "+91 98765 43211",
     assignment: "#GRV-8712",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "19",
-    resolution: "9 hrs",
+    metricLabel: "Tickets Closed / Resolved",
+    metric: "0",
     action: "View Active Ticket →",
     complaintId: "GRV-2025-W14-8712",
     type: "ticket",
@@ -67,10 +69,10 @@ const initialWorkers = [
     status: "Available Now",
     color: "#61b15f",
     dot: "#61b15f",
+    phone: "+91 98765 43212",
     assignment: "—",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "27",
-    resolution: "5 hrs",
+    metricLabel: "Tickets Closed / Resolved",
+    metric: "0",
     action: "Dispatch to Ticket →",
     complaintId: "",
     type: "dispatch",
@@ -82,10 +84,10 @@ const initialWorkers = [
     status: "On-Site: Drain Audit",
     color: "var(--red)",
     dot: "var(--amber)",
+    phone: "+91 98765 43213",
     assignment: "#GRV-9140",
-    metricLabel: "Audits Completed (30d)",
-    metric: "31",
-    resolution: "2 hrs",
+    metricLabel: "Audits Completed",
+    metric: "1",
     action: "View Active Ticket →",
     complaintId: "GRV-2025-W14-9140",
     type: "ticket",
@@ -97,10 +99,10 @@ const initialWorkers = [
     status: "Off-Duty (Rotation)",
     color: "var(--text-muted)",
     dot: "#c4c6cf",
+    phone: "+91 98765 43214",
     assignment: "—",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "22",
-    resolution: "4 hrs",
+    metricLabel: "Tickets Closed / Resolved",
+    metric: "1",
     action: "Back on duty tomorrow",
     complaintId: "",
     type: "off-duty",
@@ -112,10 +114,10 @@ const initialWorkers = [
     status: "Available Now",
     color: "#61b15f",
     dot: "#61b15f",
+    phone: "+91 98765 43215",
     assignment: "—",
-    metricLabel: "Tickets Closed (30d)",
-    metric: "16",
-    resolution: "26 hrs",
+    metricLabel: "Tickets Closed / Resolved",
+    metric: "0",
     action: "Dispatch to Ticket →",
     complaintId: "",
     type: "dispatch",
@@ -129,6 +131,7 @@ function FieldWorkers({
   onAssignCrew,
   onFreeCrew,
   onOpenAnalytics,
+  onOpenSchedule,
 }: FieldWorkersProps) {
   const [search, setSearch] = useState("");
   const [workers, setWorkers] = useState<any[]>(() => {
@@ -159,6 +162,15 @@ function FieldWorkers({
   const [newWorkerDept, setNewWorkerDept] = useState("Roads & Public Works (PWD)");
   const [newWorkerPhone, setNewWorkerPhone] = useState("");
   const [newWorkerStatus, setNewWorkerStatus] = useState("Available Now");
+  const [addWorkerError, setAddWorkerError] = useState("");
+
+  const [editingWorker, setEditingWorker] = useState<any | null>(null);
+  const [editWorkerName, setEditWorkerName] = useState("");
+  const [editWorkerRole, setEditWorkerRole] = useState("");
+  const [editWorkerDept, setEditWorkerDept] = useState("Roads & Public Works (PWD)");
+  const [editWorkerPhone, setEditWorkerPhone] = useState("");
+  const [editWorkerError, setEditWorkerError] = useState("");
+  const [editWorkerSaving, setEditWorkerSaving] = useState(false);
 
   const [workerToAssign, setWorkerToAssign] = useState<any | null>(null);
   const [selectedGrievanceId, setSelectedGrievanceId] = useState("");
@@ -176,13 +188,25 @@ function FieldWorkers({
   } | null>(null);
 
   useEffect(() => {
-    fetchFieldWorkers().then((apiWorkers) => {
-      if (apiWorkers && apiWorkers.length > 0) {
-        setWorkers(apiWorkers);
-        localStorage.setItem("nc_workers_cache", JSON.stringify(apiWorkers));
-      }
-    });
-  }, []);
+    let active = true;
+    const loadWorkers = () => {
+      fetchFieldWorkers().then((apiWorkers) => {
+        if (active && apiWorkers && apiWorkers.length > 0) {
+          setWorkers(apiWorkers);
+          localStorage.setItem("nc_workers_cache", JSON.stringify(apiWorkers));
+        }
+      });
+    };
+
+    loadWorkers();
+    const interval = setInterval(loadWorkers, 5000);
+    window.addEventListener("focus", loadWorkers);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      window.removeEventListener("focus", loadWorkers);
+    };
+  }, [areaComplaints]);
 
   const availableComplaints = areaComplaints.filter(
     (c) => c.status !== "Resolved" && c.status !== "Closed" && !c.resolved
@@ -450,7 +474,17 @@ function FieldWorkers({
 
   async function handleCreateWorker(e: React.FormEvent) {
     e.preventDefault();
-    if (!newWorkerName.trim()) return;
+    setAddWorkerError("");
+    if (!newWorkerName.trim()) {
+      setAddWorkerError("Full name is required.");
+      return;
+    }
+
+    const cleanPhone = newWorkerPhone.trim();
+    if (cleanPhone && cleanPhone.replace(/\D/g, "").length < 10) {
+      setAddWorkerError("Contact number must contain at least 10 digits.");
+      return;
+    }
 
     const parts = newWorkerName.trim().split(/\s+/);
     const initials =
@@ -474,7 +508,7 @@ function FieldWorkers({
       name: newWorkerName.trim(),
       role: newWorkerRole.trim() || "Field Technician",
       department: newWorkerDept,
-      phone: newWorkerPhone.trim(),
+      phone: cleanPhone,
       status: newWorkerStatus,
     };
 
@@ -496,12 +530,11 @@ function FieldWorkers({
       color,
       dot,
       dotColor: dot,
-      phone: newWorkerPhone.trim(),
+      phone: cleanPhone,
       assignment: "—",
       activeTicket: "—",
-      metricLabel: "Tickets Closed (30d)",
+      metricLabel: "Tickets Closed / Resolved",
       metric: "0",
-      resolution: "12 hrs",
       action: isOffDuty ? "Back on duty tomorrow" : "Dispatch to Ticket →",
       type: isOffDuty ? "off-duty" : "dispatch",
     };
@@ -514,6 +547,71 @@ function FieldWorkers({
     setNewWorkerRole("");
     setNewWorkerPhone("");
     setNewWorkerStatus("Available Now");
+  }
+
+  function openEditWorkerModal(worker: any) {
+    setEditingWorker(worker);
+    setEditWorkerName(worker.name || "");
+    setEditWorkerRole(worker.role || "");
+    setEditWorkerDept(worker.department || "Roads & Public Works (PWD)");
+    setEditWorkerPhone(worker.phone || "");
+    setEditWorkerError("");
+  }
+
+  async function handleSaveWorkerEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingWorker) return;
+    setEditWorkerError("");
+
+    if (!editWorkerName.trim()) {
+      setEditWorkerError("Full name is required.");
+      return;
+    }
+
+    const cleanPhone = editWorkerPhone.trim();
+    if (cleanPhone && cleanPhone.replace(/\D/g, "").length < 10) {
+      setEditWorkerError("Contact number must contain at least 10 digits.");
+      return;
+    }
+
+    setEditWorkerSaving(true);
+    try {
+      if (editingWorker.id) {
+        await updateFieldWorker(editingWorker.id, {
+          name: editWorkerName.trim(),
+          role: editWorkerRole.trim() || "Field Technician",
+          department: editWorkerDept,
+          phone: cleanPhone,
+        });
+      }
+
+      const refreshedWorkers = await fetchFieldWorkers();
+      if (refreshedWorkers && refreshedWorkers.length > 0) {
+        setWorkers(refreshedWorkers);
+        localStorage.setItem("nc_workers_cache", JSON.stringify(refreshedWorkers));
+      } else {
+        setWorkers((prev) =>
+          prev.map((w) =>
+            w.id === editingWorker.id || w.name === editingWorker.name
+              ? {
+                  ...w,
+                  name: editWorkerName.trim(),
+                  role: editWorkerRole.trim() || w.role,
+                  department: editWorkerDept,
+                  phone: cleanPhone,
+                }
+              : w
+          )
+        );
+      }
+      setEditingWorker(null);
+    } catch (err: unknown) {
+      setEditWorkerError(
+        err instanceof Error ? err.message : "Failed to update staff details."
+      );
+    } finally {
+      setEditWorkerSaving(false);
+    }
   }
 
   const totalStaff = workers.length;
@@ -580,6 +678,9 @@ function FieldWorkers({
             </button>
             <button type="button" onClick={onOpenAnalytics}>
               Department Analytics
+            </button>
+            <button type="button" onClick={onOpenSchedule}>
+              Citizen Hub Schedule
             </button>
           </nav>
         </div>
@@ -744,29 +845,44 @@ function FieldWorkers({
           <div className="crew-grid">
             {filteredWorkers.map((worker) => (
               <article className="crew-card" key={worker.id || worker.name}>
-                <div className="crew-top">
-                  <div
-                    className="crew-avatar"
-                    style={{ background: worker.color }}
-                  >
-                    {worker.initials}
-                  </div>
-                  <div>
-                    <strong>{worker.name}</strong>
-                    <div className="small text-body">{worker.role}</div>
-                    <span
-                      className="small mt-1"
-                      style={{ display: "inline-block" }}
+                <div className="crew-top" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div className="flex gap-3 items-center" style={{ minWidth: 0 }}>
+                    <div
+                      className="crew-avatar"
+                      style={{ background: worker.color }}
                     >
+                      {worker.initials}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <strong>{worker.name}</strong>
+                      <div className="small text-body">{worker.role}</div>
                       <span
-                        className="avail-dot"
-                        style={{ background: worker.dot }}
-                      />
-                      {worker.status}
-                    </span>
+                        className="small mt-1"
+                        style={{ display: "inline-block" }}
+                      >
+                        <span
+                          className="avail-dot"
+                          style={{ background: worker.dot }}
+                        />
+                        {worker.status}
+                      </span>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: "4px 8px", fontSize: 11, flexShrink: 0 }}
+                    title="Edit staff details"
+                    onClick={() => openEditWorkerModal(worker)}
+                  >
+                    ✏️ Edit
+                  </button>
                 </div>
 
+                <div className="crew-stat-row">
+                  <span className="text-body">Contact Number</span>
+                  <strong>{worker.phone || "Not provided"}</strong>
+                </div>
                 <div className="crew-stat-row">
                   <span className="text-body">Active Assignment</span>
                   <strong>{worker.assignment}</strong>
@@ -774,10 +890,6 @@ function FieldWorkers({
                 <div className="crew-stat-row">
                   <span className="text-body">{worker.metricLabel}</span>
                   <strong>{worker.metric}</strong>
-                </div>
-                <div className="crew-stat-row">
-                  <span className="text-body">Avg. Resolution</span>
-                  <strong>{worker.resolution}</strong>
                 </div>
 
                 {worker.status.includes("On-Site") ||
@@ -889,6 +1001,11 @@ function FieldWorkers({
                 </div>
 
                 <form onSubmit={handleCreateWorker}>
+                  {addWorkerError && (
+                    <div className="complaint-error" style={{ marginBottom: 12 }}>
+                      ⚠️ {addWorkerError}
+                    </div>
+                  )}
                   <div style={{ marginBottom: 14 }}>
                     <label
                       style={{
@@ -987,10 +1104,11 @@ function FieldWorkers({
                         marginBottom: 4,
                       }}
                     >
-                      Contact Phone
+                      Contact Number *
                     </label>
                     <input
                       type="tel"
+                      required
                       placeholder="+91 98765 00000"
                       value={newWorkerPhone}
                       onChange={(e) => setNewWorkerPhone(e.target.value)}
@@ -1216,6 +1334,188 @@ function FieldWorkers({
                     Confirm Dispatch →
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Staff Member Modal */}
+          {editingWorker && (
+            <div
+              className="confirmation-overlay"
+              role="presentation"
+              onClick={() => setEditingWorker(null)}
+            >
+              <div
+                className="confirmation-modal"
+                role="dialog"
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxWidth: 500, padding: 28, textAlign: "left" }}
+              >
+                <div
+                  className="flex justify-between items-center"
+                  style={{ marginBottom: 16 }}
+                >
+                  <div>
+                    <h2
+                      style={{
+                        fontSize: 22,
+                        margin: 0,
+                        color: "var(--navy)",
+                      }}
+                    >
+                      Edit Staff Member Details
+                    </h2>
+                    <p className="small text-body" style={{ margin: "4px 0 0" }}>
+                      Update role, department, or contact number
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setEditingWorker(null)}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {editWorkerError && (
+                  <div className="complaint-error" style={{ marginBottom: 12 }}>
+                    ⚠️ {editWorkerError}
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveWorkerEdit}>
+                  <div style={{ marginBottom: 14 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editWorkerName}
+                      onChange={(e) => setEditWorkerName(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Role &amp; Designation *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editWorkerRole}
+                      onChange={(e) => setEditWorkerRole(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Department
+                    </label>
+                    <select
+                      value={editWorkerDept}
+                      onChange={(e) => setEditWorkerDept(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                        background: "#fff",
+                      }}
+                    >
+                      <option value="Roads & Public Works (PWD)">
+                        Roads &amp; Public Works (PWD)
+                      </option>
+                      <option value="Electrical & Streetlighting">
+                        Electrical &amp; Streetlighting
+                      </option>
+                      <option value="Sanitation (SWM)">
+                        Sanitation (SWM)
+                      </option>
+                      <option value="Water Supply & Drainage">
+                        Water Supply &amp; Drainage
+                      </option>
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom: 20 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Contact Number *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+91 98765 00000"
+                      value={editWorkerPhone}
+                      onChange={(e) => setEditWorkerPhone(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setEditingWorker(null)}
+                      disabled={editWorkerSaving}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-navy"
+                      disabled={editWorkerSaving}
+                    >
+                      {editWorkerSaving ? "Saving..." : "Save Details"}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

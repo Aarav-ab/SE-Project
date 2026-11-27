@@ -107,7 +107,21 @@ export async function createComplaint(req: AuthRequest, res: Response) {
         department: true,
         attachments: true,
         timeline: true,
-        assignedWorker: true,
+        assignedWorker: {
+          include: { department: true },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            city: true,
+            state: true,
+            pincode: true,
+          },
+        },
       },
     });
 
@@ -177,12 +191,26 @@ export async function getAllComplaints(req: AuthRequest, res: Response) {
       orderBy: { createdAt: "desc" },
       include: {
         department: true,
-        assignedWorker: true,
+        assignedWorker: {
+          include: { department: true },
+        },
         attachments: true,
         timeline: {
           orderBy: { createdAt: "asc" },
         },
         feedback: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            city: true,
+            state: true,
+            pincode: true,
+          },
+        },
       },
     });
 
@@ -210,14 +238,25 @@ export async function getComplaintById(req: AuthRequest, res: Response) {
       where: { id },
       include: {
         department: true,
-        assignedWorker: true,
+        assignedWorker: {
+          include: { department: true },
+        },
         attachments: true,
         timeline: {
           orderBy: { createdAt: "asc" },
         },
         feedback: true,
         user: {
-          select: { id: true, name: true, email: true, phone: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            city: true,
+            state: true,
+            pincode: true,
+          },
         },
       },
     });
@@ -268,19 +307,25 @@ export async function updateComplaintStatus(req: AuthRequest, res: Response) {
       },
     });
 
-    // Free assigned field worker once complaint is resolved
+    // Free assigned field worker once complaint is resolved and sync resolved count
     if (
       isResolved &&
       existing.assignedWorkerId &&
       existing.status !== "Resolved" &&
       existing.status !== "Closed"
     ) {
+      const resolvedCount = await prisma.complaint.count({
+        where: {
+          assignedWorkerId: existing.assignedWorkerId,
+          status: { in: ["Resolved", "Closed"] },
+        },
+      });
       await prisma.fieldWorker.update({
         where: { id: existing.assignedWorkerId },
         data: {
           status: "Available Now",
           dotColor: "#61b15f",
-          ticketsClosedMonth: { increment: 1 },
+          ticketsClosedMonth: resolvedCount,
         },
       });
     }
@@ -302,8 +347,22 @@ export async function updateComplaintStatus(req: AuthRequest, res: Response) {
       where: { id },
       include: {
         department: true,
-        assignedWorker: true,
+        assignedWorker: {
+          include: { department: true },
+        },
         timeline: { orderBy: { createdAt: "asc" } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            city: true,
+            state: true,
+            pincode: true,
+          },
+        },
       },
     });
 
@@ -358,8 +417,22 @@ export async function assignComplaintWorker(req: AuthRequest, res: Response) {
         status: existing.status === "Pending Dispatch" ? "Assigned" : existing.status,
       },
       include: {
-        assignedWorker: true,
+        assignedWorker: {
+          include: { department: true },
+        },
         department: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            city: true,
+            state: true,
+            pincode: true,
+          },
+        },
       },
     });
 

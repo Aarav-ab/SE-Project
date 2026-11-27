@@ -155,6 +155,7 @@ function ComplaintsLog({
       highlight: step === 3,
       resolved: isResolved,
       assignedWorker: item.assignedWorker,
+      assignedWorkerDetails: item.assignedWorkerDetails || null,
       timeline: item.timeline,
     };
   });

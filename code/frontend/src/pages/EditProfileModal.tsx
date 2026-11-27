@@ -12,6 +12,7 @@ export default function EditProfileModal({
   onClose,
 }: EditProfileModalProps) {
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
@@ -23,15 +24,23 @@ export default function EditProfileModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    const user = getCurrentUser();
-    setName(user?.name || "");
-    setAddressLine1(user?.addressLine1 || user?.address || "");
-    setAddressLine2(user?.addressLine2 || "");
-    setCity(user?.city || "");
-    setState(user?.state || "");
-    setPincode(user?.pincode || "");
-    setError("");
-    setSuccess("");
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (!active) return;
+      const user = getCurrentUser();
+      setName(user?.name || "");
+      setPhone(user?.phone || "");
+      setAddressLine1(user?.addressLine1 || user?.address || "");
+      setAddressLine2(user?.addressLine2 || "");
+      setCity(user?.city || "");
+      setState(user?.state || "");
+      setPincode(user?.pincode || "");
+      setError("");
+      setSuccess("");
+    });
+    return () => {
+      active = false;
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -46,6 +55,15 @@ export default function EditProfileModal({
       return;
     }
 
+    const cleanPhone = phone.trim();
+    if (cleanPhone) {
+      const digits = cleanPhone.replace(/\D/g, "");
+      if (digits.length < 10 || digits.length > 15) {
+        setError("Contact number must be a valid 10-digit phone number.");
+        return;
+      }
+    }
+
     const cleanPin = pincode.trim();
     if (cleanPin && !/^\d{6}$/.test(cleanPin)) {
       setError("PIN code must be a valid 6-digit number.");
@@ -56,6 +74,7 @@ export default function EditProfileModal({
     try {
       await updateProfileApi({
         name: name.trim(),
+        phone: cleanPhone,
         addressLine1: addressLine1.trim(),
         addressLine2: addressLine2.trim(),
         city: city.trim(),
@@ -195,6 +214,17 @@ export default function EditProfileModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your full name"
               required
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="profile-phone">Contact Number</label>
+            <input
+              id="profile-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. +91 98765 43210"
             />
           </div>
 

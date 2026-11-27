@@ -8,6 +8,7 @@ type RegisterProps = {
 function Register({ onGoToLogin }: RegisterProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
@@ -42,6 +43,13 @@ function Register({ onGoToLogin }: RegisterProps) {
 
     if (!isEmailValid) {
       setError("Please enter a valid email address (e.g. name@example.com).");
+      return;
+    }
+
+    const cleanPhone = phone.trim();
+    const phoneDigits = cleanPhone.replace(/\D/g, "");
+    if (!cleanPhone || phoneDigits.length < 10 || phoneDigits.length > 15) {
+      setError("Please enter a valid 10-digit contact number.");
       return;
     }
 
@@ -83,6 +91,7 @@ function Register({ onGoToLogin }: RegisterProps) {
       await registerUser({
         name: name.trim(),
         email: email.trim().toLowerCase(),
+        phone: cleanPhone,
         addressLine1: addressLine1.trim(),
         addressLine2: addressLine2.trim() || undefined,
         city: city.trim(),
@@ -247,6 +256,41 @@ function Register({ onGoToLogin }: RegisterProps) {
               {email.trim().length > 0 && !isEmailValid && (
                 <span style={{ color: "#d32f2f", fontSize: "12px", marginTop: "4px", display: "block" }}>
                   Please enter a valid email format (e.g. name@example.com)
+                </span>
+              )}
+            </div>
+
+            {/* Contact Number */}
+            <div className="field">
+              <label>
+                Contact Number <span className="req">*</span>
+              </label>
+
+              <div className="input-wrap">
+                <span className="icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                  </svg>
+                </span>
+
+                <input
+                  type="tel"
+                  placeholder="e.g. +91 98765 43210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
+              {phone.trim().length > 0 && phone.replace(/\D/g, "").length < 10 && (
+                <span style={{ color: "#d32f2f", fontSize: "12px", marginTop: "4px", display: "block" }}>
+                  Contact number must contain at least 10 digits
                 </span>
               )}
             </div>

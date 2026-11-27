@@ -20,6 +20,15 @@ type ComplaintTimelineModalProps = {
     priority?: string;
     assignedTo?: string;
     assignedWorker?: string;
+    assignedWorkerDetails?: {
+      id?: string;
+      name: string;
+      initials?: string;
+      role?: string;
+      phone?: string | null;
+      status?: string;
+      department?: string;
+    } | null;
     step?: number;
     progress?: string;
     resolved?: boolean;
@@ -220,8 +229,11 @@ function ComplaintTimelineModal({
 
   useEffect(() => {
     let mounted = true;
-    // Skip redundant fetch if timeline was already loaded into ComplaintContext
-    if (complaintId && !complaintData?.timeline) {
+    const needsFetch =
+      complaintId &&
+      (!complaintData?.timeline ||
+        (complaintData?.assignedWorker && !complaintData?.assignedWorkerDetails));
+    if (needsFetch) {
       fetchComplaintById(complaintId).then((data) => {
         if (mounted && data) {
           setServerComplaint(data);
@@ -231,7 +243,7 @@ function ComplaintTimelineModal({
     return () => {
       mounted = false;
     };
-  }, [complaintId, complaintData?.timeline]);
+  }, [complaintId, complaintData?.timeline, complaintData?.assignedWorker, complaintData?.assignedWorkerDetails]);
 
   // Fallback mock if complaintId matches demo data
   const mockFallback = timelineData[complaintId];
@@ -322,10 +334,50 @@ function ComplaintTimelineModal({
   const assignedOfficer = isPendingDispatch
     ? "Pending Crew Assignment"
     : serverComplaint?.assignedWorker?.name ||
+      complaintData?.assignedWorkerDetails?.name ||
       complaintData?.assignedWorker ||
       complaintData?.assignedTo ||
       mockFallback?.assignedTo ||
       (effectiveStep >= 2 ? "Assigned Field Crew" : "Pending Crew Assignment");
+
+  const staffDetails = isPendingDispatch
+    ? null
+    : serverComplaint?.assignedWorker
+    ? {
+        name: serverComplaint.assignedWorker.name,
+        initials: serverComplaint.assignedWorker.initials,
+        role: serverComplaint.assignedWorker.role,
+        phone: serverComplaint.assignedWorker.phone ?? null,
+        status: serverComplaint.assignedWorker.status,
+        department:
+          serverComplaint.assignedWorker.department?.name ||
+          serverComplaint.department?.name ||
+          category,
+      }
+    : complaintData?.assignedWorkerDetails
+    ? {
+        name: complaintData.assignedWorkerDetails.name,
+        initials: complaintData.assignedWorkerDetails.initials,
+        role: complaintData.assignedWorkerDetails.role,
+        phone: complaintData.assignedWorkerDetails.phone ?? null,
+        status: complaintData.assignedWorkerDetails.status,
+        department: complaintData.assignedWorkerDetails.department || category,
+      }
+    : assignedOfficer !== "Pending Crew Assignment"
+    ? {
+        name: assignedOfficer,
+        initials: assignedOfficer
+          .split(" ")
+          .map((w) => w[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase(),
+        role: "Assigned Field Staff",
+        phone: null,
+        status: undefined,
+        department: category,
+      }
+    : null;
 
   const priority =
     serverComplaint?.priority ||
@@ -518,6 +570,72 @@ function ComplaintTimelineModal({
             <strong>Assigned Officer</strong>
             <span>{assignedOfficer}</span>
           </p>
+
+          <div
+            style={{
+              marginTop: 14,
+              padding: 14,
+              borderRadius: 10,
+              background: "var(--blue-50)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div
+              className="small text-muted"
+              style={{ fontWeight: 700, marginBottom: 8, letterSpacing: "0.4px" }}
+            >
+              ASSIGNED STAFF MEMBER DETAILS
+            </div>
+
+            {staffDetails ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                  gap: 10,
+                  fontSize: 13,
+                }}
+              >
+                <div>
+                  <div className="small text-muted">Staff Name</div>
+                  <strong style={{ color: "var(--navy)" }}>
+                    {staffDetails.name}
+                  </strong>
+                </div>
+                <div>
+                  <div className="small text-muted">Role / Designation</div>
+                  <div style={{ color: "var(--text-dark)", fontWeight: 600 }}>
+                    {staffDetails.role || "Municipal Field Staff"}
+                  </div>
+                </div>
+                <div>
+                  <div className="small text-muted">Department</div>
+                  <div style={{ color: "var(--text-dark)", fontWeight: 600 }}>
+                    {staffDetails.department || category}
+                  </div>
+                </div>
+                <div>
+                  <div className="small text-muted">Contact Number</div>
+                  <div style={{ fontWeight: 700, color: "var(--navy)" }}>
+                    {staffDetails.phone ? (
+                      <a
+                        href={`tel:${staffDetails.phone}`}
+                        style={{ color: "var(--navy)", textDecoration: "underline" }}
+                      >
+                        📞 {staffDetails.phone}
+                      </a>
+                    ) : (
+                      <span className="text-muted">Not available</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="small text-muted">
+                No staff member has been assigned yet. Staff name, designation, and contact number will appear here once dispatched.
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="timeline-history">

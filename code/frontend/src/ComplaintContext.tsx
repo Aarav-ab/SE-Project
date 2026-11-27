@@ -13,6 +13,7 @@ import {
   deleteComplaintApi,
   getCurrentUser,
   type ApiComplaint,
+  type ApiCitizenSummary,
   type ApiTimelineEvent,
 } from "./api";
 
@@ -29,6 +30,16 @@ export type ComplaintData = {
   priority: string;
 };
 
+export type AssignedWorkerDetails = {
+  id?: string;
+  name: string;
+  initials?: string;
+  role?: string;
+  phone?: string | null;
+  status?: string;
+  department?: string;
+};
+
 export type SubmittedComplaint = ComplaintData & {
   id: string;
   title?: string;
@@ -38,6 +49,8 @@ export type SubmittedComplaint = ComplaintData & {
   department: string;
   departmentId?: string;
   assignedWorker?: string;
+  assignedWorkerDetails?: AssignedWorkerDetails | null;
+  citizenDetails?: ApiCitizenSummary | null;
   step?: number;
   progress?: string;
   resolved?: boolean;
@@ -329,6 +342,19 @@ function mapApiToSubmitted(c: ApiComplaint): SubmittedComplaint {
     department: c.department?.name || "General Municipal Services",
     departmentId: c.department?.id || c.departmentId,
     assignedWorker: assignedWorkerName,
+    assignedWorkerDetails:
+      !isPendingDispatch && c.assignedWorker
+        ? {
+            id: c.assignedWorker.id,
+            name: c.assignedWorker.name,
+            initials: c.assignedWorker.initials,
+            role: c.assignedWorker.role,
+            phone: c.assignedWorker.phone ?? null,
+            status: c.assignedWorker.status,
+            department: c.assignedWorker.department?.name || c.department?.name,
+          }
+        : null,
+    citizenDetails: c.user || null,
     step,
     progress,
     resolved: isResolved,
@@ -415,7 +441,11 @@ export function ComplaintProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void Promise.resolve().then(() => refreshComplaints());
-  }, [refreshComplaints]);
+    window.addEventListener("nc_user_updated", syncUserSession);
+    return () => {
+      window.removeEventListener("nc_user_updated", syncUserSession);
+    };
+  }, [refreshComplaints, syncUserSession]);
 
   function updateComplaint(updates: Partial<ComplaintData>) {
     setComplaint((previous) => ({ ...previous, ...updates }));

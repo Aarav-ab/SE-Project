@@ -2,6 +2,16 @@ import { Response } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/prisma";
 import { generateToken, AuthRequest } from "../middlewares/auth";
+import { invalidateAllOperationalCaches } from "../config/cache";
+
+function normalizePhone(raw: unknown): string {
+  return String(raw ?? "").trim();
+}
+
+function isValidPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
 
 export async function register(req: AuthRequest, res: Response) {
   try {
@@ -44,6 +54,12 @@ export async function register(req: AuthRequest, res: Response) {
       return;
     }
 
+    const cleanPhone = phone !== undefined ? normalizePhone(phone) : "";
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      res.status(400).json({ error: "Please enter a valid 10-digit contact number." });
+      return;
+    }
+
     const existingUser = await prisma.user.findFirst({
       where: {
         email: cleanEmail,
@@ -72,7 +88,7 @@ export async function register(req: AuthRequest, res: Response) {
         email: cleanEmail,
         passwordHash,
         name: String(name).trim(),
-        phone: phone || null,
+        phone: cleanPhone || null,
         address: combinedAddress || null,
         addressLine1: line1 || null,
         addressLine2: line2 || null,
@@ -122,12 +138,15 @@ export async function login(req: AuthRequest, res: Response) {
       return;
     }
 
-    const cleanEmail = String(email).trim().toLowerCase();
+    const rawIdentifier = String(email).trim();
+    const cleanEmail = rawIdentifier.toLowerCase();
 
     const user = await prisma.user.findFirst({
-      where: {
-        email: cleanEmail,
-      },
+      where: rawIdentifier.includes("@")
+        ? { email: cleanEmail }
+        : {
+            OR: [{ email: cleanEmail }, { phone: rawIdentifier }],
+          },
     });
 
     if (!user) {
@@ -245,6 +264,12 @@ export async function updateProfile(req: AuthRequest, res: Response) {
       return;
     }
 
+    const trimmedPhone = phone !== undefined ? normalizePhone(phone) : undefined;
+    if (trimmedPhone && !isValidPhone(trimmedPhone)) {
+      res.status(400).json({ error: "Please enter a valid 10-digit contact number." });
+      return;
+    }
+
     const line1 = addressLine1 !== undefined ? String(addressLine1).trim() : undefined;
     const line2 = addressLine2 !== undefined ? String(addressLine2).trim() : undefined;
     const userCity = city !== undefined ? String(city).trim() : undefined;
@@ -269,7 +294,7 @@ export async function updateProfile(req: AuthRequest, res: Response) {
       where: { id: req.user.id },
       data: {
         name: String(name).trim(),
-        ...(phone !== undefined ? { phone: String(phone).trim() || null } : {}),
+        ...(trimmedPhone !== undefined ? { phone: trimmedPhone || null } : {}),
         ...(combinedAddress !== undefined ? { address: combinedAddress || null } : {}),
         ...(line1 !== undefined ? { addressLine1: line1 || null } : {}),
         ...(line2 !== undefined ? { addressLine2: line2 || null } : {}),
@@ -278,6 +303,8 @@ export async function updateProfile(req: AuthRequest, res: Response) {
         ...(pincode !== undefined ? { pincode: trimmedPincode || null } : {}),
       },
     });
+
+    invalidateAllOperationalCaches();
 
     const token = generateToken({
       id: updatedUser.id,

@@ -33,7 +33,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     service: "NagrikConnect Backend API",
-    version: "1.0.0",
+    version: "1.0.1",
     timestamp: new Date().toISOString(),
   });
 });

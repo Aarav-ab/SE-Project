@@ -10,13 +10,76 @@ import ComplaintStep3 from "./pages/ComplaintStep3";
 import DepartmentPortal from "./pages/DepartmentPortal";
 import FieldWorkers from "./pages/FieldWorkers";
 import DepartmentAnalytics from "./pages/DepartmentAnalytics";
-import { assignComplaintWorker, removeAuthToken } from "./api";
+import AdminSchedule from "./pages/AdminSchedule";
+import {
+  assignComplaintWorker,
+  fetchMeApi,
+  getAuthToken,
+  getCurrentUser,
+  removeAuthToken,
+} from "./api";
 import { useComplaint } from "./ComplaintContext";
+
+const ADMIN_PAGES = new Set([
+  "department",
+  "field-workers",
+  "department-analytics",
+  "admin-schedule",
+]);
+
+const CITIZEN_PAGES = new Set([
+  "portal",
+  "complaints",
+  "complaint",
+]);
+
+function getInitialSession(): {
+  role: "citizen" | "admin" | null;
+  page: string;
+  step: number;
+} {
+  try {
+    const token = getAuthToken();
+    const user = getCurrentUser();
+    if (!token || !user) {
+      return { role: null, page: "login", step: 1 };
+    }
+
+    const role: "citizen" | "admin" =
+      user.role === "admin" || user.role === "department_staff"
+        ? "admin"
+        : "citizen";
+
+    const savedPage = localStorage.getItem("nc_current_page") || "";
+    const savedStep = Number(localStorage.getItem("nc_current_step") || "1");
+    const validStep =
+      savedStep >= 1 && savedStep <= 3 ? savedStep : 1;
+
+    if (role === "admin") {
+      return {
+        role,
+        page: ADMIN_PAGES.has(savedPage) ? savedPage : "department",
+        step: 1,
+      };
+    }
+
+    return {
+      role,
+      page: CITIZEN_PAGES.has(savedPage) ? savedPage : "portal",
+      step: validStep,
+    };
+  } catch {
+    return { role: null, page: "login", step: 1 };
+  }
+}
 
 function App() {
   const { refreshComplaints, syncUserSession } = useComplaint();
-  const [currentPage, setCurrentPage] = useState("login");
-  const [, setUserRole] = useState<"citizen" | "admin" | null>(null);
+  const [initialSession] = useState(() => getInitialSession());
+  const [currentPage, setCurrentPage] = useState(initialSession.page);
+  const [, setUserRole] = useState<"citizen" | "admin" | null>(
+    initialSession.role
+  );
   const [preFilledEmail, setPreFilledEmail] = useState("");
   const [authSuccessMsg, setAuthSuccessMsg] = useState("");
   const [crewAssignments, setCrewAssignments] = useState<
@@ -29,7 +92,7 @@ function App() {
       return {};
     }
   });
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(initialSession.step);
   const [, setSelectedComplaintId] = useState("");
   const [complaintToAssign, setComplaintToAssign] = useState<{
     id: string;
@@ -71,6 +134,39 @@ function App() {
       return updated;
     });
   };
+
+  useEffect(() => {
+    if (currentPage !== "login" && currentPage !== "register") {
+      localStorage.setItem("nc_current_page", currentPage);
+      localStorage.setItem("nc_current_step", String(currentStep));
+    }
+  }, [currentPage, currentStep]);
+
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) return;
+    let mounted = true;
+    fetchMeApi().then(({ status, user }) => {
+      if (!mounted) return;
+      if (status === 401) {
+        removeAuthToken();
+        syncUserSession();
+        setUserRole(null);
+        setCurrentPage("login");
+        setCurrentStep(1);
+      } else if (user) {
+        syncUserSession();
+        const role: "citizen" | "admin" =
+          user.role === "admin" || user.role === "department_staff"
+            ? "admin"
+            : "citizen";
+        setUserRole(role);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [syncUserSession]);
 
   useEffect(() => {
     window.scrollTo({
@@ -147,6 +243,7 @@ function App() {
           onSignOut={handleSignOut}
           onOpenFieldWorkers={() => setCurrentPage("field-workers")}
           onOpenAnalytics={() => setCurrentPage("department-analytics")}
+          onOpenSchedule={() => setCurrentPage("admin-schedule")}
           onAssignComplaint={(complaint) => {
             setComplaintToAssign({
               id: complaint.id,
@@ -166,6 +263,18 @@ function App() {
         <DepartmentAnalytics
           onBack={() => setCurrentPage("department")}
           onOpenFieldWorkers={() => setCurrentPage("field-workers")}
+          onOpenSchedule={() => setCurrentPage("admin-schedule")}
+          onSignOut={handleSignOut}
+        />
+      );
+    }
+
+    if (currentPage === "admin-schedule") {
+      return (
+        <AdminSchedule
+          onOpenComplaints={() => setCurrentPage("department")}
+          onOpenFieldWorkers={() => setCurrentPage("field-workers")}
+          onOpenAnalytics={() => setCurrentPage("department-analytics")}
           onSignOut={handleSignOut}
         />
       );
@@ -188,6 +297,7 @@ function App() {
           onAssignCrew={handleCrewAssignment}
           onFreeCrew={handleClearCrewAssignments}
           onOpenAnalytics={() => setCurrentPage("department-analytics")}
+          onOpenSchedule={() => setCurrentPage("admin-schedule")}
         />
       );
     }

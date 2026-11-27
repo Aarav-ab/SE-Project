@@ -4,6 +4,7 @@ import { fetchAnalytics, getCurrentUser, type ApiAnalytics } from "../api";
 type DepartmentAnalyticsProps = {
   onBack: () => void;
   onOpenFieldWorkers: () => void;
+  onOpenSchedule: () => void;
   onSignOut: () => void;
 };
 
@@ -24,6 +25,7 @@ function getDeptBarClass(deptId: string): string {
 function DepartmentAnalytics({
   onBack,
   onOpenFieldWorkers,
+  onOpenSchedule,
   onSignOut,
 }: DepartmentAnalyticsProps) {
   const [analytics, setAnalytics] = useState<ApiAnalytics | null>(null);
@@ -107,6 +109,9 @@ function DepartmentAnalytics({
             </button>
             <button type="button" className="active">
               Department Analytics
+            </button>
+            <button type="button" onClick={onOpenSchedule}>
+              Citizen Hub Schedule
             </button>
           </nav>
         </div>

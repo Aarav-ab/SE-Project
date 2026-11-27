@@ -1,5 +1,19 @@
+import { useEffect, useState } from "react";
 import { useComplaint } from "../ComplaintContext";
+import { fetchAnnouncements, type ApiAnnouncement } from "../api";
 import SettingsMenu, { useUserProfile } from "./SettingsMenu";
+
+function getScheduleIcon(item: ApiAnnouncement): string {
+  if (item.icon && item.icon !== "📢") return item.icon;
+  const text = `${item.category} ${item.title}`.toLowerCase();
+  if (text.includes("power") || text.includes("electric") || text.includes("light")) return "⚡";
+  if (text.includes("water") || text.includes("pipe")) return "💧";
+  if (text.includes("waste") || text.includes("garbage") || text.includes("sanit")) return "🚛";
+  if (text.includes("drain") || text.includes("monsoon")) return "🌧️";
+  if (text.includes("road") || text.includes("pothole")) return "🚧";
+  if (text.includes("maint")) return "🔧";
+  return item.icon || "📢";
+}
 
 function CitizenPortal({
   onFileComplaint,
@@ -34,6 +48,27 @@ function CitizenPortal({
   const userState = currentUser?.state || "Karnataka";
   const userLocationTag = currentUser?.city ? currentUser.city.toUpperCase() : "WARD 14";
   const userRoleDisplay = currentUser?.city ? `${currentUser.city} Citizen` : "Ward 14 Citizen";
+
+  const [scheduleItems, setScheduleItems] = useState<ApiAnnouncement[]>([]);
+  const [scheduleLoaded, setScheduleLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadSchedule = () => {
+      fetchAnnouncements(false).then((list) => {
+        if (mounted) {
+          setScheduleItems(list);
+          setScheduleLoaded(true);
+        }
+      });
+    };
+    loadSchedule();
+    window.addEventListener("focus", loadSchedule);
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", loadSchedule);
+    };
+  }, []);
 
   function handleCategorySelect(complaintType: string) {
     updateComplaint({ complaintType });
@@ -491,74 +526,37 @@ function CitizenPortal({
               </div>
 
               <div className="mt-3">
-                <div className="schedule-item">
-                  <span>⚡</span>
+                {!scheduleLoaded ? (
+                  <p className="small text-muted">Loading today&apos;s schedule...</p>
+                ) : scheduleItems.length === 0 ? (
+                  <p className="small text-muted">
+                    No active advisories or schedule updates posted for today.
+                  </p>
+                ) : (
+                  scheduleItems.map((item) => (
+                    <div className="schedule-item" key={item.id}>
+                      <span>{getScheduleIcon(item)}</span>
 
-                  <div>
-                    <strong
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--navy)",
-                      }}
-                    >
-                      Scheduled Power Maintenance Cut
-                    </strong>
+                      <div>
+                        <strong
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--navy)",
+                          }}
+                        >
+                          {item.title}
+                        </strong>
 
-                    <p
-                      className="small text-body"
-                      style={{ margin: "2px 0 0" }}
-                    >
-                      Feeder inspection and line maintenance scheduled 11:00 AM
-                      – 01:30 PM today across Sector 3 &amp; 5.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="schedule-item">
-                  <span>💧</span>
-
-                  <div>
-                    <strong
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--navy)",
-                      }}
-                    >
-                      Water Supply &amp; Pipeline Timings
-                    </strong>
-
-                    <p
-                      className="small text-body"
-                      style={{ margin: "2px 0 0" }}
-                    >
-                      Morning supply active 06:30 AM – 09:30 AM; pipeline
-                      maintenance 02:00 PM – 04:00 PM in Blocks C &amp; D.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="schedule-item">
-                  <span>🚛</span>
-
-                  <div>
-                    <strong
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--navy)",
-                      }}
-                    >
-                      Morning Waste Collection (Van #12)
-                    </strong>
-
-                    <p
-                      className="small text-body"
-                      style={{ margin: "2px 0 0" }}
-                    >
-                      Wet &amp; dry segregation collection scheduled from 07:30
-                      AM across Sector 2 &amp; 3.
-                    </p>
-                  </div>
-                </div>
+                        <p
+                          className="small text-body"
+                          style={{ margin: "2px 0 0" }}
+                        >
+                          {item.content}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

@@ -361,7 +361,7 @@ function ComplaintStep3({
                 onClick={handleSubmit}
                 disabled={submitting}
               >
-                {submitting ? "Submitting to Backend..." : "Submit Complaint"}
+                {submitting ? "Submitting..." : "Submit Complaint"}
               </button>
             </div>
           </div>

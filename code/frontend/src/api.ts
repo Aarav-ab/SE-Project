@@ -46,15 +46,45 @@ export interface ApiFieldWorker {
   name: string;
   initials: string;
   role: string;
+  departmentId?: string;
   department: string;
   departmentCode: string;
   status: string;
+  color?: string;
   dotColor: string;
-  phone?: string;
+  dot?: string;
+  phone?: string | null;
+  assignment?: string;
   activeTicket: string;
   activeComplaintId: string | null;
+  complaintId?: string;
+  metricLabel?: string;
+  metric?: string;
   ticketsClosedMonth: number;
-  avgResolutionHours: string;
+  action?: string;
+  type?: string;
+}
+
+export interface ApiAnnouncement {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  icon?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ApiCitizenSummary {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
 }
 
 export interface ApiComplaint {
@@ -87,7 +117,15 @@ export interface ApiComplaint {
     name: string;
     initials: string;
     role: string;
+    phone?: string | null;
+    status?: string;
+    department?: {
+      id: string;
+      name: string;
+      code: string;
+    } | null;
   } | null;
+  user?: ApiCitizenSummary | null;
   targetCompletion?: string | null;
   resolvedAt?: string | null;
   userId?: string | null;
@@ -165,6 +203,32 @@ export function setAuthToken(token: string): void {
 export function removeAuthToken(): void {
   localStorage.removeItem("nc_token");
   localStorage.removeItem("nc_current_user");
+  localStorage.removeItem("nc_current_page");
+  localStorage.removeItem("nc_current_step");
+}
+
+export async function fetchMeApi(): Promise<{
+  status: number;
+  user: ApiUser | null;
+}> {
+  const token = getAuthToken();
+  if (!token) return { status: 401, user: null };
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      return { status: response.status, user: null };
+    }
+    const data = await response.json();
+    if (data.user) {
+      localStorage.setItem("nc_current_user", JSON.stringify(data.user));
+      window.dispatchEvent(new Event("nc_user_updated"));
+    }
+    return { status: response.status, user: data.user || null };
+  } catch {
+    return { status: 0, user: null };
+  }
 }
 
 export function getCurrentUser(): {
@@ -576,6 +640,103 @@ export async function updateFieldWorkerStatus(
     console.warn(`Could not update status for field worker ${id}:`, err);
     return false;
   }
+}
+
+export async function updateFieldWorker(
+  id: string,
+  workerData: {
+    name?: string;
+    role?: string;
+    department?: string;
+    phone?: string;
+  }
+): Promise<any | null> {
+  const response = await fetch(`${API_BASE_URL}/workers/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify(workerData),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to update staff member details.");
+  }
+  return data.worker || null;
+}
+
+export async function fetchAnnouncements(
+  includeInactive = false
+): Promise<ApiAnnouncement[]> {
+  try {
+    const query = includeInactive ? "?includeInactive=true" : "";
+    const response = await fetch(`${API_BASE_URL}/civic/announcements${query}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.announcements || [];
+  } catch (err) {
+    console.warn("Could not fetch announcements:", err);
+    return [];
+  }
+}
+
+export async function createAnnouncementApi(payload: {
+  title: string;
+  content: string;
+  category?: string;
+  icon?: string;
+  active?: boolean;
+}): Promise<ApiAnnouncement> {
+  const response = await fetch(`${API_BASE_URL}/civic/announcements`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to create schedule item.");
+  }
+  return data.announcement;
+}
+
+export async function updateAnnouncementApi(
+  id: string,
+  payload: {
+    title?: string;
+    content?: string;
+    category?: string;
+    icon?: string;
+    active?: boolean;
+  }
+): Promise<ApiAnnouncement> {
+  const response = await fetch(
+    `${API_BASE_URL}/civic/announcements/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }
+  );
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to update schedule item.");
+  }
+  return data.announcement;
+}
+
+export async function deleteAnnouncementApi(id: string): Promise<boolean> {
+  const response = await fetch(
+    `${API_BASE_URL}/civic/announcements/${encodeURIComponent(id)}`,
+    {
+      method: "DELETE",
+      headers: getHeaders(),
+    }
+  );
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to delete schedule item.");
+  }
+  return true;
 }
 
 export async function fetchAnalytics(range = "all"): Promise<ApiAnalytics | null> {

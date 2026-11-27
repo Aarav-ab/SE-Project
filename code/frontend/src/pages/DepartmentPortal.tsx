@@ -1,7 +1,7 @@
 import DepartmentComplaintModal from "./DepartmentComplaintModal";
 import { useState, useEffect } from "react";
 import { useComplaint } from "../ComplaintContext";
-import { getCurrentUser, updateComplaintStatus, fetchAnalytics } from "../api";
+import { getCurrentUser, updateComplaintStatus, fetchAnalytics, type ApiCitizenSummary } from "../api";
 
 const PAGE_SIZE = 7;
 
@@ -9,6 +9,7 @@ type DepartmentPortalProps = {
   onSignOut: () => void;
   onOpenFieldWorkers: () => void;
   onOpenAnalytics: () => void;
+  onOpenSchedule: () => void;
   onAssignComplaint: (complaint: {
     id: string;
     title: string;
@@ -29,12 +30,14 @@ type DepartmentComplaintItem = {
   icon: string;
   iconBg: string;
   tagStyle: { background: string; color: string };
+  citizen?: ApiCitizenSummary | null;
 };
 
 function DepartmentPortal({
   onSignOut,
   onOpenFieldWorkers,
   onOpenAnalytics,
+  onOpenSchedule,
   onAssignComplaint,
   crewAssignments,
 }: DepartmentPortalProps) {
@@ -161,6 +164,7 @@ function DepartmentPortal({
         : currentStatus === "In Progress"
         ? { background: "#fef3c7", color: "#b45309" }
         : { background: "#ffdad6", color: "#ba1a1a" },
+      citizen: item.citizenDetails || null,
     };
   });
 
@@ -298,6 +302,15 @@ function DepartmentPortal({
               }}
             >
               Department Analytics
+            </a>
+            <a
+              href="#schedule"
+              onClick={(event) => {
+                event.preventDefault();
+                onOpenSchedule();
+              }}
+            >
+              Citizen Hub Schedule
             </a>
           </nav>
         </div>

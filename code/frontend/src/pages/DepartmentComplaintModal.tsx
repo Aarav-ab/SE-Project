@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { fetchComplaintById, type ApiCitizenSummary } from "../api";
 
 type Complaint = {
   id: string;
@@ -9,6 +10,7 @@ type Complaint = {
   assigned: string;
   status: string;
   icon: string;
+  citizen?: ApiCitizenSummary | null;
 };
 
 type DepartmentComplaintModalProps = {
@@ -25,6 +27,28 @@ function DepartmentComplaintModal({
   const [resolutionNote, setResolutionNote] = useState("");
   const [resolving, setResolving] = useState(false);
   const [error, setError] = useState("");
+  const [fetchedCitizen, setFetchedCitizen] = useState<{
+    complaintId: string;
+    user: ApiCitizenSummary;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!complaint.citizen && complaint.id) {
+      let mounted = true;
+      fetchComplaintById(complaint.id).then((data) => {
+        if (mounted && data?.user) {
+          setFetchedCitizen({ complaintId: complaint.id, user: data.user });
+        }
+      });
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [complaint.id, complaint.citizen]);
+
+  const citizen =
+    complaint.citizen ||
+    (fetchedCitizen?.complaintId === complaint.id ? fetchedCitizen.user : null);
 
   const isResolved =
     complaint.status === "Resolved" || complaint.status === "Closed";
@@ -133,6 +157,75 @@ function DepartmentComplaintModal({
                 <strong>{complaint.assigned}</strong>
               </p>
             </div>
+          </div>
+
+          <div
+            className="department-detail-item"
+            style={{
+              marginTop: 12,
+              background: "var(--blue-50)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <span className="small text-muted" style={{ fontWeight: 700 }}>
+              CITIZEN / COMPLAINANT DETAILS
+            </span>
+            {citizen ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 10,
+                  marginTop: 8,
+                  fontSize: 13,
+                }}
+              >
+                <div>
+                  <span className="small text-muted">Full Name</span>
+                  <div style={{ fontWeight: 700, color: "var(--navy)" }}>
+                    {citizen.name}
+                  </div>
+                </div>
+                <div>
+                  <span className="small text-muted">Contact Number</span>
+                  <div style={{ fontWeight: 700, color: "var(--navy)" }}>
+                    {citizen.phone ? (
+                      <a
+                        href={`tel:${citizen.phone}`}
+                        style={{ color: "var(--navy)", textDecoration: "underline" }}
+                      >
+                        📞 {citizen.phone}
+                      </a>
+                    ) : (
+                      <span className="text-muted">Not provided</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="small text-muted">Email Address</span>
+                  <div style={{ fontWeight: 600, overflowWrap: "anywhere" }}>
+                    <a
+                      href={`mailto:${citizen.email}`}
+                      style={{ color: "var(--navy)", textDecoration: "underline" }}
+                    >
+                      {citizen.email}
+                    </a>
+                  </div>
+                </div>
+                {citizen.address && (
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <span className="small text-muted">Registered Address</span>
+                    <div style={{ color: "var(--text-body)" }}>
+                      {citizen.address}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="small text-muted" style={{ marginTop: 6 }}>
+                Citizen profile details unavailable for this grievance.
+              </p>
+            )}
           </div>
 
           <div style={{ marginTop: 16 }}>
